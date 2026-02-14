@@ -13,7 +13,10 @@
       "author": {
         "name": "Tamir Cohen"
       },
-      "source": "./",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/TamirCohen-Wix/production-master.git"
+      },
       "category": "productivity",
       "homepage": "https://github.com/TamirCohen-Wix/production-master"
     }
