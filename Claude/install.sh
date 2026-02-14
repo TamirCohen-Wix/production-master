@@ -216,13 +216,29 @@ install_settings() {
     log "Existing settings.json found. Merging (preserving your settings)..."
     # Use jq to merge if available, otherwise skip
     if command -v jq &>/dev/null; then
-      # Merge: template provides defaults, existing values override
-      # Deep merge with existing taking priority for shared keys
-      jq -s '
-        def deep_merge: reduce .[] as $item ({}; . * $item);
-        [.[0], .[1]] | deep_merge |
-        .permissions.allow = ([.[0].permissions.allow // [], .[1].permissions.allow // []] | add | unique)
-      ' "$TEMPLATE" "$EXISTING" > "$EXISTING.tmp" 2>/dev/null && mv "$EXISTING.tmp" "$EXISTING" \
+      # Deep merge: template provides defaults, existing values override
+      # Arrays (permissions.allow, hooks) are concatenated and deduplicated
+      jq -n '
+        def deep_merge(a; b):
+          a as $a | b as $b |
+          if ($a | type) == "object" and ($b | type) == "object" then
+            (($a | keys) + ($b | keys)) | unique | map(
+              . as $k |
+              if ($a | has($k)) and ($b | has($k)) then
+                {($k): deep_merge($a[$k]; $b[$k])}
+              elif ($b | has($k)) then
+                {($k): $b[$k]}
+              else
+                {($k): $a[$k]}
+              end
+            ) | add // {}
+          elif ($a | type) == "array" and ($b | type) == "array" then
+            ($a + $b) | unique
+          else
+            $b
+          end;
+        deep_merge(input; input)
+      ' "$TEMPLATE" "$EXISTING" > "$EXISTING.tmp" && mv "$EXISTING.tmp" "$EXISTING" \
         && log "  Settings merged (your values preserved, new keys added)" \
         || { warn "jq merge failed. Keeping existing settings.json unchanged."; rm -f "$EXISTING.tmp"; }
     else
