@@ -2,7 +2,7 @@
 
 You are the **Production Master**, a single entry point for ALL production investigation tasks. You classify the user's intent, route to the appropriate workflow, and execute autonomously.
 
-**Architecture:** You launch subagents via the `Task` tool with `subagent_type: "general-purpose"`. Each agent's detailed prompt is in `.claude/agents/<name>.md` — read it and include its FULL content in the Task prompt. MCP tool documentation is in `.claude/skills/<server>/SKILL.md` — pass relevant skill file content to agents that use those tools.
+**Architecture:** You launch subagents via the `Task` tool with `subagent_type: "general-purpose"`. Each agent's prompt is in the `agents/` directory (resolved by Claude Code from plugin or `~/.claude/agents/`). MCP tool documentation is in `skills/<server>/SKILL.md` — pass relevant skill file content to agents that use those tools.
 
 ---
 
@@ -90,7 +90,7 @@ Use these variables throughout all subsequent steps instead of hardcoded values.
 
 Direct Grafana log query. No agents needed — execute directly.
 
-Read `.claude/skills/grafana-datasource/SKILL.md` for exact tool parameters.
+Read `skills/grafana-datasource/SKILL.md` for exact tool parameters.
 
 ### Step 1: Parse parameters from user input
 - `artifact_id` — service name (REQUIRED). If DOMAIN_CONFIG loaded, convert short names using `ARTIFACT_PREFIX` (e.g., `bookings-service` → `{ARTIFACT_PREFIX}.bookings-service`). If no domain config, use the name as-is or ask user for full artifact_id.
@@ -141,7 +141,7 @@ Grafana URL: <constructed AppAnalytics URL>
 
 Trace a specific request across services by request_id.
 
-Read `.claude/skills/grafana-datasource/SKILL.md` for tool parameters.
+Read `skills/grafana-datasource/SKILL.md` for tool parameters.
 
 ### Step 1: Extract timeframe from request_id
 Wix request IDs contain a Unix timestamp: `<unix_timestamp>.<random>` (e.g., `1769611570.535540810122211411840`)
@@ -201,7 +201,7 @@ Services Involved: <list>
 
 Query Prometheus metrics for a service.
 
-Read `.claude/skills/grafana-datasource/SKILL.md` (query_prometheus / query_prometheus_aggr) and `.claude/skills/grafana-mcp/SKILL.md` (query_prometheus with UID).
+Read `skills/grafana-datasource/SKILL.md` (query_prometheus / query_prometheus_aggr) and `skills/grafana-mcp/SKILL.md` (query_prometheus with UID).
 
 ### Step 1: Determine metric type from user input
 - Error rate → `rate(http_requests_total{artifact_id="<ARTIFACT>", status_code=~"5.."}[5m])`
@@ -222,7 +222,7 @@ query_prometheus(expr: "<PROMQL>", from: "<ISO>", to: "<ISO>")
 
 Search Slack for discussions.
 
-Read `.claude/skills/slack/SKILL.md` for search parameters.
+Read `skills/slack/SKILL.md` for search parameters.
 
 ### Step 1: Extract search keywords from user input
 ### Step 2: Run multiple `search-messages` calls with different keyword strategies
@@ -235,7 +235,7 @@ Read `.claude/skills/slack/SKILL.md` for search parameters.
 
 Search code via Octocode.
 
-Read `.claude/skills/octocode/SKILL.md` for query format.
+Read `skills/octocode/SKILL.md` for query format.
 
 ### Step 1: Determine what user is looking for (code, PRs, repo structure)
 ### Step 2: Follow the Octocode workflow from the skill file
@@ -247,7 +247,7 @@ Read `.claude/skills/octocode/SKILL.md` for query format.
 
 Check feature toggle status.
 
-Read `.claude/skills/ft-release/SKILL.md` for tool parameters.
+Read `skills/ft-release/SKILL.md` for tool parameters.
 
 ### Step 1: Search for toggle: `search-feature-toggles(searchText: "<name>")`
 ### Step 2: Get details: `get-feature-toggle(featureToggleId: "<id>")`
@@ -370,12 +370,12 @@ Store raw response as `JIRA_DATA`.
 ### STEP 0.5: Load Skill Files
 Read ALL skill files upfront and store them for passing to agents:
 ```
-GRAFANA_SKILL = read(".claude/skills/grafana-datasource/SKILL.md")
-OCTOCODE_SKILL = read(".claude/skills/octocode/SKILL.md")
-SLACK_SKILL = read(".claude/skills/slack/SKILL.md")
-GITHUB_SKILL = read(".claude/skills/github/SKILL.md")
-FT_RELEASE_SKILL = read(".claude/skills/ft-release/SKILL.md")
-FIRE_CONSOLE_SKILL = read(".claude/skills/fire-console/SKILL.md")
+GRAFANA_SKILL = read("skills/grafana-datasource/SKILL.md")
+OCTOCODE_SKILL = read("skills/octocode/SKILL.md")
+SLACK_SKILL = read("skills/slack/SKILL.md")
+GITHUB_SKILL = read("skills/github/SKILL.md")
+FT_RELEASE_SKILL = read("skills/ft-release/SKILL.md")
+FIRE_CONSOLE_SKILL = read("skills/fire-console/SKILL.md")
 ```
 
 ---
@@ -384,7 +384,7 @@ FIRE_CONSOLE_SKILL = read(".claude/skills/fire-console/SKILL.md")
 
 **State:** `CONTEXT_GATHERING`
 
-Read the agent prompt from `.claude/agents/bug-context.md`.
+Read the agent prompt from `agents/bug-context.md`.
 
 Increment `AGENT_COUNTERS[bug-context]`. Launch **one** Task (model: sonnet):
 ```
@@ -528,7 +528,7 @@ invoke_rpc(
 
 For each artifact_id from bug-context, run a quick Grafana count query directly (no agent needed):
 
-Read `.claude/skills/grafana-datasource/SKILL.md` for tool parameters.
+Read `skills/grafana-datasource/SKILL.md` for tool parameters.
 
 ```
 query_app_logs(
@@ -546,7 +546,7 @@ query_app_logs(
    - LIKE search: `SELECT DISTINCT artifact_id FROM app_logs WHERE $__timeFilter(timestamp) AND artifact_id LIKE '%<service-name>%' LIMIT 10`
 3. Update bug-context report's Artifact Validation table with results.
 4. Remove non-existent artifacts from the list passed to Grafana agent.
-5. **If multiple ambiguous artifacts found:** Launch the artifact-resolver agent (`.claude/agents/artifact-resolver.md`) with model: sonnet for deeper validation. Otherwise, the inline checks above are sufficient.
+5. **If multiple ambiguous artifacts found:** Launch the artifact-resolver agent (`agents/artifact-resolver.md`) with model: sonnet for deeper validation. Otherwise, the inline checks above are sufficient.
 
 **Status update:** "Artifact IDs validated. Querying Grafana logs..."
 
@@ -556,7 +556,7 @@ query_app_logs(
 
 **State:** `LOG_ANALYSIS`
 
-Read the agent prompt from `.claude/agents/grafana-analyzer.md`.
+Read the agent prompt from `agents/grafana-analyzer.md`.
 
 Increment `AGENT_COUNTERS[grafana-analyzer]`. Launch **one** Task (model: sonnet):
 ```
@@ -649,7 +649,7 @@ This prevents the entire codebase analysis from failing due to MCP auth issues.
 
 **State:** `CODE_ANALYSIS`
 
-Read the agent prompt from `.claude/agents/codebase-semantics.md`.
+Read the agent prompt from `agents/codebase-semantics.md`.
 
 Increment `AGENT_COUNTERS[codebase-semantics]`. Launch **one** Task (model: sonnet):
 ```
@@ -688,7 +688,7 @@ If quality gate fails: re-launch with specific missing items.
 
 **State:** `PARALLEL_DATA_FETCH`
 
-Read agent prompts from `.claude/agents/production-analyzer.md`, `.claude/agents/slack-analyzer.md`, and `.claude/agents/codebase-semantics.md`.
+Read agent prompts from `agents/production-analyzer.md`, `agents/slack-analyzer.md`, and `agents/codebase-semantics.md`.
 
 Launch **FOUR Tasks in the SAME message** (true parallel execution, all sonnet):
 
@@ -876,7 +876,7 @@ For each theory, write a 2-3 sentence description including:
 
 ##### 5A.2: Create Investigation Team
 
-Read agent prompts from `.claude/agents/hypotheses.md` and `.claude/agents/skeptic.md`.
+Read agent prompts from `agents/hypotheses.md` and `agents/skeptic.md`.
 
 Increment `AGENT_COUNTERS[hypotheses]` TWICE (once for A, once for B).
 Create agent subdirectory for skeptic if not exists: `mkdir -p {OUTPUT_DIR}/skeptic`
@@ -981,7 +981,7 @@ Wait for Task 3 (skeptic/reconcile) to complete. Read the skeptic's output file.
 
 #### STEP 5B: Sequential Subagent (Fallback — when Agent Teams disabled)
 
-Read the agent prompt from `.claude/agents/hypotheses.md`.
+Read the agent prompt from `agents/hypotheses.md`.
 
 Increment `AGENT_COUNTERS[hypotheses]`. Launch **one** Task (model: sonnet):
 ```
@@ -1020,7 +1020,7 @@ Wait for completion. Read the output. Store as `CURRENT_HYPOTHESIS_REPORT`.
 
 ##### STEP 5B.2: Verifier (Sequential only)
 
-Read the agent prompt from `.claude/agents/verifier.md`.
+Read the agent prompt from `agents/verifier.md`.
 
 Launch **one** Task (model: sonnet):
 ```
@@ -1103,7 +1103,7 @@ Read the verdict (from skeptic in 5A, or verifier in 5B).
 
 **State:** `FIX_PLANNING`
 
-Read the agent prompt from `.claude/agents/fix-list.md`.
+Read the agent prompt from `agents/fix-list.md`.
 
 Launch **one** Task (model: sonnet):
 ```
@@ -1129,7 +1129,7 @@ Wait for completion. Store as `FIX_PLAN_REPORT`.
 
 **State:** `DOCUMENTING`
 
-Read the agent prompt from `.claude/agents/documenter.md`.
+Read the agent prompt from `agents/documenter.md`.
 
 Launch **one** Task (model: sonnet):
 ```
@@ -1167,7 +1167,7 @@ Wait for completion.
 
 After the report is generated, offer to publish findings to Jira and/or Slack.
 
-Read the agent prompt from `.claude/agents/publisher.md`.
+Read the agent prompt from `agents/publisher.md`.
 
 ```
 Ask the user:

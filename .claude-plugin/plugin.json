@@ -1,0 +1,7 @@
+{
+  "name": "production-master",
+  "description": "Autonomous production investigation pipeline — 12 agents, hypothesis loops, multi-source data collection",
+  "version": "1.0.0",
+  "author": { "name": "Tamir Cohen" },
+  "repository": "https://github.com/TamirCohen-Wix/production-master"
+}

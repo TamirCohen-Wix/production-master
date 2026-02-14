@@ -15,9 +15,9 @@ Sync Claude config files to the production-master repo and commit.
 
 First, find the production-master repo:
 PM_ROOT=""
-if [ -d ~/Projects/production-master/Common ]; then
+if [ -d ~/Projects/production-master/agents ]; then
   PM_ROOT=~/Projects/production-master
-elif [ -d ~/.claude/production-master/Common ]; then
+elif [ -d ~/.claude/production-master/agents ]; then
   PM_ROOT=~/.claude/production-master
 fi
 
@@ -29,19 +29,19 @@ fi
 
 Run these commands:
 
-# Sync Common layer
-rsync -av --delete ~/.claude/agents/ $PM_ROOT/Common/agents/
-rsync -av --delete ~/.claude/commands/ $PM_ROOT/Common/commands/
-rsync -av --delete ~/.claude/skills/ $PM_ROOT/Common/skills/
-rsync -av --delete ~/.claude/hooks/ $PM_ROOT/Common/hooks/
-rsync -av --delete ~/.claude/output-styles/ $PM_ROOT/Common/output-styles/
+# Sync pipeline components to plugin root
+rsync -av --delete ~/.claude/agents/ $PM_ROOT/agents/
+rsync -av --delete ~/.claude/commands/ $PM_ROOT/commands/
+rsync -av --delete ~/.claude/skills/ $PM_ROOT/skills/
+rsync -av --delete ~/.claude/output-styles/ $PM_ROOT/output-styles/
 
-# Sync settings template (strip local/sensitive data)
-cp ~/.claude/settings.json $PM_ROOT/Claude/templates/settings.json
+# Sync hooks script
+mkdir -p $PM_ROOT/scripts
+rsync -av ~/.claude/hooks/validate-report-links.sh $PM_ROOT/scripts/validate-report-links.sh
 
 # Stage changes
 cd $PM_ROOT
-git add -A Common/ Claude/templates/
+git add -A agents/ commands/ skills/ output-styles/ scripts/ hooks/
 
 # Check for changes
 git diff --cached --name-status
@@ -49,7 +49,7 @@ git diff --cached --name-status
 If no staged changes, respond "Nothing to sync — everything is up to date." and stop.
 
 If there are changes, build a commit message:
-- Title: "Update pipeline: " + comma-separated list of changed categories (derive category from first dir, e.g. Common/agents/foo.md → "agents", Claude/templates/settings.json → "settings")
+- Title: "Update pipeline: " + comma-separated list of changed categories (derive category from first dir, e.g. agents/foo.md → "agents", scripts/validate-report-links.sh → "scripts")
 - Body: one bullet per file: "- New: path" for A, "- Updated: path" for M, "- Deleted: path" for D
 - End with: Co-Authored-By: Claude <noreply@anthropic.com>
 

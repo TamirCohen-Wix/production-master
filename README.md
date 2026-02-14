@@ -2,54 +2,23 @@
 
 Autonomous production investigation pipeline for Claude Code. Classifies user intent, routes to specialized agents, and executes multi-step bug investigations with hypothesis loops.
 
-## How It Works
-
-Production Master installs **exclusively to `~/.claude/`** (user scope). It never touches your repo's `.claude/` directory — your repo's agents, settings, CLAUDE.md, and rules stay untouched.
-
-```
-~/.claude/                          ← User-scoped Claude Code config
-├── agents/                         ← 12 pipeline agents (installed by production-master)
-├── commands/                       ← 3 commands (production-master, update-context, git-update-agents)
-├── skills/                         ← 9 MCP skill references
-├── hooks/                          ← Link validation hook
-├── output-styles/                  ← Investigation report + publisher formatting
-└── production-master/              ← Production Master's own namespace
-    ├── manifest.txt                ← Tracks all installed files (for clean uninstall)
-    └── domains/                    ← Domain configs per repo
-        └── scheduler/
-            ├── domain.json         ← Artifact IDs, Jira project, Slack channels
-            ├── CLAUDE.md           ← Repo-specific instructions (reference copy)
-            └── memory/
-                └── MEMORY.md       ← Accumulated investigation knowledge
-```
-
-**Your repo's `.claude/` is never modified.** Agents, commands, and skills work from `~/.claude/` because Claude Code checks both user and repo scope.
-
----
-
 ## Quick Start
 
-### Install (from any directory)
+### Install via Plugin Marketplace
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TamirCohen-Wix/production-master/main/Claude/install.sh | bash
+claude plugin marketplace add TamirCohen-Wix/production-master
+claude plugin install production-master
 ```
 
-### Install from cloned repo
+### Local Testing (from cloned repo)
 
 ```bash
 git clone https://github.com/TamirCohen-Wix/production-master.git
-cd production-master
-./Claude/install.sh
+claude --plugin-dir ./production-master
 ```
 
-### Also merge recommended settings (hooks, permissions)
-
-```bash
-./Claude/install.sh --with-settings
-```
-
-### Set up domain for your repo
+### Set Up Domain for Your Repo
 
 After installing, run in Claude Code from your repo:
 ```
@@ -58,13 +27,24 @@ After installing, run in Claude Code from your repo:
 
 This interactively builds `domain.json`, `CLAUDE.md`, and `MEMORY.md` for your repo, stored under `~/.claude/production-master/domains/<repo>/`, then offers to PR it back.
 
+### Enable Agent Teams (Recommended)
+
+Add this to your `~/.claude/settings.json` manually:
+```json
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
+```
+
+This enables competing hypothesis testing with skeptic cross-examination during investigations.
+
 ### Uninstall
 
 ```bash
-./Claude/install.sh --uninstall
+claude plugin uninstall production-master
 ```
-
-Reads the manifest and removes **only** files that production-master installed. Your `~/.claude/settings.json` is left as-is.
 
 ---
 
@@ -85,21 +65,29 @@ Use `/update-context` after investigations to learn from them and contribute bac
 
 ---
 
-## Architecture: 3 Layers
+## Plugin Structure
 
 ```
 production-master/
-├── Common/          ← Generic pipeline (agents, commands, skills, hooks, output-styles)
-├── Domain/          ← Company/team/repo specific context
+├── .claude-plugin/
+│   └── plugin.json              ← Plugin metadata
+├── agents/                      ← 12 pipeline agents
+├── commands/                    ← 3 commands (production-master, update-context, git-update-agents)
+├── skills/                      ← 9 MCP skill references
+├── hooks/
+│   └── hooks.json               ← Notification + link validation hooks
+├── scripts/
+│   └── validate-report-links.sh ← Report link validator
+├── output-styles/               ← Investigation report + publisher formatting
+├── Domain/                      ← Company/team/repo domain configs
 │   └── Bookings/Server/scheduler/
-│       ├── domain.json, CLAUDE.md, memory/MEMORY.md
-├── Claude/          ← Installation tooling
-│   ├── install.sh
-│   └── templates/settings.json
-└── README.md
+├── README.md
+└── .gitignore
 ```
 
-### Common — Generic Pipeline Components
+---
+
+## Architecture
 
 12 specialized agents, 3 commands, 9 skill references, 2 output styles, 1 link validation hook.
 
@@ -120,7 +108,7 @@ production-master/
 
 Commands: `/production-master` (main orchestrator), `/update-context` (domain management & learning), `/git-update-agents` (sync back to repo).
 
-### Domain — Company/Team/Repo Context
+### Domain Config
 
 Each repository gets a domain directory containing:
 
@@ -128,7 +116,7 @@ Each repository gets a domain directory containing:
 - **`CLAUDE.md`** — Repo-specific Claude instructions: service descriptions, debugging tips
 - **`memory/MEMORY.md`** — Accumulated investigation knowledge
 
-You don't create these manually — use `/update-context` and it will guide you interactively.
+You don't create these manually — use `/update-context` and it will guide you interactively. Domain configs live in `Domain/` for contribution via PR and are installed at runtime to `~/.claude/production-master/domains/<repo>/`.
 
 ---
 
@@ -267,40 +255,6 @@ Each investigation creates a timestamped output directory:
 
 ---
 
-## Recommended Settings
-
-The installer doesn't modify `~/.claude/settings.json` by default. To opt in:
-
-```bash
-./Claude/install.sh --with-settings
-```
-
-Or manually add these to `~/.claude/settings.json`:
-
-```json
-{
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
-  },
-  "hooks": {
-    "Notification": [{
-      "matcher": "",
-      "hooks": [{"type": "command", "command": "osascript -e 'display notification \"Claude Code needs your attention\" with title \"Claude Code\"'"}]
-    }],
-    "PostToolUse": [{
-      "matcher": "Write",
-      "hooks": [{"type": "command", "command": "\"$HOME\"/.claude/hooks/validate-report-links.sh"}]
-    }]
-  }
-}
-```
-
-- **Agent Teams** — Enables competing hypothesis testing with skeptic cross-examination
-- **Notification hook** — Desktop notification when Claude needs your attention
-- **Link validation hook** — Validates Grafana URLs and links in reports before publishing
-
----
-
 ## Contributing
 
 ### Contributing a new domain
@@ -315,13 +269,13 @@ The easiest way — use `/update-context`:
 ### Contributing pipeline improvements
 
 1. **Fork & clone** this repo
-2. **Edit files** in `Common/` (agents, commands, skills, hooks, output-styles)
-3. **Test locally** — run `./Claude/install.sh` and use `/production-master` on a real ticket
+2. **Edit files** directly (agents, commands, skills, hooks, output-styles, scripts)
+3. **Test locally** — run `claude --plugin-dir .` and use `/production-master` on a real ticket
 4. **Open a PR** with what you changed and why
 
 ### Guidelines
 
-- **Don't hardcode company-specific values** in `Common/` — use `domain.json` for anything repo-specific
+- **Don't hardcode company-specific values** in pipeline files — use `domain.json` for anything repo-specific
 - **Keep agents focused** — each agent has one job. Don't add analysis to data-collection agents
 - **Test with real tickets** — the best way to validate changes
 - **Update MEMORY.md** — if you learn something from an investigation, capture it
@@ -333,4 +287,3 @@ The easiest way — use `/update-context`:
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
 - MCP servers: Grafana, Slack, Jira, GitHub, Octocode, FT-release (configured via your organization)
 - `gh` CLI (for `/update-context` PR flow)
-- `jq` (optional, for `--with-settings` merge)
