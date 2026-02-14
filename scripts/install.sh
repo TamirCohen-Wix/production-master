@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # Production Master — One-line installer
-# Usage: bash <(curl -sL https://raw.githubusercontent.com/TamirCohen-Wix/production-master/main/scripts/install.sh)
+# Usage (private repo — requires gh CLI):
+#   bash <(gh api repos/TamirCohen-Wix/production-master/contents/scripts/install.sh --jq '.content' | base64 -d)
+# Usage (if repo becomes public):
+#   bash <(curl -sL https://raw.githubusercontent.com/TamirCohen-Wix/production-master/main/scripts/install.sh)
 set -euo pipefail
 
 REPO="TamirCohen-Wix/production-master"
 CLAUDE_JSON="$HOME/.claude.json"
 SETTINGS_JSON="$HOME/.claude/settings.json"
-MCP_TEMPLATE_URL="https://raw.githubusercontent.com/$REPO/main/mcp-servers.json"
 MCP_CONNECT_URL="https://mcp-s-connect.wewix.net/mcp-servers"
 
 # Colors
@@ -27,6 +29,12 @@ if ! command -v claude &>/dev/null; then
   exit 1
 fi
 ok "Claude Code CLI found"
+
+if ! command -v gh &>/dev/null; then
+  err "GitHub CLI (gh) not found. Install it first: https://cli.github.com"
+  exit 1
+fi
+ok "GitHub CLI found"
 
 if ! command -v jq &>/dev/null; then
   warn "jq not found — installing via Homebrew..."
@@ -51,10 +59,10 @@ ok "Plugin installed"
 # ─── Step 2: Configure MCP servers ───────────────────────────────────
 header "Step 2/4 — Configure MCP Servers"
 
-# Download template
-TEMPLATE=$(curl -sL "$MCP_TEMPLATE_URL")
+# Download template via GitHub API (works for private repos)
+TEMPLATE=$(gh api "repos/$REPO/contents/mcp-servers.json" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "")
 if [ -z "$TEMPLATE" ]; then
-  err "Failed to download MCP server template"
+  err "Failed to download MCP server template from GitHub API"
   exit 1
 fi
 ok "Downloaded MCP server template"
@@ -87,14 +95,15 @@ else
   read -rp "  Enter your MCP access key (or press Enter to skip): " ACCESS_KEY
 
   if [ -n "$ACCESS_KEY" ]; then
-    # Build a JSON object with only the missing servers, key substituted
+    # Build a JSON object with all servers, key substituted
+    # Uses jq compatible with 1.6+ (no ?. operator)
     MERGE_JSON=$(echo "$TEMPLATE" | jq --arg key "$ACCESS_KEY" '
       .mcpServers | to_entries | map(
         .value |= (
-          if .env?.USER_ACCESS_KEY == "<YOUR_ACCESS_KEY>" then
+          if (.env // {}).USER_ACCESS_KEY == "<YOUR_ACCESS_KEY>" then
             .env.USER_ACCESS_KEY = $key
           else . end
-          | if .headers?."x-user-access-key" == "<YOUR_ACCESS_KEY>" then
+          | if (.headers // {})."x-user-access-key" == "<YOUR_ACCESS_KEY>" then
               .headers."x-user-access-key" = $key
             else . end
         )

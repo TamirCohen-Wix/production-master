@@ -12,7 +12,7 @@ Autonomous production investigation pipeline for Claude Code. Classifies user in
 ### One-Line Install (Recommended)
 
 ```bash
-bash <(curl -sL https://raw.githubusercontent.com/TamirCohen-Wix/production-master/main/scripts/install.sh)
+bash <(gh api repos/TamirCohen-Wix/production-master/contents/scripts/install.sh --jq '.content' | base64 -d)
 ```
 
 This single command handles everything:
@@ -21,7 +21,7 @@ This single command handles everything:
 3. Enables agent teams for competing hypothesis testing
 4. Prints next steps
 
-> **Requires:** [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) and `jq` (auto-installed via Homebrew if missing)
+> **Requires:** [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code), [GitHub CLI](https://cli.github.com) (`gh`), and `jq` (auto-installed via Homebrew if missing)
 
 ### Manual Install
 
