@@ -291,12 +291,12 @@ Create: `{DEBUG_ROOT}/debug-{TASK_SLUG}-{timestamp}/` and store as `OUTPUT_DIR`.
 
 **Create agent subdirectories:**
 ```bash
-mkdir -p {OUTPUT_DIR}/{bug-context,grafana-analyzer,codebase-semantics,production-analyzer,slack-analyzer,hypotheses,verifier,skeptic,fix-list,documenter,publisher}
+mkdir -p {OUTPUT_DIR}/{bug-context,grafana-analyzer,codebase-semantics,production-analyzer,slack-analyzer,fire-console,hypotheses,verifier,skeptic,fix-list,documenter,publisher}
 ```
 
 **Initialize agent invocation counters** (track per-agent re-invocations):
 ```
-AGENT_COUNTERS = {bug-context: 0, grafana-analyzer: 0, codebase-semantics: 0, codebase-semantics-prs: 0, production-analyzer: 0, slack-analyzer: 0, hypotheses: 0, verifier: 0, skeptic: 0, fix-list: 0, documenter: 0, publisher: 0}
+AGENT_COUNTERS = {bug-context: 0, grafana-analyzer: 0, codebase-semantics: 0, codebase-semantics-prs: 0, production-analyzer: 0, slack-analyzer: 0, fire-console-enrichment: 0, hypotheses: 0, verifier: 0, skeptic: 0, fix-list: 0, documenter: 0, publisher: 0}
 ```
 Increment the relevant counter BEFORE each agent launch. The counter value becomes the `V{N}` suffix in the output filename.
 
@@ -368,6 +368,7 @@ OCTOCODE_SKILL = read(".claude/skills/octocode/SKILL.md")
 SLACK_SKILL = read(".claude/skills/slack/SKILL.md")
 GITHUB_SKILL = read(".claude/skills/github/SKILL.md")
 FT_RELEASE_SKILL = read(".claude/skills/ft-release/SKILL.md")
+FIRE_CONSOLE_SKILL = read(".claude/skills/fire-console/SKILL.md")
 ```
 
 ---
@@ -392,7 +393,125 @@ Wait for completion. Read the output file. Store as `BUG_CONTEXT_REPORT`.
 
 **Quality gate:** Verify bug-context has: services, time window, identifiers. If missing critical data (no service name, no time), ask user before proceeding.
 
-**Status update:** "Bug context gathered. Querying Grafana logs..."
+**Status update:** "Bug context gathered. Enriching data via Fire Console..."
+
+---
+
+### STEP 1.3: Data Enrichment via Fire Console
+
+**State:** `DATA_ENRICHMENT`
+
+Use Fire Console to fetch full domain objects when bug-context only has partial identifiers (MSID, bookingID, orderID, serviceID, etc.). This enriches the investigation context BEFORE log analysis.
+
+**When to run:** Always run if `DOMAIN_CONFIG` is loaded and bug-context contains any of these identifiers:
+- `meta_site_id` / MSID → fetch site info, installed apps
+- `booking_id` → fetch full enriched booking (with order, service, contact data)
+- `order_id` → fetch enriched booking by order ID
+- `service_id` → fetch service definition (type, policies, settings)
+- `event_id` → fetch calendar event details
+- `contact_id` → look up user context
+
+**When to skip:** If bug-context has NO domain-specific identifiers (e.g., pure infrastructure issue), skip this step.
+
+**Execution (inline — no agent needed):**
+
+Load the fire-console tools:
+```
+ToolSearch("select:mcp__fire-console__invoke_rpc")
+ToolSearch("select:mcp__fire-console__search_services")
+ToolSearch("select:mcp__fire-console__find_site")
+```
+
+For each identifier found in bug-context, run the appropriate query:
+
+**If MSID found:**
+```
+find_site(query: "<MSID>")
+→ Store: site name, URL, account info
+```
+
+**If booking_id found:**
+```
+invoke_rpc(
+  target: { artifactId: "{ARTIFACT_PREFIX}.bookings-bo-enriched-query-bookings" },
+  service: "com.wixpress.bookings.boBookingEnricher.EnrichedBookingService",
+  method: "GetEnrichedBooking",
+  payload: { "bookingId": "<BOOKING_ID>" },
+  aspects: { "meta-site-id": "<MSID>" }
+)
+→ Store: full booking with order ID, service ID, contact info, status, timestamps
+```
+
+**If order_id found (but no booking_id):**
+```
+invoke_rpc(
+  target: { artifactId: "{ARTIFACT_PREFIX}.bookings-bo-enriched-query-bookings" },
+  service: "com.wixpress.bookings.boBookingEnricher.EnrichedBookingService",
+  method: "QueryEnrichedBookings",
+  payload: { "query": { "filter": { "orderId": "<ORDER_ID>" } } },
+  aspects: { "meta-site-id": "<MSID>" }
+)
+→ Store: booking linked to this order
+```
+
+**If service_id found:**
+```
+invoke_rpc(
+  target: { artifactId: "{ARTIFACT_PREFIX}.services-2" },
+  service: "wix.bookings.services.v2.ServicesService",
+  method: "GetService",
+  payload: { "id": "<SERVICE_ID>" },
+  aspects: { "meta-site-id": "<MSID>" }
+)
+→ Store: service type, name, policies, settings
+```
+
+**If event_id found:**
+```
+invoke_rpc(
+  target: { artifactId: "com.wixpress.calendar.events-3" },
+  service: "wix.calendar.events.v3.EventsService",
+  method: "GetEvent",
+  payload: { "id": "<EVENT_ID>" },
+  aspects: { "meta-site-id": "<MSID>" }
+)
+→ Store: event type, schedule, status, recurrence
+```
+
+**Store all results as `ENRICHED_CONTEXT`.** This is a structured summary:
+```markdown
+## Enriched Context (Fire Console)
+
+### Site
+- Name: ...
+- URL: ...
+- MSID: ...
+
+### Booking (if fetched)
+- Booking ID: ...
+- Order ID: ...
+- Service: ... (service_id)
+- Contact: ... (contact_id)
+- Status: ...
+- Created: ...
+- Start time: ...
+
+### Service (if fetched)
+- Name: ...
+- Type: ... (APPOINTMENT / CLASS / COURSE)
+- Policies: ...
+
+### Event (if fetched)
+- Type: ...
+- Status: ...
+- Schedule ID: ...
+```
+
+**Pass `ENRICHED_CONTEXT` to ALL subsequent agents** alongside `BUG_CONTEXT_REPORT`. This gives every agent full domain context without needing to query Fire Console themselves.
+
+**If any Fire Console query fails:** Log the failure but do NOT block the pipeline. Fire Console enrichment is additive — the investigation works without it.
+
+**Status update:** "Data enriched. Validating artifact IDs..."
 
 ---
 
@@ -437,6 +556,7 @@ Increment `AGENT_COUNTERS[grafana-analyzer]`. Launch **one** Task (model: sonnet
 Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of grafana-analyzer.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
+  + ENRICHED_CONTEXT: [full content from Step 1.3, or "No enrichment data — Fire Console skipped"]
   + GRAFANA_SKILL_REFERENCE: [full content of GRAFANA_SKILL]
   + OUTPUT_FILE: {OUTPUT_DIR}/grafana-analyzer/grafana-analyzer-output-V{N}.md
   + TRACE_FILE: {OUTPUT_DIR}/grafana-analyzer/grafana-analyzer-trace-V{N}.md
@@ -529,6 +649,7 @@ Increment `AGENT_COUNTERS[codebase-semantics]`. Launch **one** Task (model: sonn
 Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of codebase-semantics.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
+  + ENRICHED_CONTEXT: [full content from Step 1.3, or "No enrichment data"]
   + GRAFANA_REPORT: [full content]
   + OCTOCODE_SKILL_REFERENCE: [full content of OCTOCODE_SKILL]
   + OUTPUT_FILE: {OUTPUT_DIR}/codebase-semantics/codebase-semantics-output-V{N}.md
@@ -562,15 +683,16 @@ If quality gate fails: re-launch with specific missing items.
 
 Read agent prompts from `.claude/agents/production-analyzer.md`, `.claude/agents/slack-analyzer.md`, and `.claude/agents/codebase-semantics.md`.
 
-Launch **THREE Tasks in the SAME message** (true parallel execution, all sonnet):
+Launch **FOUR Tasks in the SAME message** (true parallel execution, all sonnet):
 
-Increment counters for `production-analyzer`, `slack-analyzer`, and `codebase-semantics-prs`.
+Increment counters for `production-analyzer`, `slack-analyzer`, `codebase-semantics-prs`, and `fire-console-enrichment`.
 
 **Task 1 — Production Analyzer:**
 ```
 Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of production-analyzer.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
+  + ENRICHED_CONTEXT: [full content from Step 1.3, or "No enrichment data"]
   + CODEBASE_SEMANTICS_REPORT: [full content]
   + GRAFANA_REPORT: [full content — for error context only]
   + GITHUB_SKILL_REFERENCE: [full content of GITHUB_SKILL]
@@ -589,6 +711,7 @@ Prompt: [full content of production-analyzer.md agent prompt]
 Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of slack-analyzer.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
+  + ENRICHED_CONTEXT: [full content from Step 1.3, or "No enrichment data"]
   + CODEBASE_SEMANTICS_REPORT: [full content — for service names and keywords]
   + SLACK_SKILL_REFERENCE: [full content of SLACK_SKILL]
   + OUTPUT_FILE: {OUTPUT_DIR}/slack-analyzer/slack-analyzer-output-V{N}.md
@@ -603,6 +726,7 @@ Prompt: [full content of slack-analyzer.md agent prompt]
 Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of codebase-semantics.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
+  + ENRICHED_CONTEXT: [full content from Step 1.3, or "No enrichment data"]
   + CODEBASE_SEMANTICS_REPORT: [full content]
   + GRAFANA_REPORT: [full content]
   + OCTOCODE_SKILL_REFERENCE: [full content of OCTOCODE_SKILL]
@@ -615,15 +739,58 @@ Prompt: [full content of codebase-semantics.md agent prompt]
   Follow OCTOCODE_SKILL_REFERENCE for query format and PR search parameters."
 ```
 
-Wait for ALL THREE to complete. Read their outputs. Store as:
+**Task 4 — Fire Console Deep Enrichment (conditional):**
+
+Run this task ONLY if:
+- `DOMAIN_CONFIG` is loaded
+- Grafana report (Step 2) surfaced identifiers not yet enriched in Step 1.3 (new MSIDs, booking IDs, service IDs from error logs)
+- OR codebase-semantics (Step 3) identified services whose runtime behavior needs inspection
+
+If conditions met, increment `AGENT_COUNTERS[fire-console-enrichment]`:
+```
+Task: subagent_type="general-purpose", model="sonnet"
+Prompt: You are a data enrichment agent. Use Fire Console to fetch domain objects
+  from Wix production services. Your job is to provide FULL CONTEXT for identifiers
+  found during the investigation.
+
+  FIRE_CONSOLE_SKILL_REFERENCE: [full content of FIRE_CONSOLE_SKILL]
+  BUG_CONTEXT_REPORT: [full content]
+  ENRICHED_CONTEXT: [full content from Step 1.3 — what's already been fetched]
+  GRAFANA_REPORT: [full content — extract new identifiers from error logs]
+  CODEBASE_SEMANTICS_REPORT: [full content — for service context]
+
+  TASK: "Enrich the following identifiers that were NOT already fetched in Step 1.3:
+  [List specific new identifiers found in Grafana/codebase reports]
+
+  For each identifier:
+  1. Use search_services to find the right artifact if needed
+  2. Use list_services to find the right method
+  3. Use invoke_rpc to fetch the full object
+  4. Record the full response in your output
+
+  Use aspects: { 'meta-site-id': '<MSID>' } for all calls.
+  If an RPC fails, log the error and move to the next identifier.
+  REPORT RAW DATA ONLY — no analysis."
+
+  OUTPUT_FILE: {OUTPUT_DIR}/fire-console/fire-console-output-V{N}.md
+  TRACE_FILE: {OUTPUT_DIR}/fire-console/fire-console-trace-V{N}.md
+```
+
+If conditions NOT met, skip Task 4 and log: "Fire Console deep enrichment skipped — no new identifiers to fetch."
+
+Wait for ALL tasks to complete. Read their outputs. Store as:
 - `PRODUCTION_REPORT`
 - `SLACK_REPORT`
 - `CODEBASE_SEMANTICS_STEP4_REPORT`
+- `FIRE_CONSOLE_DEEP_REPORT` (if Task 4 ran, otherwise empty)
+
+If Task 4 ran, merge `FIRE_CONSOLE_DEEP_REPORT` into `ENRICHED_CONTEXT` for downstream agents.
 
 **Quality gates (check each):**
 - Production: Has PR table? Has timeline? Has toggle check?
 - Slack: Has search results? All threads have replies fetched?
 - Codebase Step 4: Has PR analysis? Has "why started/ended" section?
+- Fire Console (if ran): Has fetched objects? Any RPC failures noted?
 
 For any failed quality gate: note what's missing in findings-summary, but proceed (don't block the pipeline for non-critical gaps).
 
@@ -714,6 +881,7 @@ Launch an agent team with 3 teammates using `Task` with `mode: "delegate"`. All 
 Name: "hypothesis-tester-A"
 Prompt: [full content of hypotheses.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
+  + ENRICHED_CONTEXT: [full content — domain objects from Fire Console]
   + CODEBASE_SEMANTICS_REPORT: [full content]
   + GRAFANA_REPORT: [full content]
   + PRODUCTION_REPORT: [full content]
@@ -721,12 +889,15 @@ Prompt: [full content of hypotheses.md agent prompt]
   + SLACK_REPORT: [full content]
   + FINDINGS_SUMMARY: [full content of findings-summary.md]
   + RECOVERY_EVIDENCE: [full content from Step 4.5, or "No recovery window data"]
+  + FIRE_CONSOLE_SKILL_REFERENCE: [full content of FIRE_CONSOLE_SKILL]
   + [If iterating: ALL previous hypothesis files with their Skeptic decisions]
 
   THEORY: "[Theory A description — what to test, what evidence to look for]"
 
-  You are running in Mode 2 (teammate). You CAN run Grafana queries, search code, and check
-  feature toggles to gather ADDITIONAL evidence for your theory.
+  You are running in Mode 2 (teammate). You CAN run Grafana queries, search code, check
+  feature toggles, and query Fire Console (invoke_rpc) to gather ADDITIONAL evidence for your theory.
+  Use Fire Console when you need to inspect specific domain objects (bookings, services, events, policies)
+  to verify your theory — e.g., check a booking's status, a service's configuration, or an event's recurrence type.
 
   This is hypothesis iteration #{HYPOTHESIS_INDEX}.
   [If iterating: "Previous hypotheses were Declined. The skeptic identified these gaps: [gaps].
@@ -742,12 +913,14 @@ Prompt: [full content of hypotheses.md agent prompt]
 ```
 Name: "hypothesis-tester-B"
 Prompt: [full content of hypotheses.md agent prompt]
-  + [Same data reports as Teammate 1]
+  + [Same data reports as Teammate 1, including ENRICHED_CONTEXT and FIRE_CONSOLE_SKILL_REFERENCE]
 
   THEORY: "[Theory B description — what to test, what evidence to look for]"
 
-  You are running in Mode 2 (teammate). You CAN run Grafana queries, search code, and check
-  feature toggles to gather ADDITIONAL evidence for your theory.
+  You are running in Mode 2 (teammate). You CAN run Grafana queries, search code, check
+  feature toggles, and query Fire Console (invoke_rpc) to gather ADDITIONAL evidence for your theory.
+  Use Fire Console when you need to inspect specific domain objects (bookings, services, events, policies)
+  to verify your theory.
 
   This is hypothesis iteration #{HYPOTHESIS_INDEX}.
   [If iterating: same declined context as Teammate 1]
@@ -808,6 +981,7 @@ Increment `AGENT_COUNTERS[hypotheses]`. Launch **one** Task (model: sonnet):
 Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of hypotheses.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
+  + ENRICHED_CONTEXT: [full content — domain objects from Fire Console]
   + CODEBASE_SEMANTICS_REPORT: [full content]
   + GRAFANA_REPORT: [full content]
   + PRODUCTION_REPORT: [full content]
@@ -815,6 +989,7 @@ Prompt: [full content of hypotheses.md agent prompt]
   + SLACK_REPORT: [full content]
   + FINDINGS_SUMMARY: [full content of findings-summary.md]
   + RECOVERY_EVIDENCE: [full content from Step 4.5, or "No recovery window data — resolution time unknown"]
+  + FIRE_CONSOLE_SKILL_REFERENCE: [full content of FIRE_CONSOLE_SKILL]
   + [If iterating: ALL previous hypothesis files with their Verifier decisions]
   + OUTPUT_FILE: {OUTPUT_DIR}/hypotheses/hypotheses-output-V{HYPOTHESIS_INDEX}.md
   + TRACE_FILE: {OUTPUT_DIR}/hypotheses/hypotheses-trace-V{HYPOTHESIS_INDEX}.md
@@ -822,6 +997,7 @@ Prompt: [full content of hypotheses.md agent prompt]
   This is hypothesis #{HYPOTHESIS_INDEX}.
   [If iterating: "Previous hypotheses were Declined. Read them all and do NOT repeat the same theory. The verifier identified these gaps: [list gaps from findings-summary]."]
   Form your hypothesis FROM the data in the reports. Proof = logs + code + timeline.
+  You CAN query Fire Console (invoke_rpc) on-demand to inspect domain objects that support your theory.
   MANDATORY: Include "Why Did It Start Working Again?" and "Concurrent Events" sections.
 ```
 
@@ -844,17 +1020,20 @@ Launch **one** Task (model: sonnet):
 Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of verifier.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
+  + ENRICHED_CONTEXT: [full content — domain objects from Fire Console]
   + CURRENT_HYPOTHESIS_FILE: {OUTPUT_DIR}/hypotheses/hypotheses-output-V{HYPOTHESIS_INDEX}.md
   + CURRENT_HYPOTHESIS_REPORT: [full content]
   + GRAFANA_REPORT: [full content]
   + PRODUCTION_REPORT: [full content]
   + CODEBASE_SEMANTICS_STEP4_REPORT: [full content]
   + SLACK_REPORT: [full content]
+  + FIRE_CONSOLE_SKILL_REFERENCE: [full content of FIRE_CONSOLE_SKILL]
   + OUTPUT_FILE: {OUTPUT_DIR}/verifier/verifier-output-V{HYPOTHESIS_INDEX}.md
   + TRACE_FILE: {OUTPUT_DIR}/verifier/verifier-trace-V{HYPOTHESIS_INDEX}.md
 
   Evaluate the hypothesis against ALL 5 checklist items.
   ALL 5 must Pass for Confirmed. Any Fail = Declined.
+  You CAN query Fire Console (invoke_rpc) to verify domain-specific claims in the hypothesis.
   You MUST update the hypothesis file: change status and add Verifier Decision section.
 ```
 
@@ -924,6 +1103,7 @@ Launch **one** Task (model: sonnet):
 Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of fix-list.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
+  + ENRICHED_CONTEXT: [full content — domain objects from Fire Console]
   + VERIFIER_REPORT: [full content of skeptic verdict (5A) or verifier report (5B)]
   + CONFIRMED_HYPOTHESIS_FILE: [full content of the confirmed hypothesis]
   + CODEBASE_SEMANTICS_REPORT: [full content]
@@ -950,6 +1130,7 @@ Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of documenter.md agent prompt]
   + USER_INPUT: [original user message]
   + BUG_CONTEXT_REPORT: [full content]
+  + ENRICHED_CONTEXT: [full content — domain objects from Fire Console]
   + ALL hypothesis files: [hypotheses_1.md through hypotheses_N.md — full content of each]
   + CODEBASE_SEMANTICS_REPORT: [full content]
   + CODEBASE_SEMANTICS_STEP4_REPORT: [full content]
@@ -1031,7 +1212,7 @@ Published to: [Jira / Slack / both / local only]
 
 ### Skill File Distribution
 1. **Every agent that uses MCP tools MUST receive the corresponding skill file** in its prompt as `<SERVER>_SKILL_REFERENCE`.
-2. **Mapping:** Grafana agent → `grafana-datasource.md`, Codebase agent → `octocode.md`, Slack agent → `slack.md`, Production agent → `github.md` + `ft-release.md`, Fix-list → `ft-release.md`, Publisher → `jira.md` + `slack.md`.
+2. **Mapping:** Grafana agent → `grafana-datasource.md`, Codebase agent → `octocode.md`, Slack agent → `slack.md`, Production agent → `github.md` + `ft-release.md`, Fix-list → `ft-release.md`, Publisher → `jira.md` + `slack.md`, Hypothesis/Verifier → `fire-console.md` (on-demand domain queries), Fire Console enrichment → `fire-console.md`.
 3. **Load ALL skill files once at Step 0.5** — don't re-read them for every agent launch.
 
 ### Data Flow Control
