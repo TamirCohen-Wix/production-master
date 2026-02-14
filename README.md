@@ -9,28 +9,53 @@ Autonomous production investigation pipeline for Claude Code. Classifies user in
 
 ## Quick Start
 
-### Install via Plugin Marketplace
+### One-Line Install (Recommended)
+
+```bash
+bash <(curl -sL https://raw.githubusercontent.com/TamirCohen-Wix/production-master/main/scripts/install.sh)
+```
+
+This single command handles everything:
+1. Installs the plugin via Claude Code marketplace
+2. Prompts for your [MCP access key](https://mcp-s-connect.wewix.net/mcp-servers) and configures all 9 servers
+3. Enables agent teams for competing hypothesis testing
+4. Prints next steps
+
+> **Requires:** [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) and `jq` (auto-installed via Homebrew if missing)
+
+### Manual Install
+
+<details>
+<summary>Click to expand manual steps</summary>
+
+#### Install plugin
 
 ```bash
 claude plugin marketplace add TamirCohen-Wix/production-master
 claude plugin install production-master
 ```
 
-### Local Testing (from cloned repo)
+#### Set up MCP servers
 
-```bash
-git clone https://github.com/TamirCohen-Wix/production-master.git
-claude --plugin-dir ./production-master
-```
+Get your access key from [mcp-s-connect](https://mcp-s-connect.wewix.net/mcp-servers), then either:
 
-### Set Up MCP Servers
-
-Production Master requires 9 MCP servers. Get your access key from [mcp-s-connect](https://mcp-s-connect.wewix.net/mcp-servers), then either:
-
-- **Automatic:** Run `/update-context` — it detects missing servers and offers to configure them using the [`mcp-servers.json`](mcp-servers.json) template in this repo
+- **Automatic:** Run `/update-context` — it detects missing servers and offers to configure them using the [`mcp-servers.json`](mcp-servers.json) template
 - **Manual:** Copy the `mcpServers` block from [`mcp-servers.json`](mcp-servers.json) into your `~/.claude.json`, replacing `<YOUR_ACCESS_KEY>` with your key
 
 Required servers: `octocode`, `Slack`, `jira`, `grafana-datasource`, `FT-release`, `github`, `context-7`, `grafana-mcp`, `fire-console`
+
+#### Enable agent teams
+
+Add to `~/.claude/settings.json`:
+```json
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
+```
+
+</details>
 
 ### Set Up Domain for Your Repo
 
@@ -40,19 +65,6 @@ After installing, run in Claude Code from your repo:
 ```
 
 This interactively builds `domain.json`, `CLAUDE.md`, and `MEMORY.md` for your repo, stored under `~/.claude/production-master/domains/<repo>/`, then offers to PR it back.
-
-### Enable Agent Teams (Recommended)
-
-Add this to your `~/.claude/settings.json` manually:
-```json
-{
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
-  }
-}
-```
-
-This enables competing hypothesis testing with skeptic cross-examination during investigations.
 
 ### Uninstall
 
@@ -91,6 +103,7 @@ production-master/
 ├── hooks/
 │   └── hooks.json               ← Notification + link validation hooks
 ├── scripts/
+│   ├── install.sh               ← One-line installer
 │   └── validate-report-links.sh ← Report link validator
 ├── output-styles/               ← Investigation report + publisher formatting
 ├── Domain/                      ← Company/team/repo domain configs
