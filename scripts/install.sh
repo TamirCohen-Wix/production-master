@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Production Master — One-line installer
-# Usage (private repo — requires gh CLI):
-#   bash <(gh api repos/TamirCohen-Wix/production-master/contents/scripts/install.sh --jq '.content' | base64 -d)
-# Usage (if repo becomes public):
-#   bash <(curl -sL https://raw.githubusercontent.com/TamirCohen-Wix/production-master/main/scripts/install.sh)
+# Production Master — Installer
+# Usage:
+#   gh repo clone TamirCohen-Wix/production-master
+#   cd production-master
+#   bash scripts/install.sh
 set -euo pipefail
 
 REPO="TamirCohen-Wix/production-master"
@@ -50,11 +50,13 @@ ok "jq available"
 # ─── Step 1: Add marketplace & install plugin ────────────────────────
 header "Step 1/4 — Install Plugin"
 
+info "Adding 'production-master' marketplace from $REPO..."
 CLAUDECODE= claude plugin marketplace add "$REPO" 2>/dev/null || true
-ok "Marketplace registered"
+ok "Marketplace 'production-master' registered"
 
+info "Installing 'production-master' plugin from marketplace..."
 CLAUDECODE= claude plugin install production-master 2>/dev/null || true
-ok "Plugin installed"
+ok "Plugin 'production-master' installed"
 
 # ─── Step 2: Configure MCP servers ───────────────────────────────────
 header "Step 2/4 — Configure MCP Servers"
