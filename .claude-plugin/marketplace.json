@@ -1,0 +1,21 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "production-master",
+  "description": "Autonomous production investigation pipeline for Claude Code",
+  "owner": {
+    "name": "Tamir Cohen"
+  },
+  "plugins": [
+    {
+      "name": "production-master",
+      "description": "Autonomous production investigation pipeline — 12 agents, hypothesis loops, multi-source data collection",
+      "version": "1.0.0",
+      "author": {
+        "name": "Tamir Cohen"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/TamirCohen-Wix/production-master"
+    }
+  ]
+}

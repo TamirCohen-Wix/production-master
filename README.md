@@ -4,11 +4,30 @@ Autonomous production investigation pipeline for Claude Code. Classifies user in
 
 ## Quick Start
 
-### Install via Plugin Marketplace
+### Install (one-liner)
 
 ```bash
-claude plugin marketplace add TamirCohen-Wix/production-master
-claude plugin install production-master
+claude plugin marketplace add TamirCohen-Wix/production-master && claude plugin install production-master
+```
+
+### Install from Zip (no Git required)
+
+Download the [latest release](https://github.com/TamirCohen-Wix/production-master/releases/latest) zip, extract it, then:
+
+```bash
+claude plugin marketplace add /path/to/production-master && claude plugin install production-master
+```
+
+### Update
+
+```bash
+claude plugin update production-master
+```
+
+### Uninstall
+
+```bash
+claude plugin uninstall production-master
 ```
 
 ### Local Testing (from cloned repo)
@@ -39,12 +58,6 @@ Add this to your `~/.claude/settings.json` manually:
 ```
 
 This enables competing hypothesis testing with skeptic cross-examination during investigations.
-
-### Uninstall
-
-```bash
-claude plugin uninstall production-master
-```
 
 ---
 
