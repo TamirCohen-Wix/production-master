@@ -32,6 +32,31 @@ Check in order:
 
 Store as `PM_ROOT`.
 
+### 0.3 Check MCP Server Setup
+
+Read the user's `~/.claude.json` and extract the top-level `mcpServers` keys. Then read `$PM_ROOT/mcp-servers.json` (the template). Compare:
+
+For each server name in the template that is **not** present in the user's `mcpServers`:
+- Add it to a `MISSING_SERVERS` list
+
+**If no servers are missing:**
+- Print: `All 9 MCP servers already configured.`
+- Skip to Step 1 (or Step 2 for existing domains)
+
+**If any servers are missing:**
+1. List the missing servers: `Missing MCP servers: octocode, Slack, jira ...`
+2. Ask the user: `Would you like to set up the [N] missing MCP servers?`
+3. If yes:
+   - Ask for their access key: `Enter your MCP access key (get one at https://mcp-s-connect.wewix.net/mcp-servers):`
+   - Read the template from `$PM_ROOT/mcp-servers.json`
+   - For each missing server: take the template entry, replace all `<YOUR_ACCESS_KEY>` occurrences with the user's real key
+   - Read the current `~/.claude.json` as JSON
+   - Merge the new server entries into `mcpServers` — **only add new entries, never override existing ones**
+   - Write the updated `~/.claude.json` back
+   - Print confirmation: `Added [N] MCP servers: octocode, Slack, ...`
+   - Note: `fire-console` has no access key — it is added as-is from the template
+4. If no: skip with `Skipping MCP setup. You can configure servers manually — see mcp-servers.json in the repo.`
+
 ---
 
 ## Step 1: Build New Domain Config (NEW_DOMAIN mode)
