@@ -1,0 +1,41 @@
+# Secrets and credentials
+.env
+.env.*
+*.key
+*.pem
+credentials.json
+secrets.json
+
+# Claude local state
+settings.local.json
+*.jsonl
+cache/
+stats-cache.json
+statsig/
+telemetry/
+session-env/
+shell-snapshots/
+file-history/
+paste-cache/
+plans/
+plugins/
+todos/
+tasks/
+teams/
+downloads/
+ide/
+
+# Debug output (generated at runtime)
+debug-*/
+debug/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.idea/
+.vscode/

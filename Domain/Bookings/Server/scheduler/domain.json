@@ -1,0 +1,34 @@
+{
+  "company": "Wix",
+  "division": "Bookings",
+  "side": "Server",
+  "repo": "scheduler",
+  "github_org": "wix-private",
+  "github_repo": "wix-private/scheduler",
+  "jira_project": "SCHED",
+  "jira_url": "https://wix.atlassian.net",
+  "artifact_prefix": "com.wixpress.bookings",
+  "primary_services": [
+    {"name": "bookings-service", "artifact_id": "com.wixpress.bookings.bookings-service"},
+    {"name": "notifications-server", "artifact_id": "com.wixpress.bookings.notifications-server"},
+    {"name": "bookings-reader", "artifact_id": "com.wixpress.bookings.reader.bookings-reader"},
+    {"name": "sessions-server", "artifact_id": "com.wixpress.bookings.sessions-server"},
+    {"name": "services-2", "artifact_id": "com.wixpress.bookings.services-2"},
+    {"name": "booking-policies", "artifact_id": "com.wixpress.bookings.booking-policies"},
+    {"name": "events-3", "artifact_id": "com.wixpress.calendar.events-3"},
+    {"name": "service-availability", "artifact_id": "com.wixpress.bookings.availability.service-availability"},
+    {"name": "availability-calendar", "artifact_id": "com.wixpress.bookings.availability.availability-calendar"}
+  ],
+  "slack_channels": {
+    "alerts": "#bookings-alerts",
+    "dev": "#bookings-dev",
+    "incidents": "#bookings-incidents"
+  },
+  "request_id_format": "<unix_timestamp>.<random>",
+  "toggle_prefix": "specs.bookings",
+  "language": "scala",
+  "build_system": "bazel",
+  "monorepo": true,
+  "grafana_url": "https://grafana.wixpress.com",
+  "grafana_app_analytics_dashboard": "olcdJbinz"
+}
