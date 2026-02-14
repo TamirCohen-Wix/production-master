@@ -9,10 +9,18 @@ Autonomous production investigation pipeline for Claude Code. Classifies user in
 
 ## Install
 
+Clone the repo and run the installer:
+
 ```bash
 gh repo clone TamirCohen-Wix/production-master
 cd production-master
 bash scripts/install.sh
+```
+
+Or install remotely without cloning:
+
+```bash
+bash <(gh api repos/TamirCohen-Wix/production-master/contents/scripts/install.sh --jq '.content' | base64 -d)
 ```
 
 The installer does the following:
