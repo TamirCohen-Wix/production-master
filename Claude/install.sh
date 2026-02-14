@@ -118,37 +118,7 @@ detect_domain() {
       log "Found domain config: $DOMAIN_DIR"
     else
       warn "No domain config found for repo '$REPO_NAME'."
-      ask "Install in generic mode? (no domain-specific context) [Y/n]"
-      read -r response
-      if [[ "$response" =~ ^[Nn] ]]; then
-        ask "Would you like to create a new domain config? [y/N]"
-        read -r create_response
-        if [[ "$create_response" =~ ^[Yy] ]]; then
-          log "Creating domain template at Domain/Custom/$REPO_NAME/"
-          mkdir -p "$PM_ROOT/Domain/Custom/$REPO_NAME/memory"
-          cat > "$PM_ROOT/Domain/Custom/$REPO_NAME/domain.json" << DOMAIN_EOF
-{
-  "company": "",
-  "division": "",
-  "side": "",
-  "repo": "$REPO_NAME",
-  "github_org": "",
-  "github_repo": "",
-  "jira_project": "",
-  "artifact_prefix": "",
-  "primary_services": [],
-  "slack_channels": {},
-  "language": "",
-  "build_system": "",
-  "monorepo": false
-}
-DOMAIN_EOF
-          echo "# $REPO_NAME Repository Context" > "$PM_ROOT/Domain/Custom/$REPO_NAME/CLAUDE.md"
-          echo "# Memory" > "$PM_ROOT/Domain/Custom/$REPO_NAME/memory/MEMORY.md"
-          DOMAIN_DIR="$PM_ROOT/Domain/Custom/$REPO_NAME"
-          log "Domain template created. Edit domain.json with your config before using."
-        fi
-      fi
+      log "Installing in generic mode. Run '/update-context' in Claude Code to create a domain config for this repo."
     fi
   fi
 }
