@@ -17,10 +17,12 @@ cd production-master
 bash scripts/install.sh
 ```
 
-Or install remotely without cloning:
+Or [download the ZIP](https://github.com/TamirCohen-Wix/production-master/archive/refs/heads/main.zip), unzip, and run:
 
 ```bash
-bash <(gh api repos/TamirCohen-Wix/production-master/contents/scripts/install.sh --jq '.content' | base64 -d)
+unzip production-master-main.zip
+cd production-master-main
+bash scripts/install.sh
 ```
 
 The installer does the following:
