@@ -54,7 +54,14 @@ Store the classified mode as `MODE`.
 
 ### 0.1.5 Load Domain Config
 
-Read `.claude/domain.json` (repo-local) or `~/.claude/domain.json` (global). If found, store as `DOMAIN_CONFIG` and extract:
+Detect the current repo name from `git remote get-url origin` (strip path and `.git` suffix).
+
+Search for domain config in this order:
+1. `~/.claude/production-master/domains/<repo-name>/domain.json` (primary — installed by production-master)
+2. `.claude/domain.json` (repo-local fallback — for repos that bundle their own config)
+3. `~/.claude/domain.json` (legacy global fallback)
+
+If found, store as `DOMAIN_CONFIG` and extract:
 
 ```
 ARTIFACT_PREFIX = domain.json → artifact_prefix     (e.g., "com.wixpress.bookings")

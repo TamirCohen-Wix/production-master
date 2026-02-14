@@ -15,10 +15,13 @@ You manage domain configurations and learn from past investigations. This comman
 ## Step 0: Detect Current State
 
 ### 0.1 Check for existing domain config
+
+Detect repo name from `git remote get-url origin` (strip path and `.git`). Then check:
 ```
-Read .claude/domain.json
+1. Read ~/.claude/production-master/domains/<repo-name>/domain.json   (primary)
+2. Read .claude/domain.json                                           (repo-local fallback)
 ```
-- If found → **EXISTING_DOMAIN mode** (skip to Step 3)
+- If found in either location → **EXISTING_DOMAIN mode** (skip to Step 3). Store the found path as `DOMAIN_PATH`.
 - If NOT found → **NEW_DOMAIN mode** (continue to Step 1)
 
 ### 0.2 Locate the production-master repo
@@ -71,7 +74,7 @@ Ask the user a series of questions to fill in the domain config. Use the `AskUse
 
 Create three files:
 
-**`.claude/domain.json`:**
+**`~/.claude/production-master/domains/<repo-name>/domain.json`:**
 ```json
 {
   "company": "<from user>",
@@ -92,10 +95,10 @@ Create three files:
 }
 ```
 
-**`.claude/CLAUDE.md`:**
+**`~/.claude/production-master/domains/<repo-name>/CLAUDE.md`:**
 Generate from the domain.json — list services with artifact IDs, describe the repo structure, note key patterns discovered during analysis.
 
-**`.claude/memory/MEMORY.md`:**
+**`~/.claude/production-master/domains/<repo-name>/memory/MEMORY.md`:**
 Start with a skeleton:
 ```markdown
 # Memory
@@ -108,7 +111,7 @@ Start with a skeleton:
 ```
 
 ### 1.4 Install the files locally
-Write all three files to `.claude/` in the current repo.
+Write all three files to `~/.claude/production-master/domains/<repo-name>/`. The repo's `.claude/` directory is **never modified**.
 
 ### 1.5 Offer to contribute back
 Ask the user:
@@ -153,7 +156,7 @@ From the investigation reports, identify:
 
 ### 4.1 Compare with current domain config
 
-Read `.claude/domain.json` and compare:
+Read domain.json from `DOMAIN_PATH` and compare:
 - Are all discovered services listed in `primary_services`?
 - Are Slack channels up to date?
 - Is the artifact_prefix still accurate?
@@ -183,7 +186,7 @@ Date range: [oldest] to [newest]
 
 ### 4.3 Apply locally
 
-Apply the changes to the local `.claude/` files.
+Apply the changes to the domain files at `DOMAIN_PATH` (under `~/.claude/production-master/domains/<repo-name>/`).
 
 ---
 
@@ -217,10 +220,11 @@ git checkout -b update-context/$(date +%Y-%m-%d)-${REPO_NAME}
 # Create or update domain directory
 mkdir -p Domain/{division}/{side}/{repo}/memory
 
-# Copy files
-cp .claude/domain.json Domain/{division}/{side}/{repo}/domain.json
-cp .claude/CLAUDE.md Domain/{division}/{side}/{repo}/CLAUDE.md
-cp .claude/memory/MEMORY.md Domain/{division}/{side}/{repo}/memory/MEMORY.md
+# Copy files from production-master domains dir
+DOMAIN_SRC=~/.claude/production-master/domains/${REPO_NAME}
+cp $DOMAIN_SRC/domain.json Domain/{division}/{side}/{repo}/domain.json
+cp $DOMAIN_SRC/CLAUDE.md Domain/{division}/{side}/{repo}/CLAUDE.md
+cp $DOMAIN_SRC/memory/MEMORY.md Domain/{division}/{side}/{repo}/memory/MEMORY.md
 ```
 
 ### 5.4 Commit and push
