@@ -14,8 +14,8 @@
         "name": "Tamir Cohen"
       },
       "source": {
-        "source": "url",
-        "url": "https://github.com/TamirCohen-Wix/production-master.git"
+        "source": "github",
+        "repo": "TamirCohen-Wix/production-master"
       },
       "category": "productivity",
       "homepage": "https://github.com/TamirCohen-Wix/production-master"
