@@ -176,6 +176,7 @@ For the full design, including flow diagrams, the hypothesis loop state machine,
 | [Commands reference](docs/commands.md) | All 8 commands with modes, parameters, and usage examples |
 | [Agent catalog](docs/agents.md) | Detailed profiles of each agent — inputs, outputs, and skills used |
 | [Contributing guide](docs/contributing.md) | How to add domain configs, improve agents, and submit PRs |
+| [Domain configs](docs/domain-configs.md) | How domain configs work, field reference, creation guide, and config loading order |
 | [Troubleshooting](docs/troubleshooting.md) | Diagnosing MCP server issues and recovering from mid-investigation failures |
 
 ## Plugin Structure
@@ -206,13 +207,24 @@ Claude Code plugins can declare MCP servers via a `.mcp.json` file at the plugin
 
 ### Domain configs
 
-The `Domain/` folder stores per-repo investigation context, organized as `Domain/{Division}/{Side}/{Repo}/`. Each domain contains:
+The `Domain/` folder is a shared knowledge base that gives the pipeline context about your repo — which services to query, what artifact IDs to use in Grafana, which Slack channels to search, and patterns learned from past investigations. It's organized as `Domain/{Division}/{Side}/{Repo}/`:
 
-- **`domain.json`** — Machine-readable config (services, artifact IDs, Jira project, Slack channels, toggle prefix)
-- **`CLAUDE.md`** — Human-readable context for the investigation agents
-- **`memory/MEMORY.md`** — Patterns learned from past investigations
+```
+Domain/
+└── Bookings/
+    └── Server/
+        └── scheduler/
+            ├── domain.json          ← Services, artifact IDs, Jira project, Slack channels, toggles
+            ├── CLAUDE.md            ← Human-readable repo context loaded into agent prompts
+            └── memory/
+                └── MEMORY.md        ← Debugging patterns learned from past investigations
+```
 
-These are created by `/update-context` and contributed back via PR.
+Without a domain config, the pipeline runs in "generic mode" and will ask for service names and artifact IDs during the investigation. With one, it works autonomously.
+
+**Create yours** by running `/update-context` from your repo — it analyzes the repo structure, asks a few questions, and generates the config. You can then PR it back so the whole team benefits.
+
+For the full field reference, config loading order, and how configs improve over time, see the [domain configs guide](docs/domain-configs.md).
 
 ## Contributing
 
