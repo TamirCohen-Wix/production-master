@@ -154,11 +154,13 @@ For details on formatting rules and cross-platform publishing, see the [investig
 
 The `/production-master` orchestrator runs on your session's current model (typically **Opus 4.6**). All subagents default to **Sonnet** because Opus token usage is limited — a full investigation spawns 12+ subagents across multiple pipeline steps, and running all of them on Opus would quickly exhaust your token budget. Sonnet handles data fetching, MCP queries, and report writing well at a fraction of the cost, while Opus is reserved for the orchestrator where complex reasoning and coordination matter most.
 
-You can override the subagent model by adding `subagent_model` to your `domain.json`:
+To override the subagent model, set the `PRODUCTION_MASTER_SUBAGENT_MODEL` env var in `~/.claude/settings.json`:
 
 ```json
 {
-  "subagent_model": "opus"
+  "env": {
+    "PRODUCTION_MASTER_SUBAGENT_MODEL": "opus"
+  }
 }
 ```
 
