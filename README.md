@@ -11,6 +11,20 @@ Autonomous production investigation pipeline for [Claude Code](https://docs.anth
 > [!WARNING]
 > **This plugin is in beta.** It is under active development and may have rough edges. We recommend trying it **per-session first** (see below) before committing to a persistent install. If you do install, use **`local` scope** (the default) so it only affects your current project.
 
+## Table of Contents
+
+- [Quick Start](#quick-start--try-per-session-recommended)
+- [Install](#install-persistent)
+- [Plugin Scopes](#plugin-scopes)
+- [Plugin Management](#plugin-management)
+- [Usage](#usage)
+- [Output Format](#output-format)
+- [Architecture](#architecture)
+- [Documentation](#documentation)
+- [Plugin Structure](#plugin-structure)
+- [Contributing](#contributing)
+- [Requirements](#requirements)
+
 ## Quick Start — Try Per-Session (Recommended)
 
 The safest way to try Production Master is per-session — nothing is installed, and it's gone when you close Claude Code:
@@ -99,6 +113,8 @@ After installing (or loading with `--plugin-dir`), restart Claude Code / Cursor,
 /production-master check toggle specs.bookings.SomeToggle       # Check toggles
 ```
 
+For the full list of modes and examples, see the [commands reference](docs/commands.md).
+
 ### All commands
 
 | Command | Description |
@@ -119,9 +135,17 @@ Run `/update-context` from within your repo in Claude Code. It:
 - **Existing domain**: Learns from past investigations and updates the config with new services, error patterns, and channels
 - Optionally opens a PR to contribute the config back to this repository
 
+## Output Format
+
+Investigation reports follow a structured format designed for clarity in the terminal. Reports include status updates at each pipeline stage, structured findings tables, inline code references, and hyperlinks to Grafana dashboards, Jira tickets, and Slack threads.
+
+When publishing to external tools (Jira, Slack, GitHub), the output is automatically adapted to each platform's markup — Jira wiki syntax, Slack mrkdwn, or GitHub-flavored markdown.
+
+For details on formatting rules and cross-platform publishing, see the [investigation report style guide](docs/architecture.md#output) and the templates in `output-styles/`.
+
 ## Architecture
 
-12 specialized agents, 8 commands, 9 MCP skill references.
+12 specialized agents, 8 commands, 9 MCP skill references. The pipeline classifies user intent, gathers context from multiple sources in parallel, generates testable hypotheses, and iterates through a verification loop (up to 5 rounds) until a root cause is confirmed.
 
 | Agent | Role |
 |-------|------|
@@ -138,7 +162,18 @@ Run `/update-context` from within your repo in Claude Code. It:
 | `documenter` | Compiles pipeline output into investigation reports |
 | `publisher` | Publishes findings to Jira and/or Slack |
 
-For investigation flow diagrams, data flow, and domain config details, see [docs/architecture.md](docs/architecture.md).
+For the full design, including flow diagrams, the hypothesis loop state machine, and data flow between agents, see the [architecture overview](docs/architecture.md).
+
+## Documentation
+
+| Topic | Description |
+|-------|-------------|
+| [Architecture overview](docs/architecture.md) | Pipeline design, agent interactions, data flow, and the hypothesis verification loop |
+| [Investigation flow](docs/investigation-flow.md) | Step-by-step pipeline state machine from initialization through completion |
+| [Commands reference](docs/commands.md) | All 8 commands with modes, parameters, and usage examples |
+| [Agent catalog](docs/agents.md) | Detailed profiles of each agent — inputs, outputs, and skills used |
+| [Contributing guide](docs/contributing.md) | How to add domain configs, improve agents, and submit PRs |
+| [Troubleshooting](docs/troubleshooting.md) | Diagnosing MCP server issues and recovering from mid-investigation failures |
 
 ## Plugin Structure
 
@@ -195,19 +230,12 @@ All PRs to `main` require:
 - Passing CI checks (plugin validation, shell lint, install/uninstall test)
 - At least 1 approving review
 
-### Add your repo's domain config
+For detailed contribution guidelines — adding domain configs, improving agents, and writing new commands — see the [contributing guide](docs/contributing.md).
 
-1. Install Production Master (or use `--plugin-dir`)
-2. Run `/update-context` from your repo — it guides you interactively
-3. Say "yes" when it offers to open a PR
-4. The PR adds config to `Domain/<Division>/<Side>/<repo>/`
+### Quick links
 
-### Improve the pipeline
-
-1. Fork & clone this repo
-2. Edit files directly (agents, commands, skills, hooks, output-styles)
-3. Test with `claude --plugin-dir .` and use `/production-master` on a real ticket
-4. Open a PR
+- [Add your repo's domain config](docs/contributing.md#add-your-repos-domain-config) — run `/update-context` and PR the result
+- [Improve the pipeline](docs/contributing.md#improve-the-pipeline) — edit agents, commands, or skills and open a PR
 
 ## Requirements
 
