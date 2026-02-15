@@ -6,8 +6,8 @@ This guide is for installing **production-master** **natively on Cursor IDE** �
 
 | What you get | How it works in Cursor IDE |
 |--------------|----------------------------|
-| **Commands** | Cursor **rules** (`.cursor/rules/`) tell the agent what to do when you type `/production-master`, `/grafana-query`, etc. |
-| **Sub-agents** | Cursor has one agent. The rule tells it to follow `agents/*.md` step by step and write outputs to the same paths the pipeline expects. |
+| **Commands** | Cursor **slash commands** in `.cursor/commands/*.md`. Typing `/production-master`, `/grafana-query`, etc. runs the corresponding command file (plain Markdown, no frontmatter). |
+| **Sub-agents** | Agent definitions in `.cursor/agents/*.md`. The `/production-master` command tells Cursor's single agent to read and execute each `.cursor/agents/<name>.md` in turn and write outputs to the paths the pipeline expects. |
 | **MCP** | Cursor's MCP config: `~/.cursor/mcp.json` (macOS) or `.cursor/mcp.json` (project). Same `mcpServers` shape as the plugin's `mcp-servers.json`. |
 | **Skills** | Cursor **skills** in `.cursor/skills/<name>/SKILL.md` (or `~/.cursor/skills/`). Each needs `name` + `description` in frontmatter. |
 | **Domain config** | Use `~/.claude/production-master/domains/<repo>/` so the same config works if you also use Claude Code elsewhere; optional. |
@@ -16,26 +16,21 @@ This guide is for installing **production-master** **natively on Cursor IDE** �
 
 ## What Needs to Be Done
 
-### 1. Commands → Cursor rules
+### 1. Commands → Cursor slash commands
 
-Cursor IDE uses **rules** to define behavior. When you type `/production-master` or `/grafana-query`, Cursor's agent sees that text and the rule tells it what to do.
+Cursor IDE supports **native slash commands** as plain Markdown files in `.cursor/commands/`. When you type `/production-master` or `/grafana-query`, Cursor runs the corresponding `.cursor/commands/<name>.md` (e.g. `production-master.md`, `grafana-query.md`). No frontmatter — Cursor commands are content only.
 
-- **Add** a rule (e.g. `.cursor/rules/production-master.mdc`) that:
-  - Applies when you're doing production work (or set `alwaysApply: true` so it's always in context).
-  - Lists the slash commands and tells the agent to follow `commands/production-master.md` (and the other command files) for each one.
-  - For steps that in the plugin say "Launch Task with agent X", the rule says: **run the instructions in `agents/X.md` yourself** and write outputs to the paths the orchestrator specifies (e.g. under `debug/debug-<ticket>-<timestamp>/`).
+`scripts/install-cursor.sh` copies each `commands/*.md` into `.cursor/commands/*.md`, strips frontmatter, and for `production-master.md` prepends a short note that in Cursor there is no Task tool — when the doc says "Launch Task with agent X", the agent should read `.cursor/agents/X.md` and execute those instructions in the same turn.
 
-`scripts/install-cursor.sh` creates `.cursor/rules/production-master.mdc` and wires it to the repo's `commands/` and `agents/` so Cursor's single agent runs the full pipeline.
+### 2. Sub-agents → Cursor agents directory
 
-### 2. Sub-agents → one Cursor agent, following agent prompts
+Cursor IDE has one agent per chat; there is no `Task` / subagent tool. The install script copies all `agents/*.md` into `.cursor/agents/`. The `/production-master` command file instructs Cursor's agent to:
 
-Cursor IDE has one agent per chat; there is no `Task` / subagent tool. The **orchestrator** is implemented by a rule that:
+- Follow the pipeline steps in the command doc.
+- Whenever the doc says "Launch Task with agent X", **read `.cursor/agents/X.md` and run those instructions yourself**, then write the output to the path the orchestrator specifies (e.g. under `debug/debug-<ticket>-<timestamp>/`).
+- Run "parallel" steps (e.g. production-analyzer + slack-analyzer) **one after another** by the same Cursor agent.
 
-- Says: when the user types `/production-master <args>`, follow `commands/production-master.md`.
-- Whenever that doc says "Launch Task with agent X", the rule says: **read `agents/X.md`, run those instructions yourself, and write the output** to the path the orchestrator specifies (e.g. `bug-context-output-V1.md`).
-- "Parallel" steps in the doc (e.g. production-analyzer + slack-analyzer) are run **one after another** by the same Cursor agent.
-
-You don't need to change `agents/*.md`; they stay as the source of truth. Only the **orchestrator** is expressed as a Cursor rule that points at them.
+You don't need to change the repo's `agents/*.md`; they are the source of truth. The script copies them into `.cursor/agents/` so the commands can reference them.
 
 ### 3. MCPs → Cursor MCP config
 
@@ -64,17 +59,17 @@ Each skill is a directory with a `SKILL.md` that has frontmatter `name` and `des
 
 | Item | Action |
 |------|--------|
-| **Commands** | Add `.cursor/rules/production-master.mdc` that describes slash commands and references `commands/production-master.md` and other command/agent files. |
-| **Sub-agents** | Orchestrator rule instructs the single agent to run each step by following the corresponding `agents/*.md` and writing outputs to the specified paths. |
+| **Commands** | Copy `commands/*.md` into `.cursor/commands/*.md` (strip frontmatter; production-master gets a Cursor-specific intro). |
+| **Sub-agents** | Copy `agents/*.md` into `.cursor/agents/`; the `/production-master` command tells the single agent to read and run each as needed. |
 | **MCPs** | Merge `mcp-servers.json` into `~/.cursor/mcp.json` (or `.cursor/mcp.json`) with the user's access key. |
 | **Skills** | Copy or link `skills/*` into `.cursor/skills/` (or `~/.cursor/skills/`); ensure each SKILL.md has `name` and `description` in frontmatter. |
 | **Domain config** | Optional: use `~/.claude/production-master/domains/<repo>/` (same as the plugin) so config can be shared. |
-| **Install script** | Run `scripts/install-cursor.sh` to create `.cursor/rules/`, `.cursor/skills/`, and MCP config. |
+| **Install script** | Run `scripts/install-cursor.sh` to create `.cursor/commands/`, `.cursor/agents/`, `.cursor/skills/`, and MCP config. |
 
 After this, **Cursor IDE** (no Claude Code extension) will have:
 
-- **Commands:** Typing `/production-master`, `/grafana-query`, `/slack-search`, etc. is handled by the rule.
-- **Pipeline:** Cursor's agent runs each step by following `agents/*.md` and writing to the same output paths.
+- **Commands:** Typing `/production-master`, `/grafana-query`, `/slack-search`, etc. invokes the corresponding `.cursor/commands/*.md` (native slash commands).
+- **Pipeline:** The `/production-master` command instructs Cursor's agent to run each step by reading `.cursor/agents/*.md` and writing to the same output paths.
 - **MCPs:** All 9 servers in Cursor's MCP config.
 - **Skills:** All 9 MCP skill docs in `.cursor/skills/` so the agent knows how to use the tools.
 
@@ -85,16 +80,25 @@ After this, **Cursor IDE** (no Claude Code extension) will have:
 From the repo root:
 
 ```bash
+# Install into your user Cursor config (default) — commands/agents/skills available in all projects
 bash scripts/install-cursor.sh
+
+# Or install into a specific directory (e.g. a project's .cursor or a custom path)
+bash scripts/install-cursor.sh ~/.cursor
+bash scripts/install-cursor.sh /path/to/project/.cursor
+bash scripts/install-cursor.sh .cursor
 ```
+
+With no argument, the script installs into `~/.cursor`. Pass a path to install elsewhere (e.g. `.cursor` for the repo’s own .cursor dir).
 
 This will:
 
-1. Create `.cursor/rules/production-master.mdc` so Cursor's agent knows the slash commands and workflow.
-2. Copy `skills/` into `.cursor/skills/` and add `name` in frontmatter where needed.
-3. Merge the 9 MCP servers from `mcp-servers.json` into your Cursor MCP config (prompts for your access key if needed).
+1. Install **slash commands** from `commands/` into `.cursor/commands/` (plain Markdown, no frontmatter).
+2. Install **agent definitions** from `agents/` into `.cursor/agents/`.
+3. Copy `skills/` into `.cursor/skills/` and add `name` in frontmatter where needed.
+4. Merge the 9 MCP servers from `mcp-servers.json` into your Cursor MCP config (prompts for your access key if needed).
 
-Restart Cursor (or reload the window). Then in chat you can use `/production-master <TICKET-ID>`, `/grafana-query`, `/slack-search`, etc.; Cursor's built-in agent will follow the rule and run the pipeline.
+Restart Cursor (or reload the window). Then in chat you can use `/production-master <TICKET-ID>`, `/grafana-query`, `/slack-search`, etc.; each invokes the corresponding command file, and the pipeline runs using the installed agents.
 
 ---
 

@@ -74,10 +74,10 @@ The installer will:
 
 ## Install on Cursor
 
-To use Production Master in **Cursor IDE** (no Claude Code extension): run the Cursor install script. Commands become rules, sub-agents are run by the single agent following `agents/*.md`, and skills/MCPs are installed into `.cursor/`. See **[docs/CURSOR_INSTALL.md](docs/CURSOR_INSTALL.md)** for the full guide. Then run:
+To use Production Master in **Cursor IDE** (no Claude Code extension): run the Cursor install script. It installs slash commands (`.cursor/commands/`), agent definitions (`.cursor/agents/`), and skills/MCPs into `.cursor/`. See **[docs/CURSOR_INSTALL.md](docs/CURSOR_INSTALL.md)** for the full guide. Then run:
 
 ```bash
-bash scripts/install-cursor.sh
+bash scripts/install-cursor.sh [TARGET_DIR]   # default TARGET_DIR: ~/.cursor
 ```
 
 ## Plugin Scopes

@@ -1,16 +1,27 @@
 #!/usr/bin/env bash
 # Production Master — Cursor install
-# Usage: from repo root: bash scripts/install-cursor.sh
-# Creates .cursor/rules, .cursor/skills, and merges MCP into Cursor's mcp.json
+# Usage: from repo root: bash scripts/install-cursor.sh [TARGET_DIR]
+#   TARGET_DIR: where to install commands, agents, skills (default: ~/.cursor)
+#   Examples: ~/.cursor  /path/to/project/.cursor  .cursor
+# Creates TARGET_DIR/commands, TARGET_DIR/agents, TARGET_DIR/skills, and merges MCP into Cursor's mcp.json
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-CURSOR_DIR="$REPO_ROOT/.cursor"
-RULES_DIR="$CURSOR_DIR/rules"
+COMMANDS_SRC="$REPO_ROOT/commands"
+AGENTS_SRC="$REPO_ROOT/agents"
+
+# Target directory: first argument or default to user's global Cursor config
+TARGET_DIR="${1:-$HOME/.cursor}"
+mkdir -p "$TARGET_DIR"
+# Resolve to absolute path (relative paths are from current dir when script runs)
+CURSOR_DIR="$(cd "$TARGET_DIR" && pwd)"
+
+COMMANDS_DIR="$CURSOR_DIR/commands"
+AGENTS_DIR="$CURSOR_DIR/agents"
 SKILLS_DIR="$CURSOR_DIR/skills"
 
-# Cursor MCP: macOS uses ~/.cursor/mcp.json; Linux ~/.config/cursor/mcp.json
+# Cursor MCP: always merge into user-level config (Cursor reads MCP from here)
 if [[ "$(uname)" == "Darwin" ]]; then
   CURSOR_MCP="$HOME/.cursor/mcp.json"
 else
@@ -24,9 +35,17 @@ warn()  { echo -e "${YELLOW}!${NC} $1"; }
 err()   { echo -e "${RED}✗${NC} $1"; }
 header(){ echo -e "\n${BOLD}$1${NC}"; }
 
+# Strip YAML frontmatter (--- ... ---) from markdown; Cursor commands are plain Markdown only.
+# If there is no frontmatter (no ---), the whole file is printed.
+strip_frontmatter() {
+  awk '/^---$/ { block++; if (block <= 2) next } block != 1' "$1"
+}
+
 # ─── Preflight ───────────────────────────────────────────────────────
 header "Production Master — Cursor install"
 echo ""
+
+ok "Target directory: $CURSOR_DIR"
 
 if ! command -v jq &>/dev/null; then
   err "jq is required. Install with: brew install jq"
@@ -34,55 +53,53 @@ if ! command -v jq &>/dev/null; then
 fi
 ok "jq available"
 
-# ─── 1. Rules ────────────────────────────────────────────────────────
-header "Step 1/3 — Cursor rules"
+# Remove legacy rule (commands and agents are now installed natively, not via a rule)
+RULE_FILE="$CURSOR_DIR/rules/production-master.mdc"
+if [ -f "$RULE_FILE" ]; then
+  rm -f "$RULE_FILE"
+  ok "Removed legacy rule (using native commands and agents)"
+fi
 
-mkdir -p "$RULES_DIR"
-RULE_FILE="$RULES_DIR/production-master.mdc"
-cat > "$RULE_FILE" << 'RULE_END'
----
-description: Production Master — slash commands and investigation pipeline (follow commands/production-master.md and agents when user invokes /production-master or related commands)
-alwaysApply: true
----
+# ─── 1. Commands (Cursor slash commands: .cursor/commands/*.md) ───────
+header "Step 1/4 — Cursor commands"
 
-# Production Master (Cursor)
+mkdir -p "$COMMANDS_DIR"
+CMD_COUNT=0
+for src in "$COMMANDS_SRC"/*.md; do
+  [ -f "$src" ] || continue
+  name=$(basename "$src" .md)
+  dest="$COMMANDS_DIR/$name.md"
+  if [ "$name" = "production-master" ]; then
+    # Prepend Cursor-specific instructions: no Task tool; run agents from install dir
+    {
+      echo "# Cursor: single agent — no Task tool. When this doc says \"Launch Task with agent X\", read $AGENTS_DIR/X.md and execute those instructions yourself in this turn; write output to the path specified. Use $SKILLS_DIR/<name>/SKILL.md for MCP tool names and parameters."
+      echo ''
+      strip_frontmatter "$src"
+    } > "$dest"
+  else
+    strip_frontmatter "$src" > "$dest"
+  fi
+  ok "Installed command: /$name"
+  CMD_COUNT=$((CMD_COUNT + 1))
+done
+ok "Installed $CMD_COUNT slash commands in $COMMANDS_DIR"
 
-When the user invokes **slash commands** for production investigation, follow the workflows in this repo.
+# ─── 2. Agents (sub-agent definitions: .cursor/agents/*.md) ───────────
+header "Step 2/4 — Cursor agents"
 
-## Slash commands
+mkdir -p "$AGENTS_DIR"
+AGENT_COUNT=0
+for src in "$AGENTS_SRC"/*.md; do
+  [ -f "$src" ] || continue
+  name=$(basename "$src" .md)
+  cp "$src" "$AGENTS_DIR/$name.md"
+  ok "Installed agent: $name"
+  AGENT_COUNT=$((AGENT_COUNT + 1))
+done
+ok "Installed $AGENT_COUNT agents in $AGENTS_DIR"
 
-| User says | Action |
-|-----------|--------|
-| `/production-master <TICKET or args>` | Full pipeline: follow **commands/production-master.md** from start to finish. |
-| `/grafana-query <args>` | Standalone Grafana: follow **commands/grafana-query.md**. |
-| `/slack-search <args>` | Standalone Slack: follow **commands/slack-search.md**. |
-| `/production-changes <args>` | PRs/commits/toggles: follow **commands/production-changes.md**. |
-| `/resolve-artifact <args>` | Validate artifacts: follow **commands/resolve-artifact.md**. |
-| `/fire-console <args>` | Fire Console gRPC: follow **commands/fire-console.md**. |
-| `/update-context` | Domain config: follow **commands/update-context.md**. |
-| `/git-update-agents` | Sync agents to repo: follow **commands/git-update-agents.md**. |
-
-## Running the main pipeline (/production-master)
-
-1. **Read** `commands/production-master.md` and execute its steps in order.
-2. **No Task tool:** Cursor has no subagent Task. Whenever the orchestrator says "Launch Task with agent X" or "Launch one Task (model: sonnet)" for an agent:
-   - **Read** the corresponding file under `agents/<agent-name>.md` (e.g. `agents/bug-context.md`).
-   - **Execute** that agent's instructions yourself in this turn: same agent, same context.
-   - **Write** the output to the path the orchestrator specifies (e.g. under `debug/debug-<ticket>-<timestamp>/<agent>/<agent>-output-V1.md`).
-3. **Domain config:** Load from `~/.claude/production-master/domains/<repo-name>/domain.json` (or `.claude/domain.json` / `~/.claude/domain.json`). Repo name from `git remote get-url origin` (strip path and `.git`).
-4. **MCP tools:** Use the MCP skill docs under `.cursor/skills/` (e.g. `grafana-datasource`, `fire-console`) for exact tool names and parameters when the orchestrator or command says to use an MCP.
-5. **Parallel steps:** The orchestrator may say "Launch FOUR Tasks in the SAME message". Run those four agent steps **sequentially** (production-analyzer, then slack-analyzer, then codebase PRs, then Fire Console), each by reading the right `agents/*.md` and writing the specified output file.
-6. **Output directory:** Create `debug/debug-<TICKET>-<date>-<time>/` (or `.claude/debug/...` if inside a repo that uses `.claude/debug`) and put all agent outputs there. Update `findings-summary.md` after each step as the orchestrator specifies.
-
-## Skills (MCP)
-
-For Grafana, Fire Console, Slack, Jira, GitHub, Octocode, FT-release, Context7, and Grafana-MCP, use the skill docs in `.cursor/skills/<name>/SKILL.md` for tool names, parameters, and workflows. Pass relevant skill content into context when the command or agent says to use that MCP.
-RULE_END
-
-ok "Created $RULE_FILE"
-
-# ─── 2. Skills ───────────────────────────────────────────────────────
-header "Step 2/3 — Cursor skills"
+# ─── 3. Skills ───────────────────────────────────────────────────────
+header "Step 3/4 — Cursor skills"
 
 mkdir -p "$SKILLS_DIR"
 SKILL_SRC="$REPO_ROOT/skills"
@@ -103,8 +120,8 @@ for dir in "$SKILL_SRC"/*/; do
   ok "Installed skill: $name"
 done
 
-# ─── 3. MCP ─────────────────────────────────────────────────────────
-header "Step 3/3 — MCP servers"
+# ─── 4. MCP ─────────────────────────────────────────────────────────
+header "Step 4/4 — MCP servers"
 
 MCP_TEMPLATE="$REPO_ROOT/mcp-servers.json"
 if [ ! -f "$MCP_TEMPLATE" ]; then
@@ -180,7 +197,8 @@ echo ""
 echo -e "  ${GREEN}Cursor setup complete.${NC}"
 echo ""
 echo "  Created:"
-echo "    $RULES_DIR/production-master.mdc"
+echo "    $COMMANDS_DIR/*.md ($CMD_COUNT slash commands)"
+echo "    $AGENTS_DIR/*.md ($AGENT_COUNT agents)"
 echo "    $SKILLS_DIR/<skill-name>/SKILL.md (9 skills)"
 echo "  MCP config: $CURSOR_MCP"
 echo ""
