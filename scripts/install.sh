@@ -189,34 +189,27 @@ else
   fi
 fi
 
-# ─── Step 3: Configure Settings ──────────────────────────────────────
-header "Step 3/4 — Configure Settings"
+# ─── Step 3: Enable Agent Teams ──────────────────────────────────────
+header "Step 3/4 — Enable Agent Teams"
 
 mkdir -p "$(dirname "$SETTINGS_JSON")"
 
-# Ensure settings.json exists
-if [ ! -f "$SETTINGS_JSON" ]; then
-  echo '{}' > "$SETTINGS_JSON"
+if [ -f "$SETTINGS_JSON" ]; then
+  HAS_TEAMS=$(jq -r '.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS // ""' "$SETTINGS_JSON" 2>/dev/null || echo "")
+else
+  HAS_TEAMS=""
 fi
 
-# Enable agent teams
-HAS_TEAMS=$(jq -r '.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS // ""' "$SETTINGS_JSON" 2>/dev/null || echo "")
 if [ "$HAS_TEAMS" = "1" ]; then
   ok "Agent teams already enabled"
 else
-  UPDATED_SETTINGS=$(jq '.env = ((.env // {}) + {"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"})' "$SETTINGS_JSON")
+  if [ -f "$SETTINGS_JSON" ]; then
+    UPDATED_SETTINGS=$(jq '.env = ((.env // {}) + {"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"})' "$SETTINGS_JSON")
+  else
+    UPDATED_SETTINGS='{"env":{"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS":"1"}}'
+  fi
   echo "$UPDATED_SETTINGS" > "$SETTINGS_JSON"
-  ok "Agent teams enabled"
-fi
-
-# Set default subagent model
-HAS_MODEL=$(jq -r '.env.PRODUCTION_MASTER_SUBAGENT_MODEL // ""' "$SETTINGS_JSON" 2>/dev/null || echo "")
-if [ -n "$HAS_MODEL" ]; then
-  ok "Subagent model already set: $HAS_MODEL"
-else
-  UPDATED_SETTINGS=$(jq '.env = ((.env // {}) + {"PRODUCTION_MASTER_SUBAGENT_MODEL": "sonnet"})' "$SETTINGS_JSON")
-  echo "$UPDATED_SETTINGS" > "$SETTINGS_JSON"
-  ok "Subagent model set to sonnet (change in ~/.claude/settings.json to override)"
+  ok "Agent teams enabled in settings.json"
 fi
 
 # ─── Step 4: Summary ─────────────────────────────────────────────────

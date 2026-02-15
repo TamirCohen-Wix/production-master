@@ -152,19 +152,9 @@ For details on formatting rules and cross-platform publishing, see the [investig
 
 ### Model configuration
 
-The `/production-master` orchestrator runs on your session's current model (typically **Opus 4.6**). All subagents default to **Sonnet** because Opus token usage is limited — a full investigation spawns 12+ subagents across multiple pipeline steps, and running all of them on Opus would quickly exhaust your token budget. Sonnet handles data fetching, MCP queries, and report writing well at a fraction of the cost, while Opus is reserved for the orchestrator where complex reasoning and coordination matter most.
+The `/production-master` orchestrator runs on your session's current model (typically **Opus 4.6**). All 12 subagents run on **Sonnet** by default because Opus token usage is limited — a full investigation spawns 12+ subagents across multiple pipeline steps, and running all of them on Opus would quickly exhaust your token budget. Sonnet handles data fetching, MCP queries, and report writing well at a fraction of the cost, while Opus is reserved for the orchestrator where complex reasoning and coordination matter most.
 
-To override the subagent model, set the `PRODUCTION_MASTER_SUBAGENT_MODEL` env var in `~/.claude/settings.json`:
-
-```json
-{
-  "env": {
-    "PRODUCTION_MASTER_SUBAGENT_MODEL": "opus"
-  }
-}
-```
-
-Valid values: `"sonnet"` (default), `"opus"`, `"haiku"`. This affects all 12 subagents launched during an investigation. The orchestrator's own model is always determined by your Claude Code session (use `/model` to switch).
+To change the subagent model, edit the `model` parameter in `commands/production-master.md` — every `Task` call specifies `model="sonnet"`. Replace with `"opus"` or `"haiku"` as needed. The orchestrator's own model is determined by your Claude Code session (use `/model` to switch).
 
 | Agent | Role |
 |-------|------|

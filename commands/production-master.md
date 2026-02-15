@@ -15,7 +15,7 @@ You are the **Production Master**, a single entry point for ALL production inves
 5. **Autonomous decisions** — YOU decide what to investigate next. Do not ask the user mid-investigation.
 6. **Fresh start** — Never read from previous `debug-*` directories. Each run creates a new directory under `.claude/debug/` (or `./debug/` outside a repo).
 7. **True parallelism** — Launch independent agents in the SAME message using multiple Task calls.
-8. **Model tiering** — Use `model: SUBAGENT_MODEL` for ALL subagents (default: `"sonnet"`, configurable via env var `PRODUCTION_MASTER_SUBAGENT_MODEL` in `~/.claude/settings.json`).
+8. **Model tiering** — Use `model: "sonnet"` for ALL subagents.
 9. **Fast-fail** — If an MCP tool or agent fails, report it immediately. Do not retry silently or fabricate data.
 10. **Explicit state** — `findings-summary.md` is the persistent state file. Update it after every step with what's proven, what's missing, and what to do next.
 
@@ -76,8 +76,6 @@ GRAFANA_URL     = domain.json → grafana_url         (e.g., "https://grafana.wi
 GRAFANA_DASHBOARD = domain.json → grafana_app_analytics_dashboard (e.g., "olcdJbinz")
 REQUEST_ID_FORMAT = domain.json → request_id_format (e.g., "<unix_timestamp>.<random>")
 ```
-
-**SUBAGENT_MODEL** is a global plugin setting, NOT part of domain.json. Read from env var `PRODUCTION_MASTER_SUBAGENT_MODEL` (set in `~/.claude/settings.json` under `env`). Defaults to `"sonnet"`. Valid values: `"sonnet"`, `"opus"`, `"haiku"`.
 
 If `domain.json` is NOT found:
 - The pipeline still works, but will prompt for service names and artifact IDs when needed
@@ -388,9 +386,9 @@ FIRE_CONSOLE_SKILL = read("skills/fire-console/SKILL.md")
 
 Read the agent prompt from `agents/bug-context.md`.
 
-Increment `AGENT_COUNTERS[bug-context]`. Launch **one** Task (model: SUBAGENT_MODEL):
+Increment `AGENT_COUNTERS[bug-context]`. Launch **one** Task (model: sonnet):
 ```
-Task: subagent_type="general-purpose", model=SUBAGENT_MODEL
+Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of bug-context.md agent prompt]
   + JIRA_DATA: [raw Jira JSON]
   + USER_INPUT: [user's original message]
@@ -548,7 +546,7 @@ query_app_logs(
    - LIKE search: `SELECT DISTINCT artifact_id FROM app_logs WHERE $__timeFilter(timestamp) AND artifact_id LIKE '%<service-name>%' LIMIT 10`
 3. Update bug-context report's Artifact Validation table with results.
 4. Remove non-existent artifacts from the list passed to Grafana agent.
-5. **If multiple ambiguous artifacts found:** Launch the artifact-resolver agent (`agents/artifact-resolver.md`) with model: SUBAGENT_MODEL for deeper validation. Otherwise, the inline checks above are sufficient.
+5. **If multiple ambiguous artifacts found:** Launch the artifact-resolver agent (`agents/artifact-resolver.md`) with model: sonnet for deeper validation. Otherwise, the inline checks above are sufficient.
 
 **Status update:** "Artifact IDs validated. Querying Grafana logs..."
 
@@ -560,9 +558,9 @@ query_app_logs(
 
 Read the agent prompt from `agents/grafana-analyzer.md`.
 
-Increment `AGENT_COUNTERS[grafana-analyzer]`. Launch **one** Task (model: SUBAGENT_MODEL):
+Increment `AGENT_COUNTERS[grafana-analyzer]`. Launch **one** Task (model: sonnet):
 ```
-Task: subagent_type="general-purpose", model=SUBAGENT_MODEL
+Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of grafana-analyzer.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
   + ENRICHED_CONTEXT: [full content from Step 1.3, or "No enrichment data — Fire Console skipped"]
@@ -616,8 +614,8 @@ Write `{OUTPUT_DIR}/findings-summary.md`:
 ## Agent Invocation Log
 | Step | Agent | Model | Status | Key Output |
 |------|-------|-------|--------|------------|
-| 1 | bug-context | SUBAGENT_MODEL | done | [services, time window] |
-| 2 | grafana-analyzer | SUBAGENT_MODEL | done | [error count, boundaries] |
+| 1 | bug-context | sonnet | done | [services, time window] |
+| 2 | grafana-analyzer | sonnet | done | [error count, boundaries] |
 ```
 
 **Status update:** "Grafana errors gathered. Tracing error propagation in codebase..."
@@ -653,9 +651,9 @@ This prevents the entire codebase analysis from failing due to MCP auth issues.
 
 Read the agent prompt from `agents/codebase-semantics.md`.
 
-Increment `AGENT_COUNTERS[codebase-semantics]`. Launch **one** Task (model: SUBAGENT_MODEL):
+Increment `AGENT_COUNTERS[codebase-semantics]`. Launch **one** Task (model: sonnet):
 ```
-Task: subagent_type="general-purpose", model=SUBAGENT_MODEL
+Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of codebase-semantics.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
   + ENRICHED_CONTEXT: [full content from Step 1.3, or "No enrichment data"]
@@ -692,13 +690,13 @@ If quality gate fails: re-launch with specific missing items.
 
 Read agent prompts from `agents/production-analyzer.md`, `agents/slack-analyzer.md`, and `agents/codebase-semantics.md`.
 
-Launch **FOUR Tasks in the SAME message** (true parallel execution, all SUBAGENT_MODEL):
+Launch **FOUR Tasks in the SAME message** (true parallel execution, all sonnet):
 
 Increment counters for `production-analyzer`, `slack-analyzer`, `codebase-semantics-prs`, and `fire-console-enrichment`.
 
 **Task 1 — Production Analyzer:**
 ```
-Task: subagent_type="general-purpose", model=SUBAGENT_MODEL
+Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of production-analyzer.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
   + ENRICHED_CONTEXT: [full content from Step 1.3, or "No enrichment data"]
@@ -717,7 +715,7 @@ Prompt: [full content of production-analyzer.md agent prompt]
 
 **Task 2 — Slack Analyzer:**
 ```
-Task: subagent_type="general-purpose", model=SUBAGENT_MODEL
+Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of slack-analyzer.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
   + ENRICHED_CONTEXT: [full content from Step 1.3, or "No enrichment data"]
@@ -732,7 +730,7 @@ Prompt: [full content of slack-analyzer.md agent prompt]
 
 **Task 3 — Codebase Semantics (PRs/Changes):**
 ```
-Task: subagent_type="general-purpose", model=SUBAGENT_MODEL
+Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of codebase-semantics.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
   + ENRICHED_CONTEXT: [full content from Step 1.3, or "No enrichment data"]
@@ -757,7 +755,7 @@ Run this task ONLY if:
 
 If conditions met, increment `AGENT_COUNTERS[fire-console-enrichment]`:
 ```
-Task: subagent_type="general-purpose", model=SUBAGENT_MODEL
+Task: subagent_type="general-purpose", model="sonnet"
 Prompt: You are a data enrichment agent. Use Fire Console to fetch domain objects
   from Wix production services. Your job is to provide FULL CONTEXT for identifiers
   found during the investigation.
@@ -883,7 +881,7 @@ Read agent prompts from `agents/hypotheses.md` and `agents/skeptic.md`.
 Increment `AGENT_COUNTERS[hypotheses]` TWICE (once for A, once for B).
 Create agent subdirectory for skeptic if not exists: `mkdir -p {OUTPUT_DIR}/skeptic`
 
-Launch an agent team with 3 teammates using `Task` with `mode: "delegate"`. All teammates use `model: SUBAGENT_MODEL`.
+Launch an agent team with 3 teammates using `Task` with `mode: "delegate"`. All teammates use `model: "sonnet"`.
 
 **Teammate 1 — hypothesis-tester-A:**
 ```
@@ -985,9 +983,9 @@ Wait for Task 3 (skeptic/reconcile) to complete. Read the skeptic's output file.
 
 Read the agent prompt from `agents/hypotheses.md`.
 
-Increment `AGENT_COUNTERS[hypotheses]`. Launch **one** Task (model: SUBAGENT_MODEL):
+Increment `AGENT_COUNTERS[hypotheses]`. Launch **one** Task (model: sonnet):
 ```
-Task: subagent_type="general-purpose", model=SUBAGENT_MODEL
+Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of hypotheses.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
   + ENRICHED_CONTEXT: [full content — domain objects from Fire Console]
@@ -1024,9 +1022,9 @@ Wait for completion. Read the output. Store as `CURRENT_HYPOTHESIS_REPORT`.
 
 Read the agent prompt from `agents/verifier.md`.
 
-Launch **one** Task (model: SUBAGENT_MODEL):
+Launch **one** Task (model: sonnet):
 ```
-Task: subagent_type="general-purpose", model=SUBAGENT_MODEL
+Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of verifier.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
   + ENRICHED_CONTEXT: [full content — domain objects from Fire Console]
@@ -1093,7 +1091,7 @@ Read the verdict (from skeptic in 5A, or verifier in 5B).
    - If verdict requested agent re-runs (codebase, Slack, production):
      - Run agents with their TAILORED TASK from the verdict
      - Pass findings-summary.md AND relevant skill files to each agent
-     - Independent agents can run in parallel (multiple Task calls in same message, model: SUBAGENT_MODEL)
+     - Independent agents can run in parallel (multiple Task calls in same message, model: sonnet)
    - If no specific next tasks:
      - Re-run Step 4 (all three agents in parallel) with the verdict's guidance
 6. **Increment HYPOTHESIS_INDEX.** Go to **STEP 5** (new hypothesis round) with TARGETED_GRAFANA_RESULTS as additional input.
@@ -1107,9 +1105,9 @@ Read the verdict (from skeptic in 5A, or verifier in 5B).
 
 Read the agent prompt from `agents/fix-list.md`.
 
-Launch **one** Task (model: SUBAGENT_MODEL):
+Launch **one** Task (model: sonnet):
 ```
-Task: subagent_type="general-purpose", model=SUBAGENT_MODEL
+Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of fix-list.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
   + ENRICHED_CONTEXT: [full content — domain objects from Fire Console]
@@ -1133,9 +1131,9 @@ Wait for completion. Store as `FIX_PLAN_REPORT`.
 
 Read the agent prompt from `agents/documenter.md`.
 
-Launch **one** Task (model: SUBAGENT_MODEL):
+Launch **one** Task (model: sonnet):
 ```
-Task: subagent_type="general-purpose", model=SUBAGENT_MODEL
+Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of documenter.md agent prompt]
   + USER_INPUT: [original user message]
   + BUG_CONTEXT_REPORT: [full content]
@@ -1183,9 +1181,9 @@ Options:
 
 **If user chooses to publish:**
 
-Increment `AGENT_COUNTERS[publisher]`. Launch **one** Task (model: SUBAGENT_MODEL):
+Increment `AGENT_COUNTERS[publisher]`. Launch **one** Task (model: sonnet):
 ```
-Task: subagent_type="general-purpose", model=SUBAGENT_MODEL
+Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of publisher.md agent prompt]
   + REPORT_CONTENT: [full content of report.md]
   + BUG_CONTEXT_REPORT: [full content]
@@ -1231,7 +1229,7 @@ Published to: [Jira / Slack / both / local only]
 7. **Findings-summary.md is the state file.** Update it after every step. Include the agent invocation log.
 
 ### Model Tiering
-8. **ALL subagents run on `SUBAGENT_MODEL`** (default: `"sonnet"`). Read from env var `PRODUCTION_MASTER_SUBAGENT_MODEL` (in `~/.claude/settings.json`), otherwise `"sonnet"`. Valid values: `"sonnet"`, `"opus"`, `"haiku"`.
+8. **ALL subagents run on Sonnet** (`model: "sonnet"`). No exceptions.
 9. (reserved)
 10. (reserved)
 
