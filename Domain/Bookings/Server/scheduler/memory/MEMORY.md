@@ -12,7 +12,7 @@
    - Max 3 iterations
 
 ### Sub-Agent Rules
-- Each agent's `.md` file contains a pre-loaded tool list — agents use `select:` syntax, no keyword search
+- Agents use `ToolSearch` with keyword queries (e.g., `ToolSearch("+jira get-issues")`) to dynamically discover and load MCP tools
 - Agent files live in `~/.claude/agents/` (USER scope), command files in `~/.claude/commands/` (USER scope)
 - When making pipeline changes, always update the relevant agent/command files
 - **File location consistency:** Agents, commands, and skills are USER-scoped (`~/.claude/`). Only auto-memory is project-scoped. Never create project-scoped duplicates.

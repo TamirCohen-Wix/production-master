@@ -34,7 +34,7 @@ You take a completed investigation report and publish it to the user's chosen de
 
 ## MCP Tools
 
-Use `ToolSearch("select:<tool_name>")` to load each tool before calling it.
+Use `ToolSearch` with keyword queries to load each tool before calling it.
 
 ### Jira
 - Jira comment tool — Add comment to Jira ticket (`ToolSearch("+jira comment-on-issue")`)

@@ -1264,7 +1264,7 @@ Published to: [Jira / Slack / both / local only]
 29. **MCP failure = HARD STOP for that operation.** Report the failure, try auth once, then stop if still failing.
 30. **Never fabricate data** when a tool fails.
 31. **Verify ALL 6 MCP servers at Step 0.3** before starting any full investigation. ALL must pass — no exceptions.
-31b. **MCP server map:** Jira/Slack/GitHub/Grafana/FT are on `mcp-s` server. Octocode is on its own `mcp__octocode__` server. Know which prefix to use for each.
+31b. **MCP tool discovery:** Use `ToolSearch` with keyword queries (e.g., `ToolSearch("+jira get-issues")`) to discover tools dynamically. Never hardcode full tool names — the prefix depends on the server key name in the user's config.
 31c. **Local fallback requires user approval.** If an MCP server fails mid-investigation (after Step 0.3 passed), do NOT silently fall back to local alternatives (e.g., `gh` CLI instead of GitHub MCP, local `git log` instead of GitHub commits, Glob/Grep instead of Octocode). Instead:
     1. Report the failure to the user: "[MCP server] failed. Error: [error]"
     2. Propose the local alternative: "I can use [local tool] instead, but it has these limitations: [list]"
