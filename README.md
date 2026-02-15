@@ -1,6 +1,7 @@
 # Production Master
 
 [![Version](https://img.shields.io/badge/version-1.0.0--beta-blue)](https://github.com/TamirCohen-Wix/production-master/releases)
+[![Status](https://img.shields.io/badge/status-experimental-orange)](https://github.com/TamirCohen-Wix/production-master/releases)
 [![CI](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml/badge.svg)](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml)
 [![Author](https://img.shields.io/badge/author-Tamir%20Cohen-green)](https://wix.slack.com/team/U09H3AHE3C7)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://github.com/anthropics/claude-code/blob/main/plugins/README.md)
