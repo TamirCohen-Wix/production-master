@@ -150,6 +150,20 @@ For details on formatting rules and cross-platform publishing, see the [investig
 
 12 specialized agents, 8 commands, 9 MCP skill references. The pipeline classifies user intent, gathers context from multiple sources in parallel, generates testable hypotheses, and iterates through a verification loop (up to 5 rounds) until a root cause is confirmed.
 
+### Model configuration
+
+The `/production-master` orchestrator runs on your session's current model (typically **Opus 4.6**). All subagents default to **Sonnet** for cost efficiency — they handle data fetching, not reasoning.
+
+You can override the subagent model by adding `subagent_model` to your `domain.json`:
+
+```json
+{
+  "subagent_model": "opus"
+}
+```
+
+Valid values: `"sonnet"` (default), `"opus"`, `"haiku"`. This affects all 12 subagents launched during an investigation. The orchestrator's own model is always determined by your Claude Code session (use `/model` to switch).
+
 | Agent | Role |
 |-------|------|
 | `bug-context` | Parses Jira tickets into structured briefs |

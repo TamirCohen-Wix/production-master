@@ -63,6 +63,7 @@ The core config file. Every field maps directly to a pipeline variable:
 | `toggle_prefix` | production-analyzer, fix-list | Searches feature toggles scoped to the team |
 | `github_org` / `github_repo` | codebase-semantics, production-analyzer | Searches code and PRs |
 | `request_id_format` | grafana-query | Extracts timestamps from request IDs for time-range queries |
+| `subagent_model` | orchestrator | Model for all subagents — `"sonnet"` (default), `"opus"`, or `"haiku"` |
 
 ### `CLAUDE.md`
 
