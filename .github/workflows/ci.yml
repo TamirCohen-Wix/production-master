@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate-plugin:
+    name: Validate plugin structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate plugin.json
+        run: |
+          echo "Checking .claude-plugin/plugin.json..."
+          test -f .claude-plugin/plugin.json || { echo "FAIL: plugin.json missing"; exit 1; }
+          jq empty .claude-plugin/plugin.json || { echo "FAIL: plugin.json is not valid JSON"; exit 1; }
+
+          NAME=$(jq -r '.name' .claude-plugin/plugin.json)
+          VERSION=$(jq -r '.version' .claude-plugin/plugin.json)
+          echo "Plugin: $NAME v$VERSION"
+
+          [ "$NAME" = "production-master" ] || { echo "FAIL: unexpected plugin name: $NAME"; exit 1; }
+          [ -n "$VERSION" ] && [ "$VERSION" != "null" ] || { echo "FAIL: version is missing"; exit 1; }
+          echo "OK: plugin.json is valid"
+
+      - name: Validate marketplace.json
+        run: |
+          echo "Checking .claude-plugin/marketplace.json..."
+          test -f .claude-plugin/marketplace.json || { echo "FAIL: marketplace.json missing"; exit 1; }
+          jq empty .claude-plugin/marketplace.json || { echo "FAIL: marketplace.json is not valid JSON"; exit 1; }
+
+          PLUGIN_COUNT=$(jq '.plugins | length' .claude-plugin/marketplace.json)
+          [ "$PLUGIN_COUNT" -ge 1 ] || { echo "FAIL: no plugins defined"; exit 1; }
+          echo "OK: marketplace.json is valid ($PLUGIN_COUNT plugin(s))"
+
+      - name: Validate mcp-servers.json
+        run: |
+          echo "Checking mcp-servers.json..."
+          test -f mcp-servers.json || { echo "FAIL: mcp-servers.json missing"; exit 1; }
+          jq empty mcp-servers.json || { echo "FAIL: mcp-servers.json is not valid JSON"; exit 1; }
+
+          SERVER_COUNT=$(jq '.mcpServers | keys | length' mcp-servers.json)
+          echo "OK: mcp-servers.json is valid ($SERVER_COUNT servers)"
+
+          # Ensure no real secrets are committed
+          if grep -qE '"[a-f0-9]{32,}"' mcp-servers.json; then
+            echo "FAIL: mcp-servers.json appears to contain real access keys"
+            exit 1
+          fi
+          echo "OK: no secrets detected in mcp-servers.json"
+
+      - name: Validate hooks.json
+        run: |
+          test -f hooks/hooks.json || { echo "FAIL: hooks/hooks.json missing"; exit 1; }
+          jq empty hooks/hooks.json || { echo "FAIL: hooks.json is not valid JSON"; exit 1; }
+          echo "OK: hooks.json is valid"
+
+  validate-content:
+    name: Validate plugin content
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required commands
+        run: |
+          EXPECTED="production-master.md git-update-agents.md update-context.md fire-console.md grafana-query.md production-changes.md resolve-artifact.md slack-search.md"
+          MISSING=0
+          for cmd in $EXPECTED; do
+            if [ ! -f "commands/$cmd" ]; then
+              echo "FAIL: commands/$cmd missing"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+          TOTAL=$(ls commands/*.md 2>/dev/null | wc -l | tr -d ' ')
+          echo "Commands: $TOTAL found"
+          [ "$MISSING" -eq 0 ] || exit 1
+          echo "OK: all expected commands present"
+
+      - name: Check required agents
+        run: |
+          EXPECTED="artifact-resolver.md bug-context.md codebase-semantics.md documenter.md fix-list.md grafana-analyzer.md hypotheses.md production-analyzer.md publisher.md skeptic.md slack-analyzer.md verifier.md"
+          MISSING=0
+          for agent in $EXPECTED; do
+            if [ ! -f "agents/$agent" ]; then
+              echo "FAIL: agents/$agent missing"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+          TOTAL=$(ls agents/*.md 2>/dev/null | wc -l | tr -d ' ')
+          echo "Agents: $TOTAL found"
+          [ "$MISSING" -eq 0 ] || exit 1
+          echo "OK: all expected agents present"
+
+      - name: Check required skills
+        run: |
+          EXPECTED="context7 fire-console ft-release github grafana-datasource grafana-mcp jira octocode slack"
+          MISSING=0
+          for skill in $EXPECTED; do
+            if [ ! -d "skills/$skill" ] || [ ! -f "skills/$skill/SKILL.md" ]; then
+              echo "FAIL: skills/$skill/SKILL.md missing"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+          TOTAL=$(ls -d skills/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
+          echo "Skills: $TOTAL found"
+          [ "$MISSING" -eq 0 ] || exit 1
+          echo "OK: all expected skills present"
+
+  lint-scripts:
+    name: Lint shell scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck on install.sh
+        run: shellcheck --severity=error scripts/install.sh
+
+      - name: Run shellcheck on validate-install.sh
+        run: shellcheck --severity=error scripts/validate-install.sh
+
+      - name: Run shellcheck on validate-report-links.sh
+        if: hashFiles('scripts/validate-report-links.sh') != ''
+        run: shellcheck --severity=error scripts/validate-report-links.sh

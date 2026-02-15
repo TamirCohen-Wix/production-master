@@ -53,19 +53,21 @@ header "Step 1/4 — Install Plugin"
 
 # Choose scope
 echo ""
+echo -e "  ${YELLOW}${BOLD}⚠  This plugin is experimental. 'local' scope is recommended.${NC}"
+echo ""
 echo "  Install scope:"
-echo "    1) user    — available in all projects (default)"
-echo "    2) project — only in current project (shared via git)"
-echo "    3) local   — only in current project (not shared)"
+echo "    1) local   — only in current project, not shared (default, recommended)"
+echo "    2) project — only in current project, shared via git"
+echo "    3) user    — available in all projects"
 echo ""
 read -rp "  Choose [1/2/3] (default: 1): " SCOPE_CHOICE
 SCOPE_CHOICE="${SCOPE_CHOICE:-1}"
 
 case "$SCOPE_CHOICE" in
-  1) SCOPE="user" ;;
+  1) SCOPE="local" ;;
   2) SCOPE="project" ;;
-  3) SCOPE="local" ;;
-  *) SCOPE="user" ;;
+  3) SCOPE="user" ;;
+  *) SCOPE="local" ;;
 esac
 ok "Scope: $SCOPE"
 
