@@ -1,17 +1,29 @@
 # Production Master
 
 [![Version](https://img.shields.io/badge/version-1.0.0--beta-blue)](https://github.com/TamirCohen-Wix/production-master/releases)
-[![Status](https://img.shields.io/badge/status-experimental-orange)](https://github.com/TamirCohen-Wix/production-master/releases)
 [![CI](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml/badge.svg)](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml)
 [![Author](https://img.shields.io/badge/author-Tamir%20Cohen-green)](https://wix.slack.com/team/U09H3AHE3C7)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://github.com/anthropics/claude-code/blob/main/plugins/README.md)
 
-Autonomous production investigation pipeline for Claude Code. Classifies user intent, routes to specialized agents, and executes multi-step bug investigations with hypothesis loops.
+Autonomous production investigation pipeline for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Classifies user intent, routes to specialized agents, and executes multi-step bug investigations with hypothesis loops.
 
 > [!WARNING]
-> **This plugin is experimental.** The Claude Code plugin system is still evolving and breaking changes may occur. Install with `local` scope (the default) so the plugin only affects your current project and can be removed cleanly. **Do not install with `user` scope in production-critical environments.**
+> **This plugin is in beta.** It is under active development and may have rough edges. We recommend trying it **per-session first** (see below) before committing to a persistent install. If you do install, use **`local` scope** (the default) so it only affects your current project.
 
-## Install
+## Quick Start — Try Per-Session (Recommended)
+
+The safest way to try Production Master is per-session — nothing is installed, and it's gone when you close Claude Code:
+
+```bash
+gh repo clone TamirCohen-Wix/production-master
+claude --plugin-dir ./production-master
+```
+
+Then use `/production-master:production-master TICKET-ID` to run an investigation. If you like it, proceed to install it persistently below.
+
+> **Note:** With `--plugin-dir`, commands are prefixed with `production-master:` (e.g., `/production-master:grafana-query`). With a persistent install, they're available directly (e.g., `/grafana-query`).
+
+## Install (Persistent)
 
 Clone the repo and run the installer:
 
@@ -44,14 +56,14 @@ When installing, you choose where the plugin is available:
 
 | Scope | Location | Shared via git? | Available in | Best for |
 |-------|----------|-----------------|--------------|----------|
-| **`local`** (default) | `.claude/plugins/` in current project | No (gitignored) | Current project only | Personal use, experimenting |
-| `project` | `.claude/plugins/` in current project | Yes | Current project only | Sharing with team via repo |
-| `user` | `~/.claude/plugins/` | No | All projects | Power users who want it everywhere |
+| **`local`** (default) | `.claude/plugins/` in current project | No (gitignored) | Current project only | Trying it out, personal use |
+| `project` | `.claude/plugins/` in current project | Yes (committed) | Current project only | Sharing with your team via the repo |
+| `user` | `~/.claude/plugins/` | No | All your projects | Power users who want it everywhere |
 
 > [!WARNING]
-> **Recommended: `local` scope.** Since this plugin is experimental, `local` scope keeps the blast radius small — it only affects the project where you installed it, and uninstalling is clean. Use `project` or `user` scope only if you understand the implications.
+> **Recommended: `local` scope.** This keeps the blast radius small — the plugin only affects the project where you installed it, and uninstalling is clean. Use `project` or `user` scope only after you've validated it works well for your workflow.
 
-### Plugin management commands
+## Plugin Management
 
 ```bash
 # List installed plugins and their status
@@ -60,11 +72,14 @@ claude plugin list
 # Install (after marketplace is registered)
 claude plugin install production-master --scope local
 
-# Uninstall
-claude plugin uninstall production-master
+# Uninstall (must specify the scope it was installed with)
+claude plugin uninstall production-master --scope local
 
-# Remove the marketplace registration (optional)
+# Remove the marketplace registration
 claude plugin marketplace remove production-master
+
+# Run per-session without installing
+claude --plugin-dir /path/to/production-master
 
 # Validate your installation
 bash scripts/validate-install.sh
@@ -72,7 +87,7 @@ bash scripts/validate-install.sh
 
 ## Usage
 
-After installing, restart Claude Code / Cursor, then use `/production-master`:
+After installing (or loading with `--plugin-dir`), restart Claude Code / Cursor, then use `/production-master`:
 
 ```
 /production-master SCHED-45895                                  # Full investigation
@@ -83,7 +98,7 @@ After installing, restart Claude Code / Cursor, then use `/production-master`:
 /production-master check toggle specs.bookings.SomeToggle       # Check toggles
 ```
 
-### Other commands
+### All commands
 
 | Command | Description |
 |---------|-------------|
@@ -93,7 +108,7 @@ After installing, restart Claude Code / Cursor, then use `/production-master`:
 | `/production-changes` | Find PRs, commits, and feature toggle changes |
 | `/resolve-artifact` | Validate and resolve service artifact IDs |
 | `/fire-console` | Query domain objects via Fire Console gRPC |
-| `/update-context` | Configure your domain (see below) |
+| `/update-context` | Create or update your domain config (see below) |
 | `/git-update-agents` | Sync agent updates back to the repo |
 
 ### Set up your repo
@@ -130,9 +145,9 @@ For investigation flow diagrams, data flow, and domain config details, see [docs
 production-master/
 ├── .claude-plugin/
 │   ├── plugin.json              ← Plugin metadata
-│   └── marketplace.json         ← Marketplace metadata
+│   └── marketplace.json         ← Marketplace definition
 ├── agents/                      ← 12 pipeline agents
-├── commands/                    ← 8 commands
+├── commands/                    ← 8 slash commands
 ├── skills/                      ← 9 MCP skill references
 ├── hooks/
 │   └── hooks.json               ← Notification + link validation hooks
@@ -141,10 +156,14 @@ production-master/
 │   ├── validate-install.sh      ← Installation diagnostics
 │   └── validate-report-links.sh ← Report link validator
 ├── output-styles/               ← Investigation report + publisher formatting
-├── Domain/                      ← Domain configs (per-repo context for investigations)
-├── mcp-servers.json             ← MCP server template (no secrets)
+├── Domain/                      ← Domain configs (per-repo investigation context)
+├── mcp-servers.json             ← MCP server template (used by install.sh)
 └── README.md
 ```
+
+### Why `mcp-servers.json` instead of `.mcp.json`?
+
+Claude Code plugins can declare MCP servers via a `.mcp.json` file at the plugin root, which auto-starts servers when the plugin loads. However, our 9 MCP servers require **personal access keys** — auto-starting them with placeholder keys would fail. Instead, `mcp-servers.json` serves as a **template** that `install.sh` processes: it substitutes your real access key and merges only missing servers into `~/.claude.json`, without overwriting any existing server configs.
 
 ### Domain configs
 
@@ -165,13 +184,19 @@ gh repo fork TamirCohen-Wix/production-master --clone
 cd production-master
 ```
 
+Test your changes per-session before committing:
+
+```bash
+claude --plugin-dir .
+```
+
 All PRs to `main` require:
-- Passing CI checks (plugin validation, shell lint, structure tests)
+- Passing CI checks (plugin validation, shell lint, install/uninstall test)
 - At least 1 approving review
 
 ### Add your repo's domain config
 
-1. Install Production Master
+1. Install Production Master (or use `--plugin-dir`)
 2. Run `/update-context` from your repo — it guides you interactively
 3. Say "yes" when it offers to open a PR
 4. The PR adds config to `Domain/<Division>/<Side>/<repo>/`
@@ -180,7 +205,7 @@ All PRs to `main` require:
 
 1. Fork & clone this repo
 2. Edit files directly (agents, commands, skills, hooks, output-styles)
-3. Test locally — run `claude --plugin-dir .` and use `/production-master` on a real ticket
+3. Test with `claude --plugin-dir .` and use `/production-master` on a real ticket
 4. Open a PR
 
 ## Requirements
