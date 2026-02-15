@@ -1,7 +1,8 @@
 {
   "name": "production-master",
   "description": "Autonomous production investigation pipeline with standalone tools — 12 agents, hypothesis loops, 9 MCP integrations, and direct query commands",
-  "version": "1.0.0-beta",
+  "version": "1.0.0",
   "author": { "name": "Tamir Cohen" },
-  "repository": "https://github.com/TamirCohen-Wix/production-master"
+  "repository": "https://github.com/TamirCohen-Wix/production-master",
+  "mcpServers": "./mcp-servers.json"
 }

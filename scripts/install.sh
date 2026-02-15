@@ -7,6 +7,7 @@
 set -euo pipefail
 
 REPO="TamirCohen-Wix/production-master"
+PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLAUDE_JSON="$HOME/.claude.json"
 SETTINGS_JSON="$HOME/.claude/settings.json"
 MCP_CONNECT_URL="https://mcp-s-connect.wewix.net/mcp-servers"
@@ -50,24 +51,64 @@ ok "jq available"
 # ─── Step 1: Add marketplace & install plugin ────────────────────────
 header "Step 1/4 — Install Plugin"
 
-info "Adding 'production-master' marketplace from $REPO..."
-CLAUDECODE= claude plugin marketplace add "$REPO" 2>/dev/null || true
-ok "Marketplace 'production-master' registered"
+# Choose scope
+echo ""
+echo "  Install scope:"
+echo "    1) user    — available in all projects (default)"
+echo "    2) project — only in current project (shared via git)"
+echo "    3) local   — only in current project (not shared)"
+echo ""
+read -rp "  Choose [1/2/3] (default: 1): " SCOPE_CHOICE
+SCOPE_CHOICE="${SCOPE_CHOICE:-1}"
 
-info "Installing 'production-master' plugin from marketplace..."
-CLAUDECODE= claude plugin install production-master 2>/dev/null || true
-ok "Plugin 'production-master' installed"
+case "$SCOPE_CHOICE" in
+  1) SCOPE="user" ;;
+  2) SCOPE="project" ;;
+  3) SCOPE="local" ;;
+  *) SCOPE="user" ;;
+esac
+ok "Scope: $SCOPE"
+
+# Clean stale cache
+CACHE_DIR="$HOME/.claude/plugins/cache/production-master"
+if [ -d "$CACHE_DIR" ]; then
+  info "Clearing stale plugin cache..."
+  rm -rf "$CACHE_DIR"
+  ok "Cache cleared"
+fi
+
+# Remove old marketplace if exists, then re-add
+CLAUDECODE= claude plugin marketplace remove production-master 2>/dev/null || true
+CLAUDECODE= claude plugin marketplace remove production-master-marketplace 2>/dev/null || true
+
+info "Adding marketplace from local directory..."
+CLAUDECODE= claude plugin marketplace add "$PLUGIN_DIR" 2>&1 || true
+ok "Marketplace registered"
+
+info "Installing 'production-master' plugin (scope: $SCOPE)..."
+INSTALL_OUTPUT=$(CLAUDECODE= claude plugin install production-master --scope "$SCOPE" 2>&1)
+echo "$INSTALL_OUTPUT"
+if echo "$INSTALL_OUTPUT" | grep -q "Successfully installed"; then
+  ok "Plugin installed"
+else
+  err "Plugin install may have failed — check output above"
+fi
 
 # ─── Step 2: Configure MCP servers ───────────────────────────────────
 header "Step 2/4 — Configure MCP Servers"
 
-# Download template via GitHub API (works for private repos)
-TEMPLATE=$(gh api "repos/$REPO/contents/mcp-servers.json" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "")
-if [ -z "$TEMPLATE" ]; then
-  err "Failed to download MCP server template from GitHub API"
-  exit 1
+# Try local file first, fall back to GitHub API
+if [ -f "$PLUGIN_DIR/mcp-servers.json" ]; then
+  TEMPLATE=$(cat "$PLUGIN_DIR/mcp-servers.json")
+  ok "Loaded MCP server template (local)"
+else
+  TEMPLATE=$(gh api "repos/$REPO/contents/mcp-servers.json" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+  if [ -z "$TEMPLATE" ]; then
+    err "Failed to load MCP server template"
+    exit 1
+  fi
+  ok "Downloaded MCP server template (GitHub API)"
 fi
-ok "Downloaded MCP server template"
 
 # Extract template server names
 TEMPLATE_SERVERS=$(echo "$TEMPLATE" | jq -r '.mcpServers | keys[]')
@@ -91,14 +132,26 @@ if [ ${#MISSING[@]} -eq 0 ]; then
   ok "All 9 MCP servers already configured — skipping"
 else
   info "Missing MCP servers: ${MISSING[*]}"
-  echo ""
-  echo -e "  Get your key at: ${BOLD}${MCP_CONNECT_URL}${NC}"
-  echo ""
-  read -rp "  Enter your MCP access key (or press Enter to skip): " ACCESS_KEY
+
+  # Try to extract an existing access key
+  ACCESS_KEY=""
+  if [ -f "$CLAUDE_JSON" ]; then
+    ACCESS_KEY=$(jq -r '
+      .mcpServers // {} | to_entries[]
+      | (.value.env.USER_ACCESS_KEY // .value.headers."x-user-access-key" // empty)
+    ' "$CLAUDE_JSON" 2>/dev/null | head -1 || echo "")
+  fi
 
   if [ -n "$ACCESS_KEY" ]; then
-    # Build a JSON object with all servers, key substituted
-    # Uses jq compatible with 1.6+ (no ?. operator)
+    ok "Reusing access key found in existing MCP configuration"
+  else
+    echo ""
+    echo -e "  Get your key at: ${BOLD}${MCP_CONNECT_URL}${NC}"
+    echo ""
+    read -rp "  Enter your MCP access key (or press Enter to skip): " ACCESS_KEY
+  fi
+
+  if [ -n "$ACCESS_KEY" ]; then
     MERGE_JSON=$(echo "$TEMPLATE" | jq --arg key "$ACCESS_KEY" '
       .mcpServers | to_entries | map(
         .value |= (
@@ -112,7 +165,6 @@ else
       ) | from_entries
     ')
 
-    # Filter to only missing servers
     MISSING_JSON="$MERGE_JSON"
     for server in $TEMPLATE_SERVERS; do
       if echo "$EXISTING_SERVERS" | grep -qx "$server"; then
@@ -120,7 +172,6 @@ else
       fi
     done
 
-    # Merge into ~/.claude.json — only add, never override
     if [ -f "$CLAUDE_JSON" ]; then
       UPDATED=$(jq --argjson new "$MISSING_JSON" '
         .mcpServers = ((.mcpServers // {}) + $new)
@@ -164,8 +215,21 @@ header "Step 4/4 — Done!"
 echo ""
 echo -e "  ${GREEN}Production Master is installed and ready.${NC}"
 echo ""
+echo "  Plugin management:"
+echo "    claude plugin list                          — show installed plugins"
+echo "    claude plugin uninstall production-master   — remove plugin"
+echo ""
 echo "  Next steps:"
 echo "    1. Open Claude Code in your repo"
 echo "    2. Run /update-context to set up your domain config"
 echo "    3. Run /production-master <TICKET-ID> to investigate"
+echo ""
+echo "  Available commands:"
+echo "    /production-master   — full investigation pipeline"
+echo "    /grafana-query       — query Grafana logs & metrics"
+echo "    /slack-search        — search Slack discussions"
+echo "    /production-changes  — find PRs, commits, toggles"
+echo "    /resolve-artifact    — validate artifact IDs"
+echo "    /fire-console        — query domain objects via gRPC"
+echo "    /update-context      — configure your domain"
 echo ""

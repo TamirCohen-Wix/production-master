@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "production-master",
-  "description": "Tamir Cohen's plugin marketplace for Claude Code",
+  "description": "Production Master plugin for Claude Code",
   "owner": {
     "name": "Tamir Cohen"
   },
@@ -13,10 +13,7 @@
       "author": {
         "name": "Tamir Cohen"
       },
-      "source": {
-        "source": "github",
-        "repo": "TamirCohen-Wix/production-master"
-      },
+      "source": "./",
       "category": "productivity",
       "homepage": "https://github.com/TamirCohen-Wix/production-master"
     }
