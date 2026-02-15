@@ -21,6 +21,7 @@ Autonomous production investigation pipeline for [Claude Code](https://docs.anth
 
 - [Quick Start](#quick-start--try-per-session-recommended)
 - [Install](#install-persistent)
+- [Install on Cursor](#install-on-cursor)
 - [Plugin Scopes](#plugin-scopes)
 - [Plugin Management](#plugin-management)
 - [Usage](#usage)
@@ -70,6 +71,14 @@ The installer will:
 5. Enable agent teams in `~/.claude/settings.json`
 
 > **Requires:** [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code), [GitHub CLI](https://cli.github.com) (`gh`), and `jq` (auto-installed via Homebrew if missing)
+
+## Install on Cursor
+
+To use Production Master in **Cursor IDE** (no Claude Code extension): run the Cursor install script. Commands become rules, sub-agents are run by the single agent following `agents/*.md`, and skills/MCPs are installed into `.cursor/`. See **[docs/CURSOR_INSTALL.md](docs/CURSOR_INSTALL.md)** for the full guide. Then run:
+
+```bash
+bash scripts/install-cursor.sh
+```
 
 ## Plugin Scopes
 
