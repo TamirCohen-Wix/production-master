@@ -168,6 +168,13 @@ if [ -f "$SETTINGS_JSON" ]; then
     warn "Agent teams: not enabled"
   fi
 
+  SUBAGENT_MODEL=$(jq -r '.env.PRODUCTION_MASTER_SUBAGENT_MODEL // ""' "$SETTINGS_JSON" 2>/dev/null)
+  if [ -n "$SUBAGENT_MODEL" ]; then
+    ok "Subagent model: $SUBAGENT_MODEL"
+  else
+    warn "Subagent model: not set (will default to sonnet)"
+  fi
+
   PLUGIN_ENABLED=$(jq -r '.enabledPlugins["production-master@production-master"] // ""' "$SETTINGS_JSON" 2>/dev/null)
   if [ "$PLUGIN_ENABLED" = "true" ]; then
     ok "Plugin enabled in settings"
