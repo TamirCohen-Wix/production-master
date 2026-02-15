@@ -107,11 +107,12 @@ Order matters: if exact times are unknown, Grafana first. Then Codebase and Prod
 When DECLINING, your "Next Tasks" section MUST include **EXACT SQL queries** for any Grafana re-investigation — not vague "re-query Grafana." Provide ready-to-run SQL:
 
 ```sql
--- Example: Find booking-specific errors by time correlation
+-- Example: Find service-specific errors by time correlation
+-- e.g., artifact_id = 'com.wixpress.bookings.bookings-service'
 SELECT timestamp, message, data, request_id, meta_site_id, stack_trace
 FROM app_logs
 WHERE $__timeFilter(timestamp)
-AND artifact_id = 'com.wixpress.bookings.<service>'
+AND artifact_id = '{ARTIFACT_PREFIX}.<service>'
 AND level = 'ERROR'
 AND message LIKE '%<specific_pattern>%'
 ORDER BY timestamp ASC LIMIT 50

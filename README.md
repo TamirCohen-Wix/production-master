@@ -144,7 +144,7 @@ Investigation reports follow a structured format designed for clarity in the ter
 
 When publishing to external tools (Jira, Slack, GitHub), the output is automatically adapted to each platform's markup — Jira wiki syntax, Slack mrkdwn, or GitHub-flavored markdown.
 
-For details on formatting rules and cross-platform publishing, see the [investigation report style guide](docs/architecture.md#output) and the templates in `output-styles/`.
+For details on formatting rules and cross-platform publishing, see the [investigation report style guide](docs/architecture.md#output-directory-structure) and the templates in `output-styles/`.
 
 ## Architecture
 
@@ -255,8 +255,8 @@ For detailed contribution guidelines — adding domain configs, improving agents
 
 ### Quick links
 
-- [Add your repo's domain config](docs/contributing.md#add-your-repos-domain-config) — run `/update-context` and PR the result
-- [Improve the pipeline](docs/contributing.md#improve-the-pipeline) — edit agents, commands, or skills and open a PR
+- [Add your repo's domain config](docs/contributing.md#contributing-a-new-domain) — run `/update-context` and PR the result
+- [Improve the pipeline](docs/contributing.md#contributing-pipeline-improvements) — edit agents, commands, or skills and open a PR
 
 ## Requirements
 

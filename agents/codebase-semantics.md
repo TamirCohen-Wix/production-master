@@ -65,19 +65,19 @@ If the skill reference is not provided in your prompt, state this explicitly and
 
 ### 1. Understand repo structure
 ```
-githubViewRepoStructure(repo: "wix-private/scheduler")
+githubViewRepoStructure(repo: "{GITHUB_ORG}/{REPO_NAME}")  # e.g., "wix-private/scheduler"
 ```
 
 ### 2. For EACH service in the flow — proto-first discovery
 ```
 # Find proto directory
-githubSearchCode(repo: "wix-private/scheduler", keywords: ["service", "<ServiceName>"], match: "path")
+githubSearchCode(repo: "{GITHUB_ORG}/{REPO_NAME}", keywords: ["service", "<ServiceName>"], match: "path")
 
 # Read proto files — find service definitions and imports
-githubGetFileContent(repo: "wix-private/scheduler", path: "<service>-api/src/main/proto/<file>.proto")
+githubGetFileContent(repo: "{GITHUB_ORG}/{REPO_NAME}", path: "<service>-api/src/main/proto/<file>.proto")
 
 # Read BUILD.bazel for proto_deps
-githubGetFileContent(repo: "wix-private/scheduler", path: "<service>/BUILD.bazel")
+githubGetFileContent(repo: "{GITHUB_ORG}/{REPO_NAME}", path: "<service>/BUILD.bazel")
 ```
 
 From protos, build a communication list per service:
@@ -88,18 +88,18 @@ From protos, build a communication list per service:
 ### 3. Trace error propagation (from Grafana errors)
 ```
 # For each error message from Grafana report:
-githubSearchCode(repo: "wix-private/scheduler", keywords: ["<error message or exception>"], match: "file")
-githubGetFileContent(repo: "wix-private/scheduler", path: "<found file>", matchString: "<error>")
+githubSearchCode(repo: "{GITHUB_ORG}/{REPO_NAME}", keywords: ["<error message or exception>"], match: "file")
+githubGetFileContent(repo: "{GITHUB_ORG}/{REPO_NAME}", path: "<found file>", matchString: "<error>")
 ```
 
 ### 4. Find PRs in time window
 ```
-githubSearchPullRequests(repo: "wix-private/scheduler", merged: true, mergedAfter: "2026-01-20", mergedBefore: "2026-01-28")
+githubSearchPullRequests(repo: "{GITHUB_ORG}/{REPO_NAME}", merged: true, mergedAfter: "2026-01-20", mergedBefore: "2026-01-28")
 ```
 
 ### 5. If cross-repo investigation needed
 ```
-githubSearchRepositories(keywords: ["<service-name>"], owner: "wix-private")
+githubSearchRepositories(keywords: ["<service-name>"], owner: "{GITHUB_ORG}")
 ```
 
 **FALLBACK (only if octocode fails):** Use local Grep, Glob, Read, and `git log` via Bash. Document that octocode was unavailable.

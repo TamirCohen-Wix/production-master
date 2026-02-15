@@ -63,9 +63,10 @@ For each service path, use GitHub MCP tools (preferred) or local git:
 
 **GitHub MCP (preferred):**
 ```
-list_commits(owner: "wix-private", repo: "scheduler", sha: "master", perPage: 50)
-list_pull_requests(owner: "wix-private", repo: "scheduler", state: "closed", sort: "updated", direction: "desc")
-get_pull_request(owner: "wix-private", repo: "scheduler", pull_number: <NUMBER>)
+# e.g., owner: "wix-private", repo: "scheduler"
+list_commits(owner: "{GITHUB_ORG}", repo: "{REPO_NAME}", sha: "master", perPage: 50)
+list_pull_requests(owner: "{GITHUB_ORG}", repo: "{REPO_NAME}", state: "closed", sort: "updated", direction: "desc")
+get_pull_request(owner: "{GITHUB_ORG}", repo: "{REPO_NAME}", pull_number: <NUMBER>)
 ```
 
 **Local fallback:**

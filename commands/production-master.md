@@ -303,7 +303,7 @@ mkdir -p {OUTPUT_DIR}/{bug-context,grafana-analyzer,codebase-semantics,productio
 
 **Initialize agent invocation counters** (track per-agent re-invocations):
 ```
-AGENT_COUNTERS = {bug-context: 0, grafana-analyzer: 0, codebase-semantics: 0, codebase-semantics-prs: 0, production-analyzer: 0, slack-analyzer: 0, fire-console-enrichment: 0, hypotheses: 0, verifier: 0, skeptic: 0, fix-list: 0, documenter: 0, publisher: 0}
+AGENT_COUNTERS = {bug-context: 0, grafana-analyzer: 0, codebase-semantics: 0, codebase-semantics-prs: 0, production-analyzer: 0, slack-analyzer: 0, fire-console: 0, hypotheses: 0, verifier: 0, skeptic: 0, fix-list: 0, documenter: 0, publisher: 0}
 ```
 Increment the relevant counter BEFORE each agent launch. The counter value becomes the `V{N}` suffix in the output filename.
 
@@ -336,10 +336,11 @@ Examples:
 | 4 | GitHub | `ToolSearch("+github search_repositories")` | `search_repositories(query: "{REPO_NAME} org:{GITHUB_ORG}", perPage: 1)` |
 | 5 | Feature Toggles | `ToolSearch("+gradual-feature-release list-strategies")` | `list-strategies()` |
 | 6 | Octocode | `ToolSearch("+octocode githubSearchCode")` | `githubSearchCode(queries: [{mainResearchGoal: "health check", researchGoal: "verify connection", reasoning: "MCP connection test", keywordsToSearch: ["{REPO_NAME}"], owner: "{GITHUB_ORG}", repo: "{REPO_NAME}", match: "path", limit: 1}])` |
+| 7 | Fire Console | `ToolSearch("+fire-console search_services")` | `search_services(query: "test")` |
 
 **Execution:**
 1. Use `ToolSearch` with keyword queries (as shown above) to load each tool first
-2. Call all 6 checks in parallel (independent calls)
+2. Call all 7 checks in parallel (independent calls)
 3. Collect results into a status table
 
 **Display status table to user:**
@@ -353,15 +354,16 @@ Examples:
 | 4 | GitHub        | OK/FAIL | [brief] |
 | 5 | Feature Toggles | OK/FAIL | [brief] |
 | 6 | Octocode      | OK/FAIL | [brief] |
+| 7 | Fire Console  | OK/FAIL | [brief] |
 ```
 
 **Decision logic:**
-- **All 6 OK** → Proceed to Step 0.4.
+- **All 7 OK** → Proceed to Step 0.4.
 - **Any FAIL** → Tell user EXACTLY which servers failed. Display: "MCP servers not connected: [list]. Please run `/mcp` to reconnect or check server configuration." **STOP and WAIT.** Do not proceed.
 - **If user reconnects and says to retry** → Re-run ALL checks (not just failed ones).
 - **If still failing after retry** → **STOP THE ENTIRE INVESTIGATION.** Do not attempt workarounds or local fallbacks without user approval (see rule 31c below).
 
-**No exceptions.** All 6 servers must pass. Octocode is NOT optional — it provides features (semantic code search, cross-repo search) that GitHub MCP and local tools cannot replace.
+**No exceptions.** All 7 servers must pass. Octocode is NOT optional — it provides features (semantic code search, cross-repo search) that GitHub MCP and local tools cannot replace.
 
 ### STEP 0.4: Fetch Jira Ticket
 Call Jira MCP `get-issues` with JQL `key = {TICKET_ID}`, fields: `key,summary,status,priority,reporter,assignee,description,comment,created,updated`.
@@ -410,7 +412,7 @@ Wait for completion. Read the output file. Store as `BUG_CONTEXT_REPORT`.
 
 Use Fire Console to fetch full domain objects when bug-context only has partial identifiers (MSID, bookingID, orderID, serviceID, etc.). This enriches the investigation context BEFORE log analysis.
 
-**When to run:** Always run if `DOMAIN_CONFIG` is loaded and bug-context contains any of these identifiers:
+**When to run:** If bug-context contains any identifiable domain objects:
 - `meta_site_id` / MSID → fetch site info, installed apps
 - `booking_id` → fetch full enriched booking (with order, service, contact data)
 - `order_id` → fetch enriched booking by order ID
@@ -692,7 +694,7 @@ Read agent prompts from `agents/production-analyzer.md`, `agents/slack-analyzer.
 
 Launch **FOUR Tasks in the SAME message** (true parallel execution, all sonnet):
 
-Increment counters for `production-analyzer`, `slack-analyzer`, `codebase-semantics-prs`, and `fire-console-enrichment`.
+Increment counters for `production-analyzer`, `slack-analyzer`, `codebase-semantics-prs`, and `fire-console`.
 
 **Task 1 — Production Analyzer:**
 ```
@@ -749,11 +751,10 @@ Prompt: [full content of codebase-semantics.md agent prompt]
 **Task 4 — Fire Console Deep Enrichment (conditional):**
 
 Run this task ONLY if:
-- `DOMAIN_CONFIG` is loaded
 - Grafana report (Step 2) surfaced identifiers not yet enriched in Step 1.3 (new MSIDs, booking IDs, service IDs from error logs)
 - OR codebase-semantics (Step 3) identified services whose runtime behavior needs inspection
 
-If conditions met, increment `AGENT_COUNTERS[fire-console-enrichment]`:
+If conditions met, increment `AGENT_COUNTERS[fire-console]`:
 ```
 Task: subagent_type="general-purpose", model="sonnet"
 Prompt: You are a data enrichment agent. Use Fire Console to fetch domain objects
@@ -1263,7 +1264,7 @@ Published to: [Jira / Slack / both / local only]
 ### MCP Reliability
 29. **MCP failure = HARD STOP for that operation.** Report the failure, try auth once, then stop if still failing.
 30. **Never fabricate data** when a tool fails.
-31. **Verify ALL 6 MCP servers at Step 0.3** before starting any full investigation. ALL must pass — no exceptions.
+31. **Verify ALL 7 MCP servers at Step 0.3** before starting any full investigation. ALL must pass — no exceptions.
 31b. **MCP tool discovery:** Use `ToolSearch` with keyword queries (e.g., `ToolSearch("+jira get-issues")`) to discover tools dynamically. Never hardcode full tool names — the prefix depends on the server key name in the user's config.
 31c. **Local fallback requires user approval.** If an MCP server fails mid-investigation (after Step 0.3 passed), do NOT silently fall back to local alternatives (e.g., `gh` CLI instead of GitHub MCP, local `git log` instead of GitHub commits, Glob/Grep instead of Octocode). Instead:
     1. Report the failure to the user: "[MCP server] failed. Error: [error]"

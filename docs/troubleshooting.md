@@ -4,7 +4,7 @@
 
 ### "MCP servers not connected"
 
-The plugin uses 9 MCP servers total. Full investigations check 6 of them at Step 0.3 before proceeding:
+The plugin uses 9 MCP servers total. Full investigations check 7 of them at Step 0.3 before proceeding:
 
 1. Run `/mcp` in Claude Code to see server status
 2. Reconnect failed servers
@@ -21,7 +21,7 @@ The plugin uses 9 MCP servers total. Full investigations check 6 of them at Step
 | GitHub | PRs, commits, code search | Yes |
 | Octocode | Semantic code search, repo structure | Yes |
 | FT-release | Feature toggle status, releases | Yes |
-| Fire Console | gRPC domain objects (bookings, services, events) | No (used on-demand) |
+| Fire Console | gRPC domain objects (bookings, services, events) | Yes |
 | Context7 | Library documentation lookup | No (used on-demand) |
 
 ### MCP Server Fails Mid-Investigation
@@ -45,7 +45,7 @@ If a server fails after Step 0.3 passed:
 
 **Fixes:**
 1. Use `/resolve-artifact <name>` to find the correct artifact ID
-2. Check if the name needs the artifact prefix (e.g., `bookings-service` → `com.wixpress.bookings.bookings-service`)
+2. Check if the name needs the artifact prefix (e.g., `bookings-service` → `{ARTIFACT_PREFIX}.bookings-service`)
 3. Use a LIKE search: the pipeline tries `%<name>%` automatically
 
 ### Agent Returns Incomplete Output
@@ -96,7 +96,7 @@ Yes. The output directory will be `./debug/` instead of `.claude/debug/`. Domain
 
 ### Do I need all 9 MCP servers for standalone commands?
 
-No. Standalone commands (`/grafana-query`, `/slack-search`, etc.) only need their specific MCP server. The 6-server pre-flight check is only for full investigations. The remaining 3 servers (Grafana MCP, Fire Console, Context7) are used on-demand during the pipeline.
+No. Standalone commands (`/grafana-query`, `/slack-search`, etc.) only need their specific MCP server. The 7-server pre-flight check is only for full investigations. The remaining 2 servers (Grafana MCP, Context7) are used on-demand during the pipeline.
 
 ### Can I run multiple investigations simultaneously?
 

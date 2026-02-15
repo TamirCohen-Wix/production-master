@@ -47,13 +47,14 @@ LIMIT 10
 ```
 
 If 0 results:
-- Try without `com.wixpress.bookings.` prefix
-- Try as a caller name within bookings-service:
+- Try without the `{ARTIFACT_PREFIX}.` prefix (e.g., without `com.wixpress.bookings.`)
+- Try as a caller name within the primary service:
   ```sql
+  -- e.g., artifact_id = 'com.wixpress.bookings.bookings-service'
   SELECT DISTINCT caller
   FROM app_logs
   WHERE $__timeFilter(timestamp)
-    AND artifact_id = 'com.wixpress.bookings.bookings-service'
+    AND artifact_id = '{PRIMARY_SERVICE_ARTIFACT_ID}'
     AND caller LIKE '%<service_name>%'
   LIMIT 10
   ```
@@ -62,9 +63,9 @@ If 0 results:
 ### 2. Check for local code clones
 
 Check these paths for local repo clones:
-- `~/.claude-worktrees/scheduler`
-- `~/IdeaProjects/scheduler`
-- `~/Projects/*/scheduler`
+- `~/.claude-worktrees/{REPO_NAME}`
+- `~/IdeaProjects/{REPO_NAME}`
+- `~/Projects/*/{REPO_NAME}`
 
 Report which paths exist.
 
@@ -80,17 +81,17 @@ If local code path exists, check BUILD.bazel / prime_app configuration to confir
 ## Validated Artifacts
 | Input Name | Resolved artifact_id | Exists in Grafana | Log Count | Notes |
 |-----------|---------------------|-------------------|-----------|-------|
-| bookings-reader | com.wixpress.bookings.bookings-reader | NO | 0 | Found as caller inside bookings-service |
-| notifications-server | com.wixpress.bookings.notifications-server | YES | 4523 | Standard pattern confirmed |
+| bookings-reader | {ARTIFACT_PREFIX}.bookings-reader | NO | 0 | Found as caller inside primary service |
+| notifications-server | {ARTIFACT_PREFIX}.notifications-server | YES | 4523 | Standard pattern confirmed |
 
 ## Local Code Paths
 | Repo | Local Path | Exists |
 |------|-----------|--------|
-| wix-private/scheduler | ~/.claude-worktrees/scheduler | YES/NO |
-| wix-private/scheduler | ~/IdeaProjects/scheduler | YES/NO |
+| {GITHUB_ORG}/{REPO_NAME} | ~/.claude-worktrees/{REPO_NAME} | YES/NO |
+| {GITHUB_ORG}/{REPO_NAME} | ~/IdeaProjects/{REPO_NAME} | YES/NO |
 
 ## Recommendations
-- [e.g., "Use 'com.wixpress.bookings.bookings-service' with caller filter for bookings-reader logs"]
+- [e.g., "Use '{ARTIFACT_PREFIX}.bookings-service' with caller filter for bookings-reader logs"]
 - [e.g., "Local clone found at /path — pass to codebase-semantics agent"]
 ```
 

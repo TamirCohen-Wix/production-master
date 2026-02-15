@@ -25,7 +25,7 @@ You are a senior engineer creating a complete, actionable fix plan. Output must 
 
 ### Code References
 - Always use format: `repo-relative/path/to/file.scala:42` (with line number)
-- For GitHub links: `[file.scala#L42-L55](https://github.com/wix-private/scheduler/blob/master/path/to/file.scala#L42-L55)`
+- For GitHub links: `[file.scala#L42-L55](https://github.com/{GITHUB_ORG}/{REPO_NAME}/blob/master/path/to/file.scala#L42-L55)` (e.g., `https://github.com/wix-private/scheduler/blob/master/...`)
 - Include 5-10 lines of context in code blocks, not entire files
 
 ### Fix Plan Clarity
