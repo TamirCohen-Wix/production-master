@@ -36,23 +36,25 @@
 ### MCP Tools
 - Sub-agents DO have access to ToolSearch and MCP tools — they can load and use them directly
 - Orchestrator checks ALL 6 MCP servers in Step 0.3 (hard gate) — ALL must pass, no exceptions
-- Agents use `ToolSearch("select:<exact_tool_name>")` — tool lists are in their `.md` files
+- Agents use `ToolSearch` with **keyword queries** (e.g., `ToolSearch("+jira get-issues")`) — never hardcode full tool names since the prefix depends on the server key name in `~/.claude.json` and may vary per installation
 - **Local fallback (e.g., `gh` CLI, local git) requires explicit user approval** and must be recorded in the agent's trace file
 
-### MCP Server Map
-| Server Prefix | Categories | Notes |
-|---|---|---|
-| `mcp__mcp-s__` | jira, slack, github, grafana-datasource, gradual-feature-release, context7 | Multi-tool server |
-| `mcp__octocode__` | octocode (githubSearchCode, githubGetFileContent, etc) | Separate server, NOT under mcp-s |
-| `mcp__Slack__` | slack (post_message, reply_to_thread, add_reaction) | Dedicated Slack with write access |
-| `mcp__grafana-mcp__` | grafana-mcp (dashboards, alerts, prometheus) | Grafana Cloud MCP |
-| `mcp__grafana-datasource__` | grafana-datasource (same as mcp-s) | Duplicate of mcp-s grafana tools |
-| `mcp__github__` | github (same as mcp-s) | Duplicate of mcp-s github tools |
-| `mcp__jira__` | jira (same as mcp-s) | Duplicate of mcp-s jira tools |
-| `mcp__FT-release__` | gradual-feature-release (same as mcp-s) | Duplicate of mcp-s FT tools |
-| `mcp__context-7__` | context7 (resolve-library-id, query-docs) | Duplicate of mcp-s context7 tools |
+### MCP Servers
+All HTTP servers go through `mcp-s.wewix.net` proxy, authenticated via `x-user-access-key` header.
 
-**Key insight:** Most tools exist on both `mcp-s` AND dedicated servers. Pipeline uses `mcp-s` prefix by default. Octocode is the exception — only on `mcp__octocode__`.
+| Server key (in ~/.claude.json) | MCP namespace | Notes |
+|---|---|---|
+| `jira` | jira | Jira CRUD |
+| `Slack` | slack | Slack read/write |
+| `github` | github | GitHub operations |
+| `grafana-datasource` | grafana-datasource | Query logs, metrics |
+| `grafana-mcp` | grafana-mcp | Dashboards, alerts |
+| `FT-release` | gradual-feature-release | Feature toggles |
+| `context-7` | context7 | Library docs |
+| `fire-console` | fire-console | gRPC domain queries (no auth header) |
+| `octocode` | octocode | Code search (npx transport, not HTTP) |
+
+**Key insight:** Tool names are `mcp__{server_key}__{namespace}__{tool}`. The server key comes from the user's config and may differ across installations. Always use keyword `ToolSearch` to discover tools dynamically.
 
 ### Output Directory
 - Location: `.claude/debug/` inside the repo root (or `./debug/` outside a repo)
@@ -79,7 +81,7 @@
 - Always compare baseline vs incident vs post-incident periods
 
 ### Jira
-- Load tool: `ToolSearch("select:mcp__mcp-s__jira__get-issues")`, then fetch with JQL `key = SCHED-XXXXX`
+- Load tool: `ToolSearch("+jira get-issues")`, then fetch with JQL `key = SCHED-XXXXX`
 - Fields: key, summary, status, priority, reporter, assignee, description, comment
 
 ### Documentation Reports

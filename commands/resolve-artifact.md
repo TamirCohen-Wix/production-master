@@ -47,7 +47,7 @@ Read `skills/grafana-datasource/SKILL.md` for query parameters.
 
 Load the tool:
 ```
-ToolSearch("select:mcp__grafana-datasource__grafana-datasource__query_app_logs")
+ToolSearch("+grafana-datasource query_app_logs")
 ```
 
 Calculate time range (last 1 hour):

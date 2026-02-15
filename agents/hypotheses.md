@@ -34,10 +34,10 @@ When invoked as a teammate in an agent team, you are given a specific theory to 
 **How to detect your mode:** If you have a TASK assigned to you (via the task list) and are part of a team, you're in Mode 2. Otherwise, Mode 1.
 
 **MCP Tools (Mode 2 only):** Use `ToolSearch("select:<tool_name>")` to load tools before calling them.
-- Grafana: `mcp__mcp-s__grafana-datasource__query_app_logs`, `mcp__mcp-s__grafana-datasource__query_prometheus`
-- Octocode: `mcp__octocode__octocode__githubSearchCode`, `mcp__octocode__octocode__githubGetFileContent`
-- Feature toggles: `mcp__mcp-s__gradual-feature-release__search-feature-toggles`
-- GitHub: `mcp__mcp-s__github__list_commits`, `mcp__mcp-s__github__list_pull_requests`
+- Grafana: `ToolSearch("+grafana-datasource query_app_logs")`, `ToolSearch("+grafana-datasource query_prometheus")`
+- Octocode: `ToolSearch("+octocode githubSearchCode")`, `ToolSearch("+octocode githubGetFileContent")`
+- Feature toggles: `ToolSearch("+gradual-feature-release search-feature-toggles")`
+- GitHub: `ToolSearch("+github list_commits")`, `ToolSearch("+github list_pull_requests")`
 
 ## Hard Rules
 

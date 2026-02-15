@@ -53,8 +53,8 @@ Read `skills/slack/SKILL.md` for search parameters, thread handling, and tool re
 
 Load the tools:
 ```
-ToolSearch("select:mcp__mcp-s__slack__search-messages")
-ToolSearch("select:mcp__mcp-s__slack__slack_get_thread_replies")
+ToolSearch("+slack search-messages")
+ToolSearch("+slack slack_get_thread_replies")
 ```
 
 ### Step 3a: Run multiple searches with different keyword strategies

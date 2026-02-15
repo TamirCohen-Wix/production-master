@@ -55,11 +55,11 @@ Read `skills/fire-console/SKILL.md` for exact tool parameters, artifact naming, 
 
 Load the required tools:
 ```
-ToolSearch("select:mcp__fire-console__invoke_rpc")
-ToolSearch("select:mcp__fire-console__search_services")
-ToolSearch("select:mcp__fire-console__find_site")
-ToolSearch("select:mcp__fire-console__list_services")
-ToolSearch("select:mcp__fire-console__get_method_schema")
+ToolSearch("+fire-console invoke_rpc")
+ToolSearch("+fire-console search_services")
+ToolSearch("+fire-console find_site")
+ToolSearch("+fire-console list_services")
+ToolSearch("+fire-console get_method_schema")
 ```
 
 ### FIND_SITE

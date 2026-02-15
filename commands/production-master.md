@@ -328,17 +328,17 @@ Examples:
 
 **Required checks (ALL must pass):**
 
-| # | Category | Check Tool | Check Call |
-|---|----------|-----------|------------|
-| 1 | Jira | `mcp__mcp-s__jira__get-issues` | `get-issues(projectKey: "{JIRA_PROJECT}", maxResults: 1, fields: ["key"])` |
-| 2 | Grafana | `mcp__mcp-s__grafana-datasource__list_datasources` | `list_datasources()` |
-| 3 | Slack | `mcp__mcp-s__slack__slack_list_channels` | `slack_list_channels(limit: 1)` |
-| 4 | GitHub | `mcp__mcp-s__github__search_repositories` | `search_repositories(query: "{REPO_NAME} org:{GITHUB_ORG}", perPage: 1)` |
-| 5 | Feature Toggles | `mcp__mcp-s__gradual-feature-release__list-strategies` | `list-strategies()` |
-| 6 | Octocode | `mcp__octocode__octocode__githubSearchCode` | `githubSearchCode(queries: [{mainResearchGoal: "health check", researchGoal: "verify connection", reasoning: "MCP connection test", keywordsToSearch: ["{REPO_NAME}"], owner: "{GITHUB_ORG}", repo: "{REPO_NAME}", match: "path", limit: 1}])` |
+| # | Category | ToolSearch query | Check Call |
+|---|----------|-----------------|------------|
+| 1 | Jira | `ToolSearch("+jira get-issues")` | `get-issues(projectKey: "{JIRA_PROJECT}", maxResults: 1, fields: ["key"])` |
+| 2 | Grafana | `ToolSearch("+grafana-datasource list_datasources")` | `list_datasources()` |
+| 3 | Slack | `ToolSearch("+slack slack_list_channels")` | `slack_list_channels(limit: 1)` |
+| 4 | GitHub | `ToolSearch("+github search_repositories")` | `search_repositories(query: "{REPO_NAME} org:{GITHUB_ORG}", perPage: 1)` |
+| 5 | Feature Toggles | `ToolSearch("+gradual-feature-release list-strategies")` | `list-strategies()` |
+| 6 | Octocode | `ToolSearch("+octocode githubSearchCode")` | `githubSearchCode(queries: [{mainResearchGoal: "health check", researchGoal: "verify connection", reasoning: "MCP connection test", keywordsToSearch: ["{REPO_NAME}"], owner: "{GITHUB_ORG}", repo: "{REPO_NAME}", match: "path", limit: 1}])` |
 
 **Execution:**
-1. Use `ToolSearch("select:<tool_name>")` to load each tool first
+1. Use `ToolSearch` with keyword queries (as shown above) to load each tool first
 2. Call all 6 checks in parallel (independent calls)
 3. Collect results into a status table
 
@@ -424,9 +424,9 @@ Use Fire Console to fetch full domain objects when bug-context only has partial 
 
 Load the fire-console tools:
 ```
-ToolSearch("select:mcp__fire-console__invoke_rpc")
-ToolSearch("select:mcp__fire-console__search_services")
-ToolSearch("select:mcp__fire-console__find_site")
+ToolSearch("+fire-console invoke_rpc")
+ToolSearch("+fire-console search_services")
+ToolSearch("+fire-console find_site")
 ```
 
 For each identifier found in bug-context, run the appropriate query:

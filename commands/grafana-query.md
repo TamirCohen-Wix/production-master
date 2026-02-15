@@ -61,7 +61,7 @@ Read `skills/grafana-datasource/SKILL.md` for SQL templates, parameter formats, 
 
 Load the tool:
 ```
-ToolSearch("select:mcp__grafana-datasource__grafana-datasource__query_app_logs")
+ToolSearch("+grafana-datasource query_app_logs")
 ```
 
 ### Calculate time range
@@ -122,7 +122,7 @@ query_app_logs(
 
 Load the Prometheus tool:
 ```
-ToolSearch("select:mcp__grafana-datasource__grafana-datasource__query_prometheus")
+ToolSearch("+grafana-datasource query_prometheus")
 ```
 
 Determine PromQL from user input:

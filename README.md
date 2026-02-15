@@ -11,6 +11,9 @@ Autonomous production investigation pipeline for [Claude Code](https://docs.anth
 > [!WARNING]
 > **This plugin is in beta.** It is under active development and may have rough edges. We recommend trying it **per-session first** (see below) before committing to a persistent install. If you do install, use **`local` scope** (the default) so it only affects your current project.
 
+> [!CAUTION]
+> **MCP connectivity can be unstable.** The MCP gateway service (`mcp-s`) may experience intermittent connection issues that can cause tool failures during a run. A full investigation run takes **~40 minutes** to complete, so a mid-run failure can be costly. If you experience MCP connection errors (401s, timeouts, or tools not loading), check [#mcp-gw-support](https://wix.slack.com/archives/C093RAT0NLS) for known issues and status updates.
+
 ## Table of Contents
 
 - [Quick Start](#quick-start--try-per-session-recommended)

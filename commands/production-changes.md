@@ -61,9 +61,9 @@ Read `skills/github/SKILL.md` and `skills/ft-release/SKILL.md` for tool paramete
 
 Load GitHub tools:
 ```
-ToolSearch("select:mcp__github__github__list_commits")
-ToolSearch("select:mcp__github__github__list_pull_requests")
-ToolSearch("select:mcp__github__github__search_issues")
+ToolSearch("+github list_commits")
+ToolSearch("+github list_pull_requests")
+ToolSearch("+github search_issues")
 ```
 
 **List recent PRs:**
@@ -101,9 +101,9 @@ search_issues(
 
 Load FT tools:
 ```
-ToolSearch("select:mcp__FT-release__gradual-feature-release__search-feature-toggles")
-ToolSearch("select:mcp__FT-release__gradual-feature-release__get-feature-toggle")
-ToolSearch("select:mcp__FT-release__gradual-feature-release__list-releases")
+ToolSearch("+gradual-feature-release search-feature-toggles")
+ToolSearch("+gradual-feature-release get-feature-toggle")
+ToolSearch("+gradual-feature-release list-releases")
 ```
 
 **If specific toggle name provided:**

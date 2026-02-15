@@ -37,14 +37,14 @@ You take a completed investigation report and publish it to the user's chosen de
 Use `ToolSearch("select:<tool_name>")` to load each tool before calling it.
 
 ### Jira
-- `mcp__mcp-s__jira__comment-on-issue` — Add comment to Jira ticket
-- `mcp__mcp-s__jira__update-issue` — Update ticket fields (status, labels)
+- Jira comment tool — Add comment to Jira ticket (`ToolSearch("+jira comment-on-issue")`)
+- Jira update tool — Update ticket fields (`ToolSearch("+jira update-issue")`)
 
 ### Slack
-- `mcp__mcp-s__slack__slack_find-channel-id` — Verify channel exists (MANDATORY before posting)
-- `mcp__Slack__slack__slack_post_message` — Post to a channel
-- `mcp__Slack__slack__slack_reply_to_thread` — Reply in a thread
-- `mcp__Slack__slack__slack_add_reaction` — Add reaction to a message
+- Slack find channel tool — Verify channel exists (MANDATORY before posting) (`ToolSearch("+slack slack_find-channel-id")`)
+- Slack post message tool — Post to a channel (`ToolSearch("+slack slack_post_message")`)
+- Slack reply tool — Reply in a thread (`ToolSearch("+slack slack_reply_to_thread")`)
+- Slack reaction tool — Add reaction to a message (`ToolSearch("+slack slack_add_reaction")`)
 
 ## Process
 
