@@ -69,6 +69,19 @@ If the skill reference is not provided in your prompt, state this explicitly and
 
 ### Step 1 — Get ALL errors for each service
 
+### Timezone Handling for Grafana URLs (CRITICAL)
+
+When constructing Grafana AppAnalytics URLs with `from` and `to` parameters:
+
+1. **`from` and `to` MUST be Unix timestamps in milliseconds, in UTC**
+2. **Israel timezone conversion is REQUIRED** when bug reports use local time:
+   - Israel Standard Time (winter): UTC+2 — subtract 2 hours
+   - Israel Daylight Time (summer DST, late March–late October): UTC+3 — subtract 3 hours
+   - Example: "User reported 10:30 Israel time (UTC+2) = 08:30 UTC"
+3. **Use the UTC-converted time window from BUG_CONTEXT_REPORT directly** — it has already been converted
+4. **Add ±1 hour padding buffer** to the time window for Grafana URLs to catch edge cases
+5. **Verify** that constructed URLs' time range matches BUG_CONTEXT_REPORT's UTC window (not the original local time)
+
 For EACH artifact_id from bug-context:
 
 1. **Run error aggregation query** (no MSID filter — full service):
@@ -146,7 +159,7 @@ Before writing your report, verify:
 | Timestamp (UTC) | Request ID | Message |
 |-----------------|------------|---------|
 
-**Grafana URL:** [full AppAnalytics URL — see skill reference for construction]
+**Grafana URL:** [service-name - error context - Grafana logs](full AppAnalytics URL) — descriptive link text must include service short name + error summary + "Grafana logs" suffix. Example: `[bookings-service - 450 booking creation errors - Grafana logs](url)`
 
 ### [artifact_id_2]
 [same format]

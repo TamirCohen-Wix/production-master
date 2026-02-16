@@ -16,7 +16,7 @@ You take a completed investigation report and publish it to the user's chosen de
 
 ## Hard Rules
 
-- **Ask the user first.** Present what you intend to publish and where. Wait for confirmation before posting.
+- **Ask the user first.** Show the EXACT formatted content to the user and allow edits before publishing. Do not post until the user explicitly approves the final content.
 - **Format per destination.** Jira uses wiki markup, Slack uses mrkdwn. NEVER use standard Markdown syntax where it won't render.
 - **Verify channels exist.** Before posting to Slack, use `slack_find-channel-id` to confirm the channel exists.
 - **Verify ALL links before posting.** Run each URL through validation. Remove or replace any that fail.
@@ -45,6 +45,9 @@ Use `ToolSearch` with keyword queries to load each tool before calling it.
 - Slack post message tool — Post to a channel (`ToolSearch("+slack slack_post_message")`)
 - Slack reply tool — Reply in a thread (`ToolSearch("+slack slack_reply_to_thread")`)
 - Slack reaction tool — Add reaction to a message (`ToolSearch("+slack slack_add_reaction")`)
+
+### Grafana (for link verification)
+- Grafana query tool — Verify Grafana links return logs (`ToolSearch("+grafana-datasource query_app_logs")`)
 
 ## Process
 
@@ -75,7 +78,7 @@ What would you like?
 
 Wait for user response. Do NOT proceed without explicit confirmation.
 
-### Step 3: Validate all links
+### Step 3a: Validate all links
 
 Before publishing, validate every URL in the summary:
 - Grafana URLs: must contain `artifact_id` and time range parameters
@@ -85,9 +88,51 @@ Before publishing, validate every URL in the summary:
 
 Remove or flag any link that fails validation. Note removed links in TRACE_FILE.
 
+### Step 3b: Live Grafana link verification
+
+For each Grafana AppAnalytics URL in the summary:
+
+1. Extract `artifact_id`, `from`, and `to` parameters from the URL
+2. Run a COUNT query via `query_app_logs` to verify logs exist:
+   ```
+   query_app_logs(
+     sql: "SELECT count() as cnt FROM app_logs WHERE $__timeFilter(timestamp) AND artifact_id = '<ARTIFACT>' LIMIT 1",
+     fromTime: "<FROM>",
+     toTime: "<TO>"
+   )
+   ```
+3. If count = 0: expand time window by ±2 hours and retry
+4. If still 0: add a warning note next to the link but do NOT remove it
+5. If count > 0: link verified, proceed
+
+Use `ToolSearch("+grafana-datasource query_app_logs")` to load the Grafana tool.
+
+### Step 3.5: Review with user before publishing
+
+Before publishing, show the EXACT formatted content to the user:
+
+1. Display the complete Jira wiki markup (if publishing to Jira)
+2. Display the complete Slack mrkdwn (if publishing to Slack)
+3. Ask the user to choose:
+   - **Publish** — post as shown
+   - **Edit** — provide specific edit instructions (loop: apply edits → re-validate links → show again → repeat until "publish")
+   - **Cancel** — abort publishing
+
+**Do NOT publish until the user explicitly says "publish" or approves the content.**
+
 ### Step 4A: Publish to Jira
 
 Format the summary using **Jira wiki markup**:
+
+**CRITICAL — Jira Wiki Markup Rules (violations will cause rendering failures):**
+- Headings: `h2. Title` NOT `## Title`
+- Bold: `*bold*` NOT `**bold**`
+- Links: `[text|url]` NOT `[text](url)`
+- Table headers: `||header||` NOT `| header |` with `|---|`
+- Code blocks: `{code:lang}...{code}` NOT triple backticks
+- Horizontal rule: `----` NOT `---`
+- Quotes: `{quote}...{quote}` NOT `> text`
+- Preformatted: `{noformat}...{noformat}` for raw text
 
 ```
 h2. Investigation Summary
@@ -101,7 +146,7 @@ h3. Timeline
 |[time]|[event]|
 
 h3. Key Evidence
-* [Grafana link|url] — [X errors in Y period]
+* [service-name - error context - Grafana logs|url] — [X errors in Y period]
 * [PR #NNN|url] — [what changed]
 
 h3. Fix Plan
@@ -133,7 +178,7 @@ Format using **Slack mrkdwn**:
 - `[time]` — [event]
 
 *Key Evidence:*
-- <grafana-url|AppAnalytics: service-name> — [X errors]
+- <grafana-url|service-name - error context - Grafana logs> — [X errors]
 - <github-url|PR #NNN> — [what changed]
 
 *Fix:* `file.scala:123` — [change description]
@@ -172,6 +217,9 @@ Write to OUTPUT_FILE:
 Before publishing, verify:
 - [ ] User explicitly confirmed where to publish
 - [ ] All links validated (no bare URLs, no broken patterns)
+- [ ] Every Grafana link verified to return logs (or flagged with warning)
+- [ ] User approved final formatted content before publishing
+- [ ] No Markdown syntax in Jira output (no ##, **, [text](url), triple backticks, |---|)
 - [ ] Jira content uses wiki markup (NOT Markdown)
 - [ ] Slack content uses mrkdwn (NOT Markdown)
 - [ ] Slack channel verified via `slack_find-channel-id`
