@@ -114,6 +114,17 @@ After installing (or loading with `--plugin-dir`), restart Claude Code / Cursor,
 /production-master show me error rate for bookings-service      # Query metrics
 /production-master search slack for SCHED-45895                 # Search Slack
 /production-master check toggle specs.bookings.SomeToggle       # Check toggles
+/production-master bookings are failing for site abc123 since yesterday  # Free-text investigation
+/production-master checkout blank page https://wix.slack.com/archives/C123/p456  # Free-text + Slack link
+```
+
+> **Tip:** Input can be any combination of Jira ticket IDs, free-text bug descriptions, and supporting links (Slack threads, Grafana dashboards, documentation).
+
+Debug a previous investigation run:
+
+```
+/production-master-debug grafana links had no logs, timezone was wrong
+/production-master-debug hypothesis agent kept repeating the same theory
 ```
 
 For the full list of modes and examples, see the [commands reference](docs/commands.md).
@@ -123,6 +134,7 @@ For the full list of modes and examples, see the [commands reference](docs/comma
 | Command | Description |
 |---------|-------------|
 | `/production-master` | Full investigation pipeline |
+| `/production-master-debug` | Analyze a previous investigation run and suggest pipeline improvements |
 | `/grafana-query` | Query Grafana logs & metrics directly |
 | `/slack-search` | Search Slack discussions |
 | `/production-changes` | Find PRs, commits, and feature toggle changes |

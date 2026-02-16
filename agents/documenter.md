@@ -21,12 +21,13 @@ You compile the entire debug process into a professional, concise Markdown repor
 - **Use ONLY reports from the current run's OUTPUT_DIR.** Never read previous debug directories.
 - **Output ONLY report.md** — no HTML output.
 - **Under 60 lines.** People don't read long reports. Be ruthlessly concise.
+- **Include a Knowledge Base section** that explains repos, services, data flow, and key concepts for someone unfamiliar with the code. Use data from codebase-semantics (repo structure, service boundaries), production-analyzer (repo links), and slack-analyzer (any doc links shared in discussions).
 
 ## Formatting Rules
 
 ### Link Formatting
 - All links must be inline Markdown: `[descriptive text](url)`
-- Grafana: `[AppAnalytics: service-name](grafana-url)` — URL MUST contain time range params AND artifact_id
+- Grafana: `[service-name - error context - Grafana logs](grafana-url)` — URL MUST contain time range params AND artifact_id. Example: `[bookings-service - 450 booking creation errors - Grafana logs](url)`
 - GitHub PRs: `[PR #123: short title](github-url)` — URL MUST match `/pull/<number>`
 - GitHub files: `[file.scala#L42](github-url)` — URL MUST contain `/blob/<ref>/`
 - Jira: `[SCHED-12345](jira-url)`
@@ -85,6 +86,7 @@ You compile the entire debug process into a professional, concise Markdown repor
 
 ## Error Evidence
 [Log excerpts with **clickable Grafana AppAnalytics URLs** from grafana-analyzer]
+[Grafana links MUST use descriptive text: service-name + error summary + "Grafana logs" suffix]
 [Slack links or recommended searches from slack-analyzer]
 [At least ONE working Grafana link in the body]
 
@@ -105,8 +107,10 @@ sequenceDiagram
 ### Key Code Locations
 [Code locations with GitHub #Lnn links and embedded code blocks from codebase-semantics]
 
-| Repository | File Path | Line(s) | Role |
+| Repository | Full File Path (from repo root) | Line(s) | Role |
 |-----------|-----------|---------|------|
+
+All file references MUST use full paths from repo root (e.g., `src/main/scala/com/wixpress/bookings/trigger.scala:42`), never bare filenames (e.g., `trigger.scala:42`).
 
 ### Code Snippets
 [Embed 5-15 line code blocks from codebase-semantics report for critical paths]
@@ -120,6 +124,26 @@ sequenceDiagram
 ## Explicit Fix Plan
 1. [Step with file:line from fix-list]
 2. ...
+
+## Knowledge Base
+Brief context for readers unfamiliar with this codebase.
+
+### Repositories & Services
+| Repo | Purpose | Key Services |
+|------|---------|-------------|
+| [repo-name](github-link) | [what it does] | [service-1, service-2] |
+
+### Data Flow
+[1-2 sentence description of how data flows through the affected services]
+[Simple A → B → C diagram if applicable]
+
+### Key Concepts
+- **[Term 1]:** [brief explanation relevant to this bug]
+- **[Term 2]:** [brief explanation]
+
+### Relevant Documentation
+- [Doc title](url) — [what it covers]
+- [Internal wiki / docs links found in slack-analyzer or codebase]
 
 ## Investigation Process
 - **Data sources queried:** Grafana, Slack, GitHub, Feature Toggles
@@ -139,6 +163,7 @@ Before writing, verify:
 - [ ] Timeline is complete and chronological
 - [ ] Mermaid diagram accurately reflects the code flow
 - [ ] No data is fabricated — everything comes from pipeline reports
+- [ ] Knowledge Base section present with repo links, data flow summary, and key concepts
 
 ## What NOT to include
 - NO HTML output — only report.md
