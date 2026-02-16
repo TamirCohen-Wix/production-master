@@ -15,7 +15,7 @@ Parse `$ARGUMENTS` and classify into one of these modes:
 
 | Mode | Trigger | Example |
 |------|---------|---------|
-| **FULL_INVESTIGATION** | Jira ticket ID, or bug description requiring root cause analysis | `SCHED-45895`, `bookings are failing for site X since yesterday` |
+| **FULL_INVESTIGATION** | Jira ticket ID, free-text bug description with optional links (Slack, Grafana, docs), or any production issue | `SCHED-45895`, `bookings are failing for site X since yesterday` |
 | **QUERY_LOGS** | Request for app logs from a specific service | `get errors from bookings-service last 2 hours`, `show me logs for notifications-server level ERROR` |
 | **TRACE_REQUEST** | Request ID provided, wants to trace a request flow | `trace 1769611570.535540810122211411840`, `what happened to request 1769...` |
 | **QUERY_METRICS** | Request for Prometheus metrics or dashboard data | `show me error rate for bookings-service`, `p99 latency for sessions-server` |
@@ -31,7 +31,7 @@ Parse `$ARGUMENTS` and classify into one of these modes:
 - If mentions "slack", "discussion", "thread", "channel" → `SEARCH_SLACK`
 - If mentions "code", "file", "PR", "pull request", "commit", "repo" → `SEARCH_CODE`
 - If mentions "toggle", "feature flag", "feature toggle" → `TOGGLE_CHECK`
-- If unclear or multi-sentence bug description → `FULL_INVESTIGATION`
+- If unclear, multi-sentence bug description, or free-text with supporting links → `FULL_INVESTIGATION`
 - If empty → Ask the user what they need.
 
 Store the classified mode as `MODE`.
@@ -351,9 +351,14 @@ Examples:
 
 **No exceptions.** All 7 servers must pass. Octocode is NOT optional — it provides features (semantic code search, cross-repo search) that GitHub MCP and local tools cannot replace.
 
-### STEP 0.4: Fetch Jira Ticket
+### STEP 0.4: Fetch Jira Ticket (conditional)
+
+**If a Jira ticket ID pattern (`[A-Z]+-\d+`) was found in USER_INPUT:**
 Call Jira MCP `get-issues` with JQL `key = {TICKET_ID}`, fields: `key,summary,status,priority,reporter,assignee,description,comment,created,updated`.
 Store raw response as `JIRA_DATA`.
+
+**If NO ticket ID pattern found (free-text input):**
+Set `JIRA_DATA = null`. The bug-context agent will parse USER_INPUT directly as the primary data source.
 
 ### STEP 0.5: Load Skill Files
 Read ALL skill files upfront and store them for passing to agents:
@@ -380,6 +385,8 @@ Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of bug-context.md agent prompt]
   + JIRA_DATA: [raw Jira JSON]
   + USER_INPUT: [user's original message]
+  + Note: If JIRA_DATA is null, the bug-context agent will parse USER_INPUT as the primary source.
+    It will extract embedded URLs, service names, error descriptions, and identifiers from the free text.
   + OUTPUT_FILE: {OUTPUT_DIR}/bug-context/bug-context-output-V{N}.md
   + TRACE_FILE: {OUTPUT_DIR}/bug-context/bug-context-trace-V{N}.md
 ```
@@ -553,6 +560,7 @@ Prompt: [full content of grafana-analyzer.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
   + ENRICHED_CONTEXT: [full content from Step 1.3, or "No enrichment data — Fire Console skipped"]
   + GRAFANA_SKILL_REFERENCE: [full content of GRAFANA_SKILL]
+  + TIMEZONE_NOTE: "All timestamps in BUG_CONTEXT_REPORT are already converted to UTC. Use them directly for Grafana queries. Do NOT re-convert. Israel local time = UTC+2 (winter) / UTC+3 (summer DST)."
   + OUTPUT_FILE: {OUTPUT_DIR}/grafana-analyzer/grafana-analyzer-output-V{N}.md
   + TRACE_FILE: {OUTPUT_DIR}/grafana-analyzer/grafana-analyzer-trace-V{N}.md
 ```
