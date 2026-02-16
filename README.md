@@ -74,9 +74,11 @@ The installer will:
 
 ## Install on Cursor
 
-To use Production Master in **Cursor IDE** (no Claude Code extension): run the Cursor install script. It installs slash commands (`.cursor/commands/`), agent definitions (`.cursor/agents/`), and skills/MCPs into `.cursor/`. See **[docs/CURSOR_INSTALL.md](docs/CURSOR_INSTALL.md)** for the full guide. Then run:
+To use Production Master in **Cursor IDE** (no Claude Code extension): clone the `cursor-support` branch and run the Cursor install script. It installs slash commands (`.cursor/commands/`), agent definitions (`.cursor/agents/`), and skills/MCPs into `.cursor/`. See **[docs/CURSOR_INSTALL.md](docs/CURSOR_INSTALL.md)** for the full guide.
 
 ```bash
+gh repo clone TamirCohen-Wix/production-master -- -b cursor-support
+cd production-master
 bash scripts/install-cursor.sh [TARGET_DIR]   # default TARGET_DIR: ~/.cursor
 ```
 
