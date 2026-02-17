@@ -71,18 +71,6 @@ if ! command -v jq &>/dev/null; then
 fi
 ok "jq available"
 
-# Detect if target overlaps with repo's own .cursor/ (e.g. cursor-support branch)
-REPO_CURSOR_DIR="$REPO_ROOT/.cursor"
-if [ -d "$REPO_CURSOR_DIR" ]; then
-  REPO_CURSOR_ABS="$(cd "$REPO_CURSOR_DIR" && pwd)"
-  if [ "$CURSOR_DIR" = "$REPO_CURSOR_ABS" ]; then
-    warn "Target directory IS the repo's .cursor/ — files are already in place from the branch."
-    warn "Skipping commands/agents/skills copy (only configuring MCP)."
-    SKIP_COPY=true
-  fi
-fi
-SKIP_COPY="${SKIP_COPY:-false}"
-
 # Remove legacy rule (commands and agents are now installed natively, not via a rule)
 RULE_FILE="$CURSOR_DIR/rules/production-master.mdc"
 if [ -f "$RULE_FILE" ]; then
@@ -93,7 +81,7 @@ fi
 # ─── Clean previous installation ────────────────────────────────────
 # Remove files from a previous install to prevent duplicates when
 # agents/commands are renamed or removed between versions.
-if [ "$SKIP_COPY" = "false" ] && [ -f "$MANIFEST" ]; then
+if [ -f "$MANIFEST" ]; then
   header "Cleaning previous installation"
   REMOVED=0
   while IFS= read -r old_file; do
@@ -110,8 +98,6 @@ fi
 
 # Start tracking installed files for this run
 INSTALLED_FILES=()
-
-if [ "$SKIP_COPY" = "false" ]; then
 
 # ─── 1. Commands (Cursor slash commands: .cursor/commands/*.md) ───────
 header "Step 1/4 — Cursor commands"
@@ -181,14 +167,6 @@ done
 
 # Write manifest for future clean uninstall/reinstall
 printf '%s\n' "${INSTALLED_FILES[@]}" > "$MANIFEST"
-
-else
-  # SKIP_COPY=true — still count what's there for the summary
-  CMD_COUNT=$(find "$COMMANDS_DIR" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
-  AGENT_COUNT=$(find "$AGENTS_DIR" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
-  SKILL_COUNT=$(find "$SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
-  info "Skipped steps 1-3 (commands, agents, skills already in repo)"
-fi
 
 # ─── 4. MCP ─────────────────────────────────────────────────────────
 header "Step 4/4 — MCP servers"
@@ -271,9 +249,7 @@ echo "    $COMMANDS_DIR/*.md ($CMD_COUNT slash commands)"
 echo "    $AGENTS_DIR/*.md ($AGENT_COUNT agents)"
 echo "    $SKILLS_DIR/<skill-name>/SKILL.md ($SKILL_COUNT skills)"
 echo "  MCP config: $CURSOR_MCP"
-if [ "$SKIP_COPY" = "false" ]; then
-  echo "  Manifest: $MANIFEST"
-fi
+echo "  Manifest: $MANIFEST"
 echo ""
 echo "  Next: Restart Cursor (or reload window), then use:"
 echo "    /production-master <TICKET-ID>"
