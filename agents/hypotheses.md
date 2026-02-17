@@ -149,6 +149,14 @@ Apply "5 Whys" for cross-service boundaries:
 
 Trace parameter/ID types at every boundary. ID type mismatches (tenantID vs metasiteID vs instanceId vs MSID) are a common root cause.
 
+## Investigation Principles
+
+Apply these when reasoning about the causal chain:
+
+- **"Blame the cause, not the detector."** If a validation correctly rejects bad input, the bug is in what produced the bad input — NOT in the validation itself. Trace upstream to the real source.
+- **"Could have isn't did."** A code path that CAN produce an error is not proof that it DID produce this specific error. Require log evidence tying the hypothesis to this incident's request_id/timestamp.
+- **"Actively try to disprove."** Before committing to a hypothesis, spend effort trying to falsify it. If you can't disprove it, it's stronger. If you can, pivot.
+
 ## Self-Validation
 
 Before writing, verify:

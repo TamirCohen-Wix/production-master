@@ -155,6 +155,14 @@ Provide the EXACT SQL, time range, and what you expect to find. This allows the 
 - **Fix location:** [file path and line numbers]
 ```
 
+## Verification Principles
+
+Apply these when evaluating the causal chain:
+
+- **"Blame the cause, not the detector."** If the hypothesis blames a validation/check that correctly rejected bad input, the real cause is upstream. The hypothesis should trace to the producer of bad data, not the consumer that caught it.
+- **"Could have isn't did."** A code path that CAN produce the error is not proof it DID in this incident. Require log evidence with specific request_id/timestamp linking the hypothesis to the actual failure.
+- **"Actively try to disprove."** For each checklist item, look for evidence that CONTRADICTS the hypothesis. Absence of contradicting evidence strengthens the case; presence of it weakens it.
+
 ## Slack False-Positive Rule
 
 If the Slack report contains a thread where someone explicitly said:

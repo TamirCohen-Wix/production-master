@@ -42,6 +42,13 @@ across ALL other services in the flow.
 **STOP only after all 4 fallback strategies return 0.**
 Report which strategies were tried and their results.
 
+### No-Logs Playbook (when ALL searches return 0)
+If all strategies return 0 results across all services:
+1. Report explicitly: "No logs found for any service in [time window]"
+2. Suggest to the orchestrator: "Consider broadening the time window by ±24h or verifying artifact_ids"
+3. Include the Grafana AppAnalytics URL so the user can manually verify
+4. Do NOT invent or assume data — report the absence clearly
+
 ## Skill Reference (MANDATORY)
 
 You will receive `GRAFANA_SKILL_REFERENCE` — the full content of `skills/grafana-datasource.md`. This is your authoritative reference for:

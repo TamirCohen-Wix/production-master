@@ -143,15 +143,29 @@ Trace a specific request across services by request_id.
 
 Read `skills/grafana-datasource/SKILL.md` for tool parameters.
 
-### Step 1: Extract timeframe from request_id
-Wix request IDs contain a Unix timestamp: `<unix_timestamp>.<random>` (e.g., `1769611570.535540810122211411840`)
+### Step 1: Extract timeframe from request_id (input-aware)
+
+Determine the request ID type and set the time window accordingly:
+
+**Type A — Timestamp-based request ID** (matches `\d{10}\.\d+`, e.g., `1769611570.535540810122211411840`):
 ```bash
 date -u -r <timestamp> "+%Y-%m-%dT%H:%M:%S.000Z"
 ```
-- `fromTime` = timestamp - 600 seconds (10 min before)
-- `toTime` = timestamp + 600 seconds (10 min after)
+- `fromTime` = timestamp - 120 seconds (2 min before)
+- `toTime` = timestamp + 660 seconds (11 min after)
+- Rationale: tight window captures the request and its downstream calls without noise
 
-If no valid timestamp in the ID, ask the user for a timeframe.
+**Type B — Non-timestamp GUID** (e.g., `ba9c97f3-832d-4a02-826a-549bde64393b`):
+- `fromTime` = now - 24 hours
+- `toTime` = now
+- Rationale: no embedded timestamp, so use a broad recent window
+
+**Type C — Grafana link** (URL containing `var-request_id`, `from`, `to`):
+- Extract `request_id` from `var-request_id` parameter
+- Extract `from` and `to` directly from URL parameters
+- Use extracted values as-is — the user already scoped the time window
+
+If none of the above match, ask the user for a timeframe.
 
 ### Step 2: Artifact discovery
 ```
@@ -917,7 +931,9 @@ Prompt: [full content of hypotheses.md agent prompt]
   Use Fire Console when you need to inspect specific domain objects (bookings, services, events, policies)
   to verify your theory — e.g., check a booking's status, a service's configuration, or an event's recurrence type.
 
-  This is hypothesis iteration #{HYPOTHESIS_INDEX}.
+  This is hypothesis iteration #{HYPOTHESIS_INDEX} of max 5.
+  [If HYPOTHESIS_INDEX >= 3: "⚠ Iteration {HYPOTHESIS_INDEX}/5 — focus on the strongest remaining theory."]
+  [If HYPOTHESIS_INDEX >= 4: "⚠ Iteration {HYPOTHESIS_INDEX}/5 — nearing limit. Prioritize strongest evidence."]
   [If iterating: "Previous hypotheses were Declined. The skeptic identified these gaps: [gaps].
   You MUST address these specific gaps."]
 
@@ -940,7 +956,9 @@ Prompt: [full content of hypotheses.md agent prompt]
   Use Fire Console when you need to inspect specific domain objects (bookings, services, events, policies)
   to verify your theory.
 
-  This is hypothesis iteration #{HYPOTHESIS_INDEX}.
+  This is hypothesis iteration #{HYPOTHESIS_INDEX} of max 5.
+  [If HYPOTHESIS_INDEX >= 3: "⚠ Iteration {HYPOTHESIS_INDEX}/5 — focus on the strongest remaining theory."]
+  [If HYPOTHESIS_INDEX >= 4: "⚠ Iteration {HYPOTHESIS_INDEX}/5 — nearing limit. Prioritize strongest evidence."]
   [If iterating: same declined context as Teammate 1]
 
   OUTPUT_FILE: {OUTPUT_DIR}/hypotheses/hypotheses-tester-B-output-V{N}.md
@@ -1012,7 +1030,9 @@ Prompt: [full content of hypotheses.md agent prompt]
   + OUTPUT_FILE: {OUTPUT_DIR}/hypotheses/hypotheses-output-V{HYPOTHESIS_INDEX}.md
   + TRACE_FILE: {OUTPUT_DIR}/hypotheses/hypotheses-trace-V{HYPOTHESIS_INDEX}.md
 
-  This is hypothesis #{HYPOTHESIS_INDEX}.
+  This is hypothesis #{HYPOTHESIS_INDEX} of max 5.
+  [If HYPOTHESIS_INDEX >= 3: "⚠ Iteration {HYPOTHESIS_INDEX}/5 — focus on the strongest remaining theory. Address the specific gaps from previous declined hypotheses rather than exploring new directions."]
+  [If HYPOTHESIS_INDEX >= 4: "⚠ Iteration {HYPOTHESIS_INDEX}/5 — nearing limit. Prioritize the theory with the most supporting evidence. If no theory has strong evidence, clearly state what cannot be determined and why."]
   [If iterating: "Previous hypotheses were Declined. Read them all and do NOT repeat the same theory. The verifier identified these gaps: [list gaps from findings-summary]."]
   Form your hypothesis FROM the data in the reports. Proof = logs + code + timeline.
   You CAN query Fire Console (invoke_rpc) on-demand to inspect domain objects that support your theory.
