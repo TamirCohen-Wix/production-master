@@ -4,8 +4,7 @@
 
 # Production Master
 
-[![Version](https://img.shields.io/badge/version-1.0.0--beta-blue)](https://github.com/TamirCohen-Wix/production-master/releases)
-[![Status](https://img.shields.io/badge/status-experimental-orange)](https://github.com/TamirCohen-Wix/production-master/releases)
+[![Version](https://img.shields.io/badge/version-1.0.2--beta-blue)](https://github.com/TamirCohen-Wix/production-master/releases/tag/v1.0.2-beta)
 [![CI](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml/badge.svg)](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml)
 [![Author](https://img.shields.io/badge/author-Tamir%20Cohen-green)](https://wix.slack.com/team/U09H3AHE3C7)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://github.com/anthropics/claude-code/blob/main/plugins/README.md)
@@ -55,11 +54,11 @@ cd production-master
 bash scripts/install.sh
 ```
 
-Or [download the ZIP](https://github.com/TamirCohen-Wix/production-master/archive/refs/heads/main.zip), unzip, and run:
+Or [download the ZIP](https://github.com/TamirCohen-Wix/production-master/archive/refs/tags/v1.0.2-beta.zip), unzip, and run:
 
 ```bash
-unzip production-master-main.zip
-cd production-master-main
+unzip production-master-v1.0.2-beta.zip
+cd production-master-v1.0.2-beta
 bash scripts/install.sh
 ```
 
