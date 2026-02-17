@@ -1,6 +1,6 @@
 ---
 description: "Search Slack for production discussions, incidents, and deployment threads"
-user-invocable: true
+user-invocable: false
 ---
 
 # Slack Search — Standalone Slack Query Tool

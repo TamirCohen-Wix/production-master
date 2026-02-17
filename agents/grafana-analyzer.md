@@ -69,19 +69,6 @@ If the skill reference is not provided in your prompt, state this explicitly and
 
 ### Step 1 — Get ALL errors for each service
 
-### Timezone Handling for Grafana URLs (CRITICAL)
-
-When constructing Grafana AppAnalytics URLs with `from` and `to` parameters:
-
-1. **`from` and `to` MUST be Unix timestamps in milliseconds, in UTC**
-2. **Israel timezone conversion is REQUIRED** when bug reports use local time:
-   - Israel Standard Time (winter): UTC+2 — subtract 2 hours
-   - Israel Daylight Time (summer DST, late March–late October): UTC+3 — subtract 3 hours
-   - Example: "User reported 10:30 Israel time (UTC+2) = 08:30 UTC"
-3. **Use the UTC-converted time window from BUG_CONTEXT_REPORT directly** — it has already been converted
-4. **Add ±1 hour padding buffer** to the time window for Grafana URLs to catch edge cases
-5. **Verify** that constructed URLs' time range matches BUG_CONTEXT_REPORT's UTC window (not the original local time)
-
 For EACH artifact_id from bug-context:
 
 1. **Run error aggregation query** (no MSID filter — full service):
@@ -110,7 +97,29 @@ WHERE $__timeFilter(timestamp) AND artifact_id = '<ARTIFACT>' AND meta_site_id =
 ORDER BY timestamp DESC LIMIT 100
 ```
 
-### Step 1.5 — Cascading Fallback (when MSID-filtered query returns 0)
+### Step 1.5 — Inspect Error Data Payloads (MANDATORY for every error found)
+
+**This is the single most important step.** The `data` column in app_logs contains structured JSON with the actual request/entity state that caused the error. ALWAYS run this query for each distinct error type found:
+
+```sql
+SELECT timestamp, request_id, meta_site_id, message,
+  data,
+  JSONExtractString(data, 'details') as details
+FROM app_logs
+WHERE $__timeFilter(timestamp) AND artifact_id = '<ARTIFACT>' AND level = 'ERROR'
+  AND message LIKE '%<error_pattern>%'
+ORDER BY timestamp DESC LIMIT 10
+```
+
+**Parse the JSON `data` payload and report ALL fields.** Common critical findings:
+- Empty/null fields that should have values (e.g., `resource: "<empty>"`)
+- Contradictory field combinations (e.g., `selection_method: SPECIFIC_RESOURCE` with no resource)
+- Missing required identifiers (booking ID, service ID, etc.)
+- Configuration snapshots embedded in error data
+
+**Include the full parsed data payload in your report** — this is key evidence for hypothesis generation.
+
+### Step 1.6 — Cascading Fallback (when MSID-filtered query returns 0)
 
 If Step 1 query #3 returns 0 results, execute the Cascading Search Strategy (see above) BEFORE moving to Step 2. Try all 4 fallback levels in order. Report which were tried and their results.
 
@@ -130,6 +139,7 @@ Before writing your report, verify:
 - [ ] At least one request_id is captured (if errors exist)
 - [ ] No analysis or conclusions crept into your output
 - [ ] Sample queries include `data`, `request_id`, `meta_site_id`, `stack_trace` columns
+- [ ] **Error data payloads were inspected** — `data` column JSON parsed and reported for every error type
 - [ ] If MSID-filtered query returned 0: all cascading fallbacks were executed
 - [ ] "Request IDs Captured" table is populated (or empty with note)
 - [ ] "Identity Fields Analysis" table is populated (or empty with note)
@@ -159,7 +169,7 @@ Before writing your report, verify:
 | Timestamp (UTC) | Request ID | Message |
 |-----------------|------------|---------|
 
-**Grafana URL:** [service-name - error context - Grafana logs](full AppAnalytics URL) — descriptive link text must include service short name + error summary + "Grafana logs" suffix. Example: `[bookings-service - 450 booking creation errors - Grafana logs](url)`
+**Grafana URL:** [full AppAnalytics URL — see skill reference for construction]
 
 ### [artifact_id_2]
 [same format]
@@ -168,6 +178,16 @@ Before writing your report, verify:
 - incident_start_exact: [UTC timestamp or "not pinpointed within limit"]
 - incident_end_exact: [UTC timestamp or "not pinpointed within limit"]
 - Expansion limit reached: YES/NO
+
+## Error Data Payloads (MANDATORY)
+For each distinct error type, include the parsed `data` JSON from at least one sample:
+### Error: [error message]
+```json
+{
+  [full parsed data payload]
+}
+```
+**Key observations:** [list any empty fields, contradictions, or unexpected values]
 
 ## MSID-Filtered Results (if applicable)
 [Results from MSID-filtered queries]

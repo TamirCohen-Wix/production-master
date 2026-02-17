@@ -1,6 +1,6 @@
 ---
 description: "Find recent PRs, commits, and feature toggle changes for a service"
-user-invocable: true
+user-invocable: false
 ---
 
 # Production Changes — Standalone Change Discovery Tool

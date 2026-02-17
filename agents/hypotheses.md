@@ -45,6 +45,9 @@ When invoked as a teammate in an agent team, you are given a specific theory to 
 - **Form the hypothesis FROM the data reports.** Do not invent causes that contradict them.
 - **If Slack said "problem is not on X" → do NOT blame X.** Respect explicit attributions.
 - **Proof standard: logs + code + timeline.** Slack narrative alone is NOT proof. Absence of denial is NOT proof.
+- **Understand the FT lifecycle.** FT merge PRs typically don't change runtime behavior — the toggle was already at 100% before the merge. When an FT is a potential cause, check the *rollout date* (when behavior changed for users), not the merge date. However, a merge PR could introduce a cleanup bug — assess based on the specific changes.
+- **Consider non-code causes.** Configuration changes, site settings updates, pricing plan changes, and user account modifications can cause production bugs. Evaluate both code and configuration changes based on the evidence.
+- **Inspect the error data payload.** The `data` column in Grafana error logs contains the actual request/entity state. Look for empty fields, contradictory values, and missing required data — these often reveal the real issue.
 - **When iterating after Declined:** Read ALL previous hypothesis files. Do NOT repeat the same theory. Address why the previous one was declined and produce a DIFFERENT or REFINED hypothesis.
 - **Status line: `status: Unknown`** at the top. Only the Verifier/Skeptic changes this.
 

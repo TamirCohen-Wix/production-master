@@ -69,6 +69,23 @@ flowchart TD
     PUBLISHER --> DONE
 ```
 
+## Critical Investigation Principles
+
+### 1. Always Inspect Error Data Payloads
+The `data` column in Grafana app_logs contains structured JSON with the actual request/entity state that caused the error. The Grafana analyzer MUST query and parse this for every error type. Common findings: empty fields, contradictory combinations (e.g., `resource: empty` with `selection_method: SPECIFIC_RESOURCE`).
+
+### 2. FT Rollout vs FT Merge — Know the Difference
+Feature toggle merge PRs typically happen after the FT has been at 100% for a long time — they clean up dead code. When investigating FTs, check the *rollout date* (when behavior changed for users) not just the merge date. The rollout can be a root cause; the merge usually isn't, though cleanup bugs are possible.
+
+### 3. Investigate Configuration, Not Just Code
+Site settings, user configurations, pricing plans, and resource settings can all cause production bugs. Always check for configuration changes alongside code changes.
+
+### 4. Agent Directories Are Created On-Write
+Agent subdirectories are NOT pre-created. Each agent creates its own when writing output. This shows which agents actually ran.
+
+### 5. Each Run Is Completely Fresh
+Never read from previous `debug-*` directories. Never reference previous investigation findings unless the user explicitly provides them.
+
 ## Hypothesis Verification Loop
 
 The hypothesis loop is the core quality mechanism:
@@ -98,39 +115,27 @@ When agent teams are disabled:
 
 ## Output Directory Structure
 
-Each full investigation creates a timestamped output directory:
+Each full investigation creates a timestamped output directory. Agent subdirectories are created by agents when they write output (NOT pre-created), so the directory structure shows exactly which agents ran:
 
 ```
 .claude/debug/debug-SCHED-45895-2026-02-14-143000/
 ├── findings-summary.md              ← Persistent state file (updated after every step)
 ├── report.md                        ← Final investigation report (Step 8)
 │
-├── bug-context/
+├── bug-context/                     ← Created by bug-context agent
 │   ├── bug-context-output-V1.md
 │   └── bug-context-trace-V1.md      ← Action log (human debugging only)
-├── grafana-analyzer/
+├── grafana-analyzer/                ← Created by grafana-analyzer agent
 │   ├── grafana-analyzer-output-V1.md
 │   └── grafana-analyzer-output-V2.md ← Re-run after Declined
-├── codebase-semantics/
+├── codebase-semantics/              ← Created by codebase-semantics agent
 │   ├── codebase-semantics-output-V1.md
 │   └── codebase-semantics-prs-output-V1.md
-├── production-analyzer/
+├── production-analyzer/             ← Only exists if production-analyzer ran
 │   └── production-analyzer-output-V1.md
-├── slack-analyzer/
+├── slack-analyzer/                  ← Only exists if slack-analyzer ran
 │   └── slack-analyzer-output-V1.md
-├── fire-console/
-│   └── fire-console-output-V1.md
-├── hypotheses/
-│   ├── hypotheses-tester-A-output-V1.md
-│   └── hypotheses-tester-B-output-V1.md
-├── skeptic/
-│   └── skeptic-output-V1.md
-├── fix-list/
-│   └── fix-list-output-V1.md
-├── documenter/
-│   └── documenter-output-V1.md
-└── publisher/
-    └── publisher-output-V1.md
+...
 ```
 
 ### File Naming

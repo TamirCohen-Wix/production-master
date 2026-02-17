@@ -60,13 +60,14 @@ All HTTP servers go through `mcp-s.wewix.net` proxy, authenticated via `x-user-a
 - Location: `.claude/debug/` inside the repo root (or `./debug/` outside a repo)
 - Directory name: `debug-<TASK-SLUG>-<YYYY-MM-DD-HHmmss>/` where TASK-SLUG is Jira ticket ID or auto-generated summary
 - Each agent gets its OWN subdirectory: `<debug-dir>/<agent-name>/`
+- **Agent subdirectories are created BY THE AGENT when it writes output** — NOT pre-created by the orchestrator. This ensures the directory structure shows exactly which agents ran.
 - Output files are versioned: `<agent-name>-output-V<N>.md` (N = invocation count for that agent in this run)
 - **Trace files**: `<agent-name>-trace-V<N>.md` — written alongside output files, contain input + action log
 - Example: `debug-SCHED-4353-2026-02-11-143000/grafana-analyzer/grafana-analyzer-output-V1.md`
-- Example: `debug-SCHED-4353-2026-02-11-143000/grafana-analyzer/grafana-analyzer-trace-V1.md`
 - `findings-summary.md` and `report.md` stay at the debug dir root
 - Sub-agents must be told both OUTPUT_FILE and TRACE_FILE paths
 - **Trace isolation**: Trace files are NEVER passed to other agents. Only the human operator reads them.
+- **Fresh start**: NEVER read from previous `debug-*` directories. Each run is independent.
 
 ### Agent Task-Driven Design
 - Agents do NOT know about orchestration steps ("Step 3", "Step 4", "parallel", "primary")
@@ -128,10 +129,34 @@ All HTTP servers go through `mcp-s.wewix.net` proxy, authenticated via `x-user-a
 
 ## Codebase Patterns
 
-### Feature Toggles
+### Feature Toggles & FT Release Lifecycle (CRITICAL)
 - Feature toggles are defined in `BUILD.bazel` (`feature_toggles = ["name"]`) and managed via **Wix Dev Portal** (NOT Petri)
 - Use `gradual-feature-release` MCP tools to search/query toggle status on Wix Dev Portal
 - Legacy: some services still have Petri specs but new toggles should use Wix Dev Portal
+
+**FT Release Lifecycle — distinguish rollout from merge:**
+1. Developer creates FT in code + Dev Portal
+2. FT is gradually rolled out: 0% → 25% → 50% → 100% (over weeks/months)
+3. FT stays at 100% for all users for a long time (weeks to months)
+4. Then developer creates a "merge FT" PR that removes the toggle code
+5. The merge PR typically doesn't change runtime behavior — the FT was already at 100%
+- When investigating FT-related changes: check the **rollout date** (when behavior changed) not just the merge date
+- Use `list-releases(featureToggleId)` to find the actual rollout timeline
+- The FT rollout CAN be a root cause — that's when behavior actually changed for users
+- The FT merge PR is usually just code cleanup, but could rarely introduce a cleanup bug
+
+### Investigation Must Include Configuration/Settings
+- Production bugs are NOT always caused by code changes
+- Always check: site settings, user configurations, pricing plan changes, resource settings
+- Use Fire Console to inspect current configuration state
+- Use Grafana to search for config change logs: `message LIKE '%config%'` or `message LIKE '%settings%'`
+- Example: SCHED-46094 — the error was caused by a site having `staff_selection.strategy: CUSTOMER_MUST_CHOOSE` combined with a booking flow that didn't select staff, NOT by a code PR
+
+### Grafana Error Data Payloads (ALWAYS INSPECT)
+- The `data` column in app_logs contains structured JSON with the actual request/entity state
+- ALWAYS query and parse `data` for every error type found
+- Common critical findings: empty fields that should have values, contradictory field combinations
+- Example: SCHED-46094 — `data` showed `resource: "<empty>"` with `selection_method: SPECIFIC_RESOURCE` — key evidence
 
 ### Rate Limiting
 - bookings-reader uses `LoomPrimeRateLimiter` with MSID as entity key

@@ -28,9 +28,6 @@ Jira uses its own wiki markup, NOT standard Markdown:
 | Color | `{color:red}text{color}` |
 | Info box | `{info}text{info}` |
 | Warning box | `{warning}text{warning}` |
-| No-format block | `{noformat}text{noformat}` |
-| Quote block | `{quote}text{quote}` |
-| Horizontal rule | `----` |
 
 ### Jira TL;DR Template
 
@@ -46,20 +43,6 @@ h2. Timeline
 |08:30|First error detected|
 |09:45|Root cause identified|
 ```
-
-### Common Jira Formatting Mistakes
-
-| WRONG (Markdown) | RIGHT (Jira Wiki) |
-|-------------------|-------------------|
-| `## Title` | `h2. Title` |
-| `**bold**` | `*bold*` |
-| `[text](url)` | `[text\|url]` |
-| `\| header \|` with `\|---\|` | `\|\|header\|\|header\|\|` |
-| ` ``` code ``` ` | `{code:lang}code{code}` |
-| `> quote` | `{quote}text{quote}` |
-| `---` | `----` |
-
-**If you catch yourself writing any left-column syntax, STOP and convert to right-column.**
 
 ## Slack Formatting (mrkdwn)
 

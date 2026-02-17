@@ -82,6 +82,15 @@ get-feature-toggle(featureToggleId: "<id>")
 list-releases(featureToggleId: "<id>")
 ```
 
+**FT Merge PRs vs FT Rollouts — Important Context:**
+When you find PRs that "merge" or "remove" a feature toggle:
+- Tag these as "FT MERGE" in your PR table's Type column
+- FT merge PRs typically happen after the toggle was at 100% for a long time — they clean up dead code
+- The actual behavior change usually happened when the FT was *rolled out* (weeks/months earlier)
+- Use `list-releases(featureToggleId)` to find when the FT was actually rolled out to users
+- Include both dates in your report: FT rollout date (when behavior changed) and FT merge PR date (when code was cleaned up)
+- In rare cases, a merge PR could introduce a bug during cleanup — note the specific code changes so the hypothesis agent can assess
+
 ### 4. Build timeline
 Map merge/deploy dates (UTC), correlate with incident window.
 
@@ -113,8 +122,13 @@ Before writing your report, verify:
 [Service A] → [Service B] → [Service C] → ...
 
 ## Suspicious PRs
-| PR | Title | Author | Merge Date (UTC) | What Changed | Why Suspicious |
-|----|-------|--------|-------------------|-------------|----------------|
+| PR | Title | Author | Merge Date (UTC) | What Changed | Type | Why Suspicious |
+|----|-------|--------|-------------------|-------------|------|----------------|
+
+Type column values:
+- **CODE** = actual code change
+- **FT MERGE** = feature toggle cleanup (NO behavior change — FT was already at 100%)
+- **CONFIG** = configuration/settings change
 
 **Per PR preview (for documenter):**
 - PR #XXXXX — Title: [title]. What was done: [1-2 sentences]

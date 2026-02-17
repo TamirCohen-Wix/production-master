@@ -1,6 +1,6 @@
 ---
 description: "Validate and resolve service names to Grafana artifact IDs"
-user-invocable: true
+user-invocable: false
 ---
 
 # Resolve Artifact — Service Name Validator

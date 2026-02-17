@@ -1,6 +1,6 @@
 ---
 description: "Query Grafana logs, trace requests, and check Prometheus metrics"
-user-invocable: true
+user-invocable: false
 ---
 
 # Grafana Query — Standalone Log & Metrics Tool

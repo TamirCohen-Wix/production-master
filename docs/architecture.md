@@ -6,7 +6,9 @@ Production Master is a multi-agent pipeline that autonomously investigates produ
 
 ## Pipeline Design
 
-12 specialized agents, 8 commands, 9 MCP skill integrations, 2 output styles, 1 link validation hook.
+12 specialized agents, 1 active command (production-master), 9 MCP skill integrations, 2 output styles, 1 link validation hook.
+
+> **Note:** Other commands (fire-console, grafana-query, production-changes, resolve-artifact, slack-search, update-context) are temporarily disabled (`user-invocable: false`) while the main production-master pipeline is being refined. They will be re-enabled when stable.
 
 The orchestrator (`/production-master`) is the central coordinator. It:
 1. Classifies user intent into 7 modes (full investigation, log query, request trace, metrics, Slack search, code search, toggle check)
@@ -120,7 +122,13 @@ flowchart LR
     style SYNTHESIS fill:#fdf2e8,stroke:#d9904a
 ```
 
-**Key principle:** Data agents never see each other's outputs. Only Hypothesis and Verifier/Skeptic synthesize across all data sources, preventing confirmation bias.
+**Key principles:**
+- Data agents never see each other's outputs. Only Hypothesis and Verifier/Skeptic synthesize across all data sources, preventing confirmation bias.
+- **Always inspect error data payloads** — the `data` column in Grafana logs contains the actual request/entity state, often the most critical evidence.
+- **FT rollout vs merge** — FT merge PRs are typically code cleanup. Check when the FT was *rolled out* (behavior change) vs merged (cleanup). The rollout date is usually what matters.
+- **Investigate configuration/settings** alongside code changes — site settings, user configs, and pricing plan changes cause production bugs too.
+- **Agent directories are created on-write**, not pre-created — the directory structure shows exactly which agents ran.
+- **Each run is completely fresh** — never read from previous `debug-*` directories.
 
 ## Domain Config
 
@@ -170,7 +178,7 @@ Domain configs are created interactively via `/update-context` and contributed b
 
 ## Output Directory Structure
 
-Each investigation creates a timestamped output directory:
+Each investigation creates a timestamped output directory. Agent subdirectories are created by agents when they write output (NOT pre-created), so only directories of agents that actually ran will exist:
 
 ```
 .claude/debug/debug-SCHED-45895-2026-02-14-143000/

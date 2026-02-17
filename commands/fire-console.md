@@ -1,6 +1,6 @@
 ---
 description: "Query Wix domain objects (bookings, services, events, sites) via Fire Console gRPC"
-user-invocable: true
+user-invocable: false
 ---
 
 # Fire Console — Standalone Domain Object Query

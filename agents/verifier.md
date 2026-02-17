@@ -171,6 +171,8 @@ The orchestrator should override a Confirmed verdict if:
 - The report contains "we do not know WHY" for an intermediate cause
 - Evidence is correlation-only without log+code proof
 - The causal chain has assumed links
+- **The hypothesis blames an FT merge PR without checking the rollout date** — FT merge PRs typically don't change behavior (the toggle was already at 100%). If the hypothesis attributes the bug to an FT, verify whether it's blaming the rollout (valid) or the merge (usually wrong). Check `list-releases` for the actual rollout timeline.
+- **The hypothesis doesn't address the error data payload** — if the `data` column in logs reveals contradictory/empty fields and the hypothesis doesn't explain them, the causal chain may be incomplete
 
 ## Self-Validation
 

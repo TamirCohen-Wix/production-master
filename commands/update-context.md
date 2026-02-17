@@ -1,6 +1,6 @@
 ---
 description: "Analyze investigations, create/update domain configs, and contribute improvements back via PR"
-user-invocable: true
+user-invocable: false
 ---
 
 # Update Context — Domain Management & Continuous Improvement
