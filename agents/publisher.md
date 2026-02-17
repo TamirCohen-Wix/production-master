@@ -100,8 +100,11 @@ h3. Timeline
 ||Time (UTC)||Event||
 |[time]|[event]|
 
+h3. Key Request IDs
+* [request_id|grafana-trace-url] — [service where found]
+
 h3. Key Evidence
-* [Grafana link|url] — [X errors in Y period]
+* [service-name - error context - Grafana logs|url] — [X errors in Y period]
 * [PR #NNN|url] — [what changed]
 
 h3. Fix Plan
@@ -131,8 +134,11 @@ Format using **Slack mrkdwn**:
 *Timeline:*
 - `[time]` — [event]
 
+*Key Request IDs:*
+- `<request_id>` — <grafana-trace-url|trace in Grafana> — [service]
+
 *Key Evidence:*
-- <grafana-url|AppAnalytics: service-name> — [X errors]
+- <grafana-url|service-name - error context - Grafana logs> — [X errors]
 - <github-url|PR #NNN> — [what changed]
 
 *Fix:* `file.scala:123` — [change description]

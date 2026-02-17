@@ -1255,6 +1255,7 @@ Published to: [Jira / Slack / both / local only]
 
 ### Data Flow Control
 4. **ALWAYS pass FULL reports** between agents — never summarize or truncate.
+4b. **Request IDs are critical data.** When Grafana or any agent discovers request_ids, propagate them to ALL downstream agents (hypothesis, verifier, documenter, publisher). Request IDs enable cross-service correlation and are essential for follow-up investigation. The final report MUST list all discovered request_ids as clickable Grafana trace links.
 5. **Data agents (Grafana, Slack, Production, Codebase) NEVER see each other's outputs.** They receive only: BUG_CONTEXT, CODEBASE_SEMANTICS (for services/time frame), and their TASK (if re-invoked).
 6. **Only Hypothesis and Verifier receive all reports.** They are the only agents that synthesize across data sources.
 7. **Findings-summary.md is the state file.** Update it after every step. Include the agent invocation log.
