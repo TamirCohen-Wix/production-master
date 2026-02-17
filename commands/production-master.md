@@ -1198,8 +1198,6 @@ Wait for completion.
 
 After the report is generated, offer to publish findings to Jira and/or Slack.
 
-Read the agent prompt from `agents/publisher.md`.
-
 ```
 Ask the user:
 "Investigation complete. Would you like to publish the findings?"
@@ -1210,7 +1208,11 @@ Options:
 4. Skip — just keep the local report
 ```
 
+**CRITICAL: The orchestrator MUST NOT draft Slack/Jira messages inline.** Always use the publisher agent — it knows the correct format (Slack mrkdwn, Jira wiki markup), validates links, includes the Production Master signature, and shows the draft to the user before posting.
+
 **If user chooses to publish:**
+
+Read the agent prompt from `agents/publisher.md`.
 
 Increment `AGENT_COUNTERS[publisher]`. Launch **one** Task (model: sonnet):
 ```
@@ -1222,8 +1224,17 @@ Prompt: [full content of publisher.md agent prompt]
   + OUTPUT_DIR: {OUTPUT_DIR}
   + PUBLISH_TO: [user's choice: "jira", "slack", or "both"]
   + SLACK_CHANNEL: [channel name if slack chosen, from user input]
+  + SLACK_THREAD_TS: [thread timestamp if replying to existing thread, from user input]
   + OUTPUT_FILE: {OUTPUT_DIR}/publisher/publisher-output-V1.md
   + TRACE_FILE: {OUTPUT_DIR}/publisher/publisher-trace-V1.md
+
+  IMPORTANT REMINDERS:
+  - Show the FULL draft to the user BEFORE posting (Step 3.5 in publisher.md)
+  - Use Slack mrkdwn format (<url|text> links), NOT standard Markdown
+  - Include vulnerability/error chain section
+  - Include PR dates in parentheses
+  - Include Production Master signature at the bottom
+  - NEVER include local file paths (.claude/debug/..., /Users/..., OUTPUT_DIR)
 ```
 
 Wait for completion.
@@ -1319,13 +1330,18 @@ Published to: [Jira / Slack / both / local only]
     - If the claim doesn't match the data, note the discrepancy and proceed with verified information
     - This prevents wasting agent runs querying the wrong service entirely
 
-### Slack Posting Rules
-38. **Before posting ANY message to Slack:**
+### Publishing Rules
+38. **The orchestrator MUST NOT draft Slack/Jira messages inline.** Always delegate to the publisher agent — it knows the correct format, validates links, includes the signature, and shows the draft to the user. The orchestrator should NEVER compose a Slack mrkdwn or Jira wiki markup message itself.
+38b. **Show draft before posting (MANDATORY).** The publisher agent MUST present the FULL formatted message to the user and wait for explicit approval before posting. This is a hard gate — never post without user review. If the user requests changes, apply them and show the updated draft again.
+38c. **Before posting ANY message to Slack:**
     - **NEVER include Slack channel links** (`<#channel-id|channel-name>` or `https://wix.slack.com/archives/...`) **without first verifying** the channel exists via `slack_find-channel-id`
     - **NEVER fabricate channel names.** If you don't know the exact channel, omit the reference or write "the relevant team channel" as plain text
     - **Verify ALL hyperlinks** in the message before posting — broken links undermine credibility
     - For investigation summaries posted to Slack: only link to verified resources (Grafana URLs from actual queries, Jira tickets from actual fetches, GitHub PRs from actual searches)
     - If you need to suggest escalating to a team but don't know their channel: say "escalate to [team name]" without linking
+38d. **NEVER include local file paths in published content.** References like `.claude/debug/...`, `/Users/...`, or `OUTPUT_DIR` are meaningless to Slack/Jira readers. Link to the Jira ticket instead.
+38e. **PR links MUST include dates.** Always format as `PR #NNN (Mon DD, YYYY)` — the date gives critical context for timeline reasoning.
+38f. **Include the vulnerability/error chain.** When the investigation identified a causal or attack chain, always include it in published summaries. Readers need the full picture, not just the root cause sentence.
 
 ### Feature Toggle (FT) Release Lifecycle (CRITICAL KNOWLEDGE)
 36a. Agents must understand the Wix FT release lifecycle to reason about FT-related changes:

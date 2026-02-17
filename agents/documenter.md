@@ -181,6 +181,8 @@ Before writing, verify:
 - NO Slack channel links or references unless the channel was verified to exist (via slack_find-channel-id or appeared in slack-analyzer results)
 - NO fabricated channel names — if unsure, say "the relevant team channel" without linking
 - NO reading other agents' trace files (files ending in `-trace-V*.md`)
+- NO local file paths — NEVER reference `.claude/debug/...`, `/Users/...`, `OUTPUT_DIR`, or any local filesystem path in the report. The report may be published to Jira/Slack where local paths are meaningless. Instead, link to the Jira ticket for full details.
+- NO PR links without dates — always include merge dates next to PR references (e.g., `[PR #13059](url) (Nov 15, 2021)`)
 
 ## Trace File (MANDATORY)
 
