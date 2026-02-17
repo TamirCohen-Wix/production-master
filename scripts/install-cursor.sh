@@ -4,6 +4,9 @@
 #   TARGET_DIR: where to install commands, agents, skills (default: ~/.cursor)
 #   Examples: ~/.cursor  /path/to/project/.cursor  .cursor
 # Creates TARGET_DIR/commands, TARGET_DIR/agents, TARGET_DIR/skills, and merges MCP into Cursor's mcp.json
+#
+# Re-running is safe: previous files are tracked via a manifest and cleaned
+# before reinstalling, so renamed or removed files don't leave duplicates.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,6 +23,7 @@ CURSOR_DIR="$(cd "$TARGET_DIR" && pwd)"
 COMMANDS_DIR="$CURSOR_DIR/commands"
 AGENTS_DIR="$CURSOR_DIR/agents"
 SKILLS_DIR="$CURSOR_DIR/skills"
+MANIFEST="$CURSOR_DIR/.production-master-manifest"
 
 # Cursor MCP: always merge into user-level config (Cursor reads MCP from here)
 if [[ "$(uname)" == "Darwin" ]]; then
@@ -67,12 +71,47 @@ if ! command -v jq &>/dev/null; then
 fi
 ok "jq available"
 
+# Detect if target overlaps with repo's own .cursor/ (e.g. cursor-support branch)
+REPO_CURSOR_DIR="$REPO_ROOT/.cursor"
+if [ -d "$REPO_CURSOR_DIR" ]; then
+  REPO_CURSOR_ABS="$(cd "$REPO_CURSOR_DIR" && pwd)"
+  if [ "$CURSOR_DIR" = "$REPO_CURSOR_ABS" ]; then
+    warn "Target directory IS the repo's .cursor/ — files are already in place from the branch."
+    warn "Skipping commands/agents/skills copy (only configuring MCP)."
+    SKIP_COPY=true
+  fi
+fi
+SKIP_COPY="${SKIP_COPY:-false}"
+
 # Remove legacy rule (commands and agents are now installed natively, not via a rule)
 RULE_FILE="$CURSOR_DIR/rules/production-master.mdc"
 if [ -f "$RULE_FILE" ]; then
   rm -f "$RULE_FILE"
   ok "Removed legacy rule (using native commands and agents)"
 fi
+
+# ─── Clean previous installation ────────────────────────────────────
+# Remove files from a previous install to prevent duplicates when
+# agents/commands are renamed or removed between versions.
+if [ "$SKIP_COPY" = "false" ] && [ -f "$MANIFEST" ]; then
+  header "Cleaning previous installation"
+  REMOVED=0
+  while IFS= read -r old_file; do
+    if [ -f "$old_file" ]; then
+      rm -f "$old_file"
+      REMOVED=$((REMOVED + 1))
+    fi
+  done < "$MANIFEST"
+  rm -f "$MANIFEST"
+  if [ "$REMOVED" -gt 0 ]; then
+    ok "Removed $REMOVED files from previous install"
+  fi
+fi
+
+# Start tracking installed files for this run
+INSTALLED_FILES=()
+
+if [ "$SKIP_COPY" = "false" ]; then
 
 # ─── 1. Commands (Cursor slash commands: .cursor/commands/*.md) ───────
 header "Step 1/4 — Cursor commands"
@@ -93,6 +132,7 @@ for src in "$COMMANDS_SRC"/*.md; do
   else
     strip_frontmatter "$src" > "$dest"
   fi
+  INSTALLED_FILES+=("$dest")
   ok "Installed command: /$name"
   CMD_COUNT=$((CMD_COUNT + 1))
 done
@@ -106,7 +146,9 @@ AGENT_COUNT=0
 for src in "$AGENTS_SRC"/*.md; do
   [ -f "$src" ] || continue
   name=$(basename "$src" .md)
-  cp "$src" "$AGENTS_DIR/$name.md"
+  dest="$AGENTS_DIR/$name.md"
+  cp "$src" "$dest"
+  INSTALLED_FILES+=("$dest")
   ok "Installed agent: $name"
   AGENT_COUNT=$((AGENT_COUNT + 1))
 done
@@ -117,6 +159,7 @@ header "Step 3/4 — Cursor skills"
 
 mkdir -p "$SKILLS_DIR"
 SKILL_SRC="$REPO_ROOT/skills"
+SKILL_COUNT=0
 for dir in "$SKILL_SRC"/*/; do
   [ -d "$dir" ] || continue
   name=$(basename "$dir")
@@ -124,6 +167,7 @@ for dir in "$SKILL_SRC"/*/; do
   dest="$SKILLS_DIR/$name"
   mkdir -p "$dest"
   cp "$dir/SKILL.md" "$dest/SKILL.md"
+  INSTALLED_FILES+=("$dest/SKILL.md")
   # Ensure frontmatter has "name" for Cursor (add if missing)
   if ! grep -q '^name:' "$dest/SKILL.md" 2>/dev/null; then
     if head -1 "$dest/SKILL.md" | grep -q '^---'; then
@@ -132,7 +176,19 @@ for dir in "$SKILL_SRC"/*/; do
     fi
   fi
   ok "Installed skill: $name"
+  SKILL_COUNT=$((SKILL_COUNT + 1))
 done
+
+# Write manifest for future clean uninstall/reinstall
+printf '%s\n' "${INSTALLED_FILES[@]}" > "$MANIFEST"
+
+else
+  # SKIP_COPY=true — still count what's there for the summary
+  CMD_COUNT=$(find "$COMMANDS_DIR" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+  AGENT_COUNT=$(find "$AGENTS_DIR" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+  SKILL_COUNT=$(find "$SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
+  info "Skipped steps 1-3 (commands, agents, skills already in repo)"
+fi
 
 # ─── 4. MCP ─────────────────────────────────────────────────────────
 header "Step 4/4 — MCP servers"
@@ -213,8 +269,11 @@ echo ""
 echo "  Created:"
 echo "    $COMMANDS_DIR/*.md ($CMD_COUNT slash commands)"
 echo "    $AGENTS_DIR/*.md ($AGENT_COUNT agents)"
-echo "    $SKILLS_DIR/<skill-name>/SKILL.md (9 skills)"
+echo "    $SKILLS_DIR/<skill-name>/SKILL.md ($SKILL_COUNT skills)"
 echo "  MCP config: $CURSOR_MCP"
+if [ "$SKIP_COPY" = "false" ]; then
+  echo "  Manifest: $MANIFEST"
+fi
 echo ""
 echo "  Next: Restart Cursor (or reload window), then use:"
 echo "    /production-master <TICKET-ID>"
