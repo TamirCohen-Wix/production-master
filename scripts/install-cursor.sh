@@ -36,9 +36,23 @@ err()   { echo -e "${RED}✗${NC} $1"; }
 header(){ echo -e "\n${BOLD}$1${NC}"; }
 
 # Strip YAML frontmatter (--- ... ---) from markdown; Cursor commands are plain Markdown only.
-# If there is no frontmatter (no ---), the whole file is printed.
+# Only strips if the FIRST line is '---' (standard YAML frontmatter).
+# If there is no frontmatter, the whole file is printed unchanged.
 strip_frontmatter() {
-  awk '/^---$/ { block++; if (block <= 2) next } block != 1' "$1"
+  if head -1 "$1" | grep -q '^---$'; then
+    # Has frontmatter: find the closing --- line number and print everything after it
+    local end_line
+    end_line=$(awk 'NR>1 && /^---$/ { print NR; exit }' "$1")
+    if [ -n "$end_line" ]; then
+      tail -n "+$((end_line + 1))" "$1"
+    else
+      # Only opening --- found, no closing — print everything after line 1
+      tail -n +2 "$1"
+    fi
+  else
+    # No frontmatter: print entire file
+    cat "$1"
+  fi
 }
 
 # ─── Preflight ───────────────────────────────────────────────────────
