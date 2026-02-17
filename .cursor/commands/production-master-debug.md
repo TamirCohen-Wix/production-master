@@ -1,5 +1,3 @@
-# Cursor: single agent — no Task tool. When this doc says "Launch Task with agent X", read .cursor/agents/X.md and execute those instructions yourself in this turn; write output to the path specified. Use .cursor/skills/<name>/SKILL.md for MCP tool names and parameters.
-
 # Production Master Debug — Pipeline Improvement Command
 
 You analyze a previous Production Master investigation run, identify pipeline issues, and suggest concrete improvements.

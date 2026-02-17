@@ -45,6 +45,9 @@ When invoked as a teammate in an agent team, you are given a specific theory to 
 - **Form the hypothesis FROM the data reports.** Do not invent causes that contradict them.
 - **If Slack said "problem is not on X" → do NOT blame X.** Respect explicit attributions.
 - **Proof standard: logs + code + timeline.** Slack narrative alone is NOT proof. Absence of denial is NOT proof.
+- **Understand the FT lifecycle.** FT merge PRs typically don't change runtime behavior — the toggle was already at 100% before the merge. When an FT is a potential cause, check the *rollout date* (when behavior changed for users), not the merge date. However, a merge PR could introduce a cleanup bug — assess based on the specific changes.
+- **Consider non-code causes.** Configuration changes, site settings updates, pricing plan changes, and user account modifications can cause production bugs. Evaluate both code and configuration changes based on the evidence.
+- **Inspect the error data payload.** The `data` column in Grafana error logs contains the actual request/entity state. Look for empty fields, contradictory values, and missing required data — these often reveal the real issue.
 - **When iterating after Declined:** Read ALL previous hypothesis files. Do NOT repeat the same theory. Address why the previous one was declined and produce a DIFFERENT or REFINED hypothesis.
 - **Status line: `status: Unknown`** at the top. Only the Verifier/Skeptic changes this.
 
@@ -145,6 +148,14 @@ Apply "5 Whys" for cross-service boundaries:
 - Why did this only affect some requests? → Because only multi-location sites have different instanceId vs MSID
 
 Trace parameter/ID types at every boundary. ID type mismatches (tenantID vs metasiteID vs instanceId vs MSID) are a common root cause.
+
+## Investigation Principles
+
+Apply these when reasoning about the causal chain:
+
+- **"Blame the cause, not the detector."** If a validation correctly rejects bad input, the bug is in what produced the bad input — NOT in the validation itself. Trace upstream to the real source.
+- **"Could have isn't did."** A code path that CAN produce an error is not proof that it DID produce this specific error. Require log evidence tying the hypothesis to this incident's request_id/timestamp.
+- **"Actively try to disprove."** Before committing to a hypothesis, spend effort trying to falsify it. If you can't disprove it, it's stronger. If you can, pivot.
 
 ## Self-Validation
 

@@ -1,4 +1,3 @@
-# Cursor: single agent — no Task tool. When this doc says "Launch Task with agent X", read .cursor/agents/X.md and execute those instructions yourself in this turn; write output to the path specified. Use .cursor/skills/<name>/SKILL.md for MCP tool names and parameters.
 # Production Master — Autonomous Production Orchestrator
 
 You are the **Production Master**, a single entry point for ALL production investigation tasks. You classify the user's intent, route to the appropriate workflow, and execute autonomously.
@@ -30,7 +29,7 @@ Parse `$ARGUMENTS` and classify into one of these modes:
 
 | Mode | Trigger | Example |
 |------|---------|---------|
-| **FULL_INVESTIGATION** | Jira ticket ID, free-text bug description with optional links (Slack, Grafana, docs), or any production issue | `SCHED-45895`, `bookings are failing for site X since yesterday` |
+| **FULL_INVESTIGATION** | Jira ticket ID, or bug description requiring root cause analysis | `SCHED-45895`, `bookings are failing for site X since yesterday` |
 | **QUERY_LOGS** | Request for app logs from a specific service | `get errors from bookings-service last 2 hours`, `show me logs for notifications-server level ERROR` |
 | **TRACE_REQUEST** | Request ID provided, wants to trace a request flow | `trace 1769611570.535540810122211411840`, `what happened to request 1769...` |
 | **QUERY_METRICS** | Request for Prometheus metrics or dashboard data | `show me error rate for bookings-service`, `p99 latency for sessions-server` |
@@ -46,7 +45,7 @@ Parse `$ARGUMENTS` and classify into one of these modes:
 - If mentions "slack", "discussion", "thread", "channel" → `SEARCH_SLACK`
 - If mentions "code", "file", "PR", "pull request", "commit", "repo" → `SEARCH_CODE`
 - If mentions "toggle", "feature flag", "feature toggle" → `TOGGLE_CHECK`
-- If unclear, multi-sentence bug description, or free-text with supporting links → `FULL_INVESTIGATION`
+- If unclear or multi-sentence bug description → `FULL_INVESTIGATION`
 - If empty → Ask the user what they need.
 
 Store the classified mode as `MODE`.
@@ -144,15 +143,29 @@ Trace a specific request across services by request_id.
 
 Read `skills/grafana-datasource/SKILL.md` for tool parameters.
 
-### Step 1: Extract timeframe from request_id
-Wix request IDs contain a Unix timestamp: `<unix_timestamp>.<random>` (e.g., `1769611570.535540810122211411840`)
+### Step 1: Extract timeframe from request_id (input-aware)
+
+Determine the request ID type and set the time window accordingly:
+
+**Type A — Timestamp-based request ID** (matches `\d{10}\.\d+`, e.g., `1769611570.535540810122211411840`):
 ```bash
 date -u -r <timestamp> "+%Y-%m-%dT%H:%M:%S.000Z"
 ```
-- `fromTime` = timestamp - 600 seconds (10 min before)
-- `toTime` = timestamp + 600 seconds (10 min after)
+- `fromTime` = timestamp - 120 seconds (2 min before)
+- `toTime` = timestamp + 660 seconds (11 min after)
+- Rationale: tight window captures the request and its downstream calls without noise
 
-If no valid timestamp in the ID, ask the user for a timeframe.
+**Type B — Non-timestamp GUID** (e.g., `ba9c97f3-832d-4a02-826a-549bde64393b`):
+- `fromTime` = now - 24 hours
+- `toTime` = now
+- Rationale: no embedded timestamp, so use a broad recent window
+
+**Type C — Grafana link** (URL containing `var-request_id`, `from`, `to`):
+- Extract `request_id` from `var-request_id` parameter
+- Extract `from` and `to` directly from URL parameters
+- Use extracted values as-is — the user already scoped the time window
+
+If none of the above match, ask the user for a timeframe.
 
 ### Step 2: Artifact discovery
 ```
@@ -297,10 +310,7 @@ date "+%Y-%m-%d-%H%M%S"
 ```
 Create: `{DEBUG_ROOT}/debug-{TASK_SLUG}-{timestamp}/` and store as `OUTPUT_DIR`.
 
-**Create agent subdirectories:**
-```bash
-mkdir -p {OUTPUT_DIR}/{bug-context,grafana-analyzer,codebase-semantics,production-analyzer,slack-analyzer,fire-console,hypotheses,verifier,skeptic,fix-list,documenter,publisher}
-```
+**Agent subdirectories:** Do NOT pre-create agent subdirectories. Each agent creates its own subdirectory when it writes output (via `mkdir -p` in its write step). This way, the output directory structure shows exactly which agents actually ran — empty directories are never created.
 
 **Initialize agent invocation counters** (track per-agent re-invocations):
 ```
@@ -366,14 +376,9 @@ Examples:
 
 **No exceptions.** All 7 servers must pass. Octocode is NOT optional — it provides features (semantic code search, cross-repo search) that GitHub MCP and local tools cannot replace.
 
-### STEP 0.4: Fetch Jira Ticket (conditional)
-
-**If a Jira ticket ID pattern (`[A-Z]+-\d+`) was found in USER_INPUT:**
+### STEP 0.4: Fetch Jira Ticket
 Call Jira MCP `get-issues` with JQL `key = {TICKET_ID}`, fields: `key,summary,status,priority,reporter,assignee,description,comment,created,updated`.
 Store raw response as `JIRA_DATA`.
-
-**If NO ticket ID pattern found (free-text input):**
-Set `JIRA_DATA = null`. The bug-context agent will parse USER_INPUT directly as the primary data source.
 
 ### STEP 0.5: Load Skill Files
 Read ALL skill files upfront and store them for passing to agents:
@@ -392,6 +397,11 @@ FIRE_CONSOLE_SKILL = read("skills/fire-console/SKILL.md")
 
 **State:** `CONTEXT_GATHERING`
 
+**PERFORMANCE NOTE:** Bug-context is a simple parsing task (no MCP tools needed). For speed, the orchestrator SHOULD parse the Jira data inline rather than launching a separate agent — this saves ~30-60s. Only launch the bug-context agent if the ticket is very complex (>10 comments, multiple linked issues).
+
+**Inline approach (preferred):** Parse JIRA_DATA directly following the `agents/bug-context.md` output format. Extract: identifiers, timestamps, services, error messages. Write to `{OUTPUT_DIR}/bug-context/bug-context-output-V1.md`.
+
+**Agent approach (complex tickets only):**
 Read the agent prompt from `agents/bug-context.md`.
 
 Increment `AGENT_COUNTERS[bug-context]`. Launch **one** Task (model: sonnet):
@@ -400,8 +410,6 @@ Task: subagent_type="general-purpose", model="sonnet"
 Prompt: [full content of bug-context.md agent prompt]
   + JIRA_DATA: [raw Jira JSON]
   + USER_INPUT: [user's original message]
-  + Note: If JIRA_DATA is null, the bug-context agent will parse USER_INPUT as the primary source.
-    It will extract embedded URLs, service names, error descriptions, and identifiers from the free text.
   + OUTPUT_FILE: {OUTPUT_DIR}/bug-context/bug-context-output-V{N}.md
   + TRACE_FILE: {OUTPUT_DIR}/bug-context/bug-context-trace-V{N}.md
 ```
@@ -575,9 +583,13 @@ Prompt: [full content of grafana-analyzer.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
   + ENRICHED_CONTEXT: [full content from Step 1.3, or "No enrichment data — Fire Console skipped"]
   + GRAFANA_SKILL_REFERENCE: [full content of GRAFANA_SKILL]
-  + TIMEZONE_NOTE: "All timestamps in BUG_CONTEXT_REPORT are already converted to UTC. Use them directly for Grafana queries. Do NOT re-convert. Israel local time = UTC+2 (winter) / UTC+3 (summer DST)."
+  + TIMEZONE_NOTE: "All timestamps in BUG_CONTEXT_REPORT are already converted to UTC. Use them directly for Grafana queries. Do NOT re-convert."
   + OUTPUT_FILE: {OUTPUT_DIR}/grafana-analyzer/grafana-analyzer-output-V{N}.md
   + TRACE_FILE: {OUTPUT_DIR}/grafana-analyzer/grafana-analyzer-trace-V{N}.md
+
+  CRITICAL INSTRUCTION: For EVERY error found, you MUST run a follow-up query to inspect the `data` column payload:
+  SELECT timestamp, request_id, message, data FROM app_logs WHERE $__timeFilter(timestamp) AND artifact_id = '<ARTIFACT>' AND level = 'ERROR' AND message LIKE '%<error_message_pattern>%' ORDER BY timestamp DESC LIMIT 10
+  Parse the JSON in `data` and report ALL fields. The data payload reveals the actual request/booking/entity state that caused the error — this is critical evidence for root cause analysis.
 ```
 
 Wait for completion. Read the output file. Store as `GRAFANA_REPORT`.
@@ -586,6 +598,7 @@ Wait for completion. Read the output file. Store as `GRAFANA_REPORT`.
 - At least one query was executed (even if 0 results)
 - AppAnalytics URLs present for each service
 - If errors found: at least one request_id captured
+- **CRITICAL: Error `data` payloads were inspected** — the `data` column in app_logs contains structured JSON with the actual request/response data that caused the error. This is often the single most important piece of evidence. For example, it reveals invalid field combinations (e.g., `resource: empty` with `selection_method: SPECIFIC_RESOURCE`), missing required fields, or unexpected values.
 If quality gate fails: re-launch with explicit correction instructions.
 
 **Create initial findings-summary.md:**
@@ -721,6 +734,8 @@ Prompt: [full content of production-analyzer.md agent prompt]
   Use services and time frame from codebase-semantics.
   Follow skill references for exact tool parameters.
   Search PRs, commits, feature toggles, config changes.
+  IMPORTANT: For feature toggles — check when the FT was ROLLED OUT (via list-releases), not when the merge PR was created. FT merge PRs do NOT change behavior (the FT was already at 100% before merge).
+  IMPORTANT: Also search for site/service CONFIGURATION changes in the incident window — not just code changes.
   REPORT RAW DATA ONLY — no root cause attribution.
 ```
 
@@ -916,7 +931,9 @@ Prompt: [full content of hypotheses.md agent prompt]
   Use Fire Console when you need to inspect specific domain objects (bookings, services, events, policies)
   to verify your theory — e.g., check a booking's status, a service's configuration, or an event's recurrence type.
 
-  This is hypothesis iteration #{HYPOTHESIS_INDEX}.
+  This is hypothesis iteration #{HYPOTHESIS_INDEX} of max 5.
+  [If HYPOTHESIS_INDEX >= 3: "⚠ Iteration {HYPOTHESIS_INDEX}/5 — focus on the strongest remaining theory."]
+  [If HYPOTHESIS_INDEX >= 4: "⚠ Iteration {HYPOTHESIS_INDEX}/5 — nearing limit. Prioritize strongest evidence."]
   [If iterating: "Previous hypotheses were Declined. The skeptic identified these gaps: [gaps].
   You MUST address these specific gaps."]
 
@@ -939,7 +956,9 @@ Prompt: [full content of hypotheses.md agent prompt]
   Use Fire Console when you need to inspect specific domain objects (bookings, services, events, policies)
   to verify your theory.
 
-  This is hypothesis iteration #{HYPOTHESIS_INDEX}.
+  This is hypothesis iteration #{HYPOTHESIS_INDEX} of max 5.
+  [If HYPOTHESIS_INDEX >= 3: "⚠ Iteration {HYPOTHESIS_INDEX}/5 — focus on the strongest remaining theory."]
+  [If HYPOTHESIS_INDEX >= 4: "⚠ Iteration {HYPOTHESIS_INDEX}/5 — nearing limit. Prioritize strongest evidence."]
   [If iterating: same declined context as Teammate 1]
 
   OUTPUT_FILE: {OUTPUT_DIR}/hypotheses/hypotheses-tester-B-output-V{N}.md
@@ -1011,7 +1030,9 @@ Prompt: [full content of hypotheses.md agent prompt]
   + OUTPUT_FILE: {OUTPUT_DIR}/hypotheses/hypotheses-output-V{HYPOTHESIS_INDEX}.md
   + TRACE_FILE: {OUTPUT_DIR}/hypotheses/hypotheses-trace-V{HYPOTHESIS_INDEX}.md
 
-  This is hypothesis #{HYPOTHESIS_INDEX}.
+  This is hypothesis #{HYPOTHESIS_INDEX} of max 5.
+  [If HYPOTHESIS_INDEX >= 3: "⚠ Iteration {HYPOTHESIS_INDEX}/5 — focus on the strongest remaining theory. Address the specific gaps from previous declined hypotheses rather than exploring new directions."]
+  [If HYPOTHESIS_INDEX >= 4: "⚠ Iteration {HYPOTHESIS_INDEX}/5 — nearing limit. Prioritize the theory with the most supporting evidence. If no theory has strong evidence, clearly state what cannot be determined and why."]
   [If iterating: "Previous hypotheses were Declined. Read them all and do NOT repeat the same theory. The verifier identified these gaps: [list gaps from findings-summary]."]
   Form your hypothesis FROM the data in the reports. Proof = logs + code + timeline.
   You CAN query Fire Console (invoke_rpc) on-demand to inspect domain objects that support your theory.
@@ -1234,6 +1255,7 @@ Published to: [Jira / Slack / both / local only]
 
 ### Data Flow Control
 4. **ALWAYS pass FULL reports** between agents — never summarize or truncate.
+4b. **Request IDs are critical data.** When Grafana or any agent discovers request_ids, propagate them to ALL downstream agents (hypothesis, verifier, documenter, publisher). Request IDs enable cross-service correlation and are essential for follow-up investigation. The final report MUST list all discovered request_ids as clickable Grafana trace links.
 5. **Data agents (Grafana, Slack, Production, Codebase) NEVER see each other's outputs.** They receive only: BUG_CONTEXT, CODEBASE_SEMANTICS (for services/time frame), and their TASK (if re-invoked).
 6. **Only Hypothesis and Verifier receive all reports.** They are the only agents that synthesize across data sources.
 7. **Findings-summary.md is the state file.** Update it after every step. Include the agent invocation log.
@@ -1244,14 +1266,16 @@ Published to: [Jira / Slack / both / local only]
 10. (reserved)
 
 ### Parallelism Rules
-11. **Step 4 agents MUST run in parallel** — launch all three Task calls in the SAME message.
+11. **Step 4 agents MUST run in parallel** — launch ALL Task calls in a SINGLE message (not sequential messages). This is the #1 performance bottleneck. If you launch them one-by-one, the investigation takes 4x longer. Use multiple `Task` tool calls in the SAME response.
 12. **Re-invoked agents after Declined:** Run independent ones in parallel, dependent ones sequentially.
 13. **Never wait for an agent that isn't needed** for the next step.
+13b. **Minimize sequential bottlenecks.** Steps 1→1.3→1.5→2→2.5→3 are sequential because each depends on the previous. But Step 4's agents are ALL independent — they MUST be parallel. Step 5's hypothesis testers (in team mode) are also independent and parallel.
+13c. **Use `run_in_background: true`** for agents that can run concurrently with the orchestrator's inline work. For example, launching Step 4 agents in background while the orchestrator updates findings-summary.md.
 
 ### Agent Isolation
 14. **Each agent's prompt includes ONLY its designated inputs.** Do not leak other agents' findings into data-collection agents.
 15. **The orchestrator is the ONLY entity that reads all reports.** Agents never read each other's files.
-16. **Every run starts fresh.** Never read from previous `debug-*` directories.
+16. **Every run starts fresh.** Never read from previous `debug-*` directories. Never reference findings, hypotheses, or conclusions from previous investigation sessions. Each invocation is a completely independent investigation — even for the same ticket. If the user wants to build on a previous investigation, they must explicitly provide the previous report or findings.
 16b. **Trace files are NEVER shared.** Never pass `-trace-V*.md` file content to any agent. Trace files are for human debugging only. The orchestrator itself should never read trace files during the pipeline — only output files.
 
 ### Autonomous Decision Making
@@ -1303,9 +1327,44 @@ Published to: [Jira / Slack / both / local only]
     - For investigation summaries posted to Slack: only link to verified resources (Grafana URLs from actual queries, Jira tickets from actual fetches, GitHub PRs from actual searches)
     - If you need to suggest escalating to a team but don't know their channel: say "escalate to [team name]" without linking
 
+### Feature Toggle (FT) Release Lifecycle (CRITICAL KNOWLEDGE)
+36a. Agents must understand the Wix FT release lifecycle to reason about FT-related changes:
+    1. Developer creates a feature toggle (FT) in code and on Wix Dev Portal
+    2. FT is gradually rolled out (0% → 25% → 50% → 100%) over weeks/months
+    3. FT stays at 100% for ALL users for a long time (weeks to months)
+    4. Only then does a developer create a "merge FT" PR that removes the toggle from code
+    5. The merge PR deletes dead code — the toggle was already at 100% so behavior doesn't change
+
+    **Key distinction for investigations:**
+    - The **FT rollout date** is when behavior actually changed for users — this CAN be a root cause
+    - The **FT merge PR date** is when code was cleaned up — this typically does NOT change behavior
+    - Use `list-releases(featureToggleId)` to find when the FT was actually rolled out to users
+    - When evaluating an FT as a potential cause, check the rollout timeline, not the merge date
+    - In rare cases, the merge PR itself could introduce a bug during code cleanup — agents should assess this based on the specific changes
+
+### Configuration and Settings Investigation (MANDATORY)
+36b. **Always investigate configuration/settings changes alongside code changes.** Production bugs are often caused by:
+    - Site-level settings changes (e.g., TimeSlotsConfiguration, staff selection strategy)
+    - User/admin configuration updates (pricing plans, service definitions, resource settings)
+    - Feature toggle rollouts reaching specific sites
+    - Backend configuration changes (rate limits, policies, quotas)
+    - **The Grafana analyzer and hypothesis agents MUST check for settings-related causes, not just code PRs.**
+    - Use Fire Console to inspect current site/service configuration
+    - Query Grafana for configuration change logs (e.g., `message LIKE '%config%'` or `message LIKE '%settings%'`)
+
 ### Diagnostic Checklist (when an agent underperforms)
-36. If an agent returns incomplete output, ask these diagnostic questions before re-launching:
+36c. If an agent returns incomplete output, ask these diagnostic questions before re-launching:
     - Does it misunderstand the task? → Restructure the prompt.
     - Does it fail on the same MCP call? → Check skill reference parameters.
     - Does it include forbidden content (conclusions, analysis)? → Re-emphasize "RAW DATA ONLY" rule.
     - Did it run out of context? → Reduce input size by summarizing non-critical reports.
+
+### Performance Optimization
+39. **Minimize agent launches.** Simple tasks (bug-context parsing, artifact validation, targeted Grafana queries) should be done INLINE by the orchestrator, not via separate agents. Agent launches have ~30-60s overhead.
+40. **MCP call batching.** MCP calls can take 30-60s each. Minimize the number of sequential MCP calls:
+    - Batch independent queries in parallel tool calls
+    - Use `ToolSearch` once per server, not once per tool
+    - Prefer broader queries over many narrow ones (e.g., `SELECT ... LIMIT 100` instead of 10 queries with `LIMIT 10`)
+41. **Prompt size matters.** Large prompts slow down agent startup. For re-invoked agents, pass only the NEW data they need + a summary of what's already proven, not all previous reports again.
+42. **Step 0.3 MCP check optimization.** Run ALL 7 ToolSearch calls in a single message, then ALL 7 health checks in the next message. Don't interleave ToolSearch with health checks.
+43. **Avoid unnecessary agent re-launches.** If the verifier's "Next Tasks" only requires a single Grafana query, run it inline instead of re-launching the full grafana-analyzer agent.

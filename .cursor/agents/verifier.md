@@ -155,6 +155,14 @@ Provide the EXACT SQL, time range, and what you expect to find. This allows the 
 - **Fix location:** [file path and line numbers]
 ```
 
+## Verification Principles
+
+Apply these when evaluating the causal chain:
+
+- **"Blame the cause, not the detector."** If the hypothesis blames a validation/check that correctly rejected bad input, the real cause is upstream. The hypothesis should trace to the producer of bad data, not the consumer that caught it.
+- **"Could have isn't did."** A code path that CAN produce the error is not proof it DID in this incident. Require log evidence with specific request_id/timestamp linking the hypothesis to the actual failure.
+- **"Actively try to disprove."** For each checklist item, look for evidence that CONTRADICTS the hypothesis. Absence of contradicting evidence strengthens the case; presence of it weakens it.
+
 ## Slack False-Positive Rule
 
 If the Slack report contains a thread where someone explicitly said:
@@ -171,6 +179,8 @@ The orchestrator should override a Confirmed verdict if:
 - The report contains "we do not know WHY" for an intermediate cause
 - Evidence is correlation-only without log+code proof
 - The causal chain has assumed links
+- **The hypothesis blames an FT merge PR without checking the rollout date** — FT merge PRs typically don't change behavior (the toggle was already at 100%). If the hypothesis attributes the bug to an FT, verify whether it's blaming the rollout (valid) or the merge (usually wrong). Check `list-releases` for the actual rollout timeline.
+- **The hypothesis doesn't address the error data payload** — if the `data` column in logs reveals contradictory/empty fields and the hypothesis doesn't explain them, the causal chain may be incomplete
 
 ## Self-Validation
 
