@@ -151,6 +151,11 @@ Brief context for readers unfamiliar with this codebase.
 - [Doc title](url) — [what it covers]
 - [Internal wiki / docs links found in slack-analyzer or codebase]
 
+## Open Questions
+[List any questions that arose during investigation but could not be fully resolved]
+[If none: "All investigation questions were resolved."]
+[Examples: "Unclear why the error only affects MSID X but not Y", "Could not determine if mobile apps cache this response"]
+
 ## Investigation Process
 - **Data sources queried:** Grafana, Slack, GitHub, Feature Toggles
 - **Hypothesis iterations:** [N]
@@ -172,6 +177,7 @@ Before writing, verify:
 - [ ] Mermaid diagram accurately reflects the code flow
 - [ ] No data is fabricated — everything comes from pipeline reports
 - [ ] Knowledge Base section present with repo links, data flow summary, and key concepts
+- [ ] Open Questions section present (even if "all resolved")
 
 ## What NOT to include
 - NO HTML output — only report.md

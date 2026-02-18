@@ -691,7 +691,9 @@ Prompt: [full content of codebase-semantics.md agent prompt]
   TASK: "Trace error propagation from Grafana errors. Use Report Type A.
   For each error from Grafana, find file:line, condition, and which services cause/affect it.
   Map code flows, service boundaries, and fail points.
-  If LOCAL_REPO_PATH is provided, use Glob/Grep/Read on the local clone FIRST before trying octocode."
+  If LOCAL_REPO_PATH is provided, use Glob/Grep/Read on the local clone FIRST before trying octocode.
+  If the investigation involves a MISSING component (e.g., missing PII handler, missing rate limiter, missing permission check),
+  search for analogous implementations in sibling services and document them as a Reference Pattern section."
 ```
 
 Wait for completion. Read the output file. Store as `CODEBASE_SEMANTICS_REPORT`.
@@ -1130,6 +1132,87 @@ Read the verdict (from skeptic in 5A, or verifier in 5B).
 
 ---
 
+### STEP 6.5: Access Log Caller Analysis (for security/permission/PII issues)
+
+**State:** `CALLER_ANALYSIS`
+
+**When to run:** If the confirmed hypothesis involves ANY of these:
+- Security vulnerability (PII exposure, permission bypass, data leakage)
+- Permission/authorization issues
+- API endpoint behavior changes that affect external callers
+- Rate limiting or access control changes
+
+**When to skip:** Pure backend logic bugs, internal service errors, data corruption without API exposure.
+
+**Execution (inline — no agent needed):**
+
+Query Grafana access logs to map who calls the affected endpoint:
+
+```
+query_access_logs(
+  sql: "SELECT nginx_x_wix_rpc_caller_id, nginx_http_user_agent, count() as cnt
+        FROM access_logs WHERE $__timeFilter(timestamp)
+        AND artifact_id = '<AFFECTED_ARTIFACT>'
+        AND nginx_http_uri LIKE '%<AFFECTED_ENDPOINT_PATTERN>%'
+        AND nginx_http_status < 400
+        GROUP BY nginx_x_wix_rpc_caller_id, nginx_http_user_agent
+        ORDER BY cnt DESC LIMIT 50",
+  fromTime: "<LAST_7_DAYS_START>",
+  toTime: "<NOW>"
+)
+```
+
+Also query identity type breakdown:
+```
+query_access_logs(
+  sql: "SELECT nginx_x_wix_rpc_caller_id,
+        count() as total,
+        countIf(nginx_http_user_agent LIKE '%Mozilla%' OR nginx_http_user_agent LIKE '%Safari%') as browser,
+        countIf(nginx_http_user_agent LIKE '%okhttp%' OR nginx_http_user_agent LIKE '%Dart%') as mobile_app
+        FROM access_logs WHERE $__timeFilter(timestamp)
+        AND artifact_id = '<AFFECTED_ARTIFACT>'
+        AND nginx_http_uri LIKE '%<AFFECTED_ENDPOINT_PATTERN>%'
+        GROUP BY nginx_x_wix_rpc_caller_id
+        ORDER BY total DESC LIMIT 20",
+  fromTime: "<LAST_7_DAYS_START>",
+  toTime: "<NOW>"
+)
+```
+
+**Caller ID interpretation (Wix convention):**
+- Empty `nginx_x_wix_rpc_caller_id` = browser visitor (direct `/_api/` call)
+- `admin` = Wix Business Owner app / BO dashboard
+- `fitness` = Fit by Wix mobile app
+- `places` = Spaces by Wix mobile app
+- `branded` = Branded App
+- `auto_velo` = Velo (custom code)
+- `studio` = Wix Studio
+- Any other value = backend service (server-to-server)
+
+**Store results as `ACCESS_LOG_REPORT`:**
+```markdown
+## Access Log Caller Analysis
+
+### Endpoint: [endpoint pattern]
+### Time Range: [7 days]
+### Total Requests: [N]
+
+### Caller Breakdown
+| Caller ID | Type | Volume (7d) | % of Total |
+|-----------|------|-------------|------------|
+| (empty) | Browser Visitor | X | Y% |
+| admin | BO Dashboard | X | Y% |
+| fitness | Fit by Wix | X | Y% |
+
+### Key Findings
+- [e.g., "99% of traffic is direct browser visitors — fix must not break their experience"]
+- [e.g., "Server-signed calls (backend) are <1% — server-sign bypass is safe"]
+```
+
+**Pass `ACCESS_LOG_REPORT` to the fix-list agent.**
+
+---
+
 ### STEP 7: Fix List (Only When Confirmed)
 
 **State:** `FIX_PLANNING`
@@ -1146,6 +1229,7 @@ Prompt: [full content of fix-list.md agent prompt]
   + CONFIRMED_HYPOTHESIS_FILE: [full content of the confirmed hypothesis]
   + CODEBASE_SEMANTICS_REPORT: [full content]
   + FT_RELEASE_SKILL_REFERENCE: [full content of FT_RELEASE_SKILL]
+  + ACCESS_LOG_REPORT: [full content from Step 6.5, or "Not applicable — not a security/permission issue"]
   + OUTPUT_FILE: {OUTPUT_DIR}/fix-list/fix-list-output-V1.md
   + TRACE_FILE: {OUTPUT_DIR}/fix-list/fix-list-trace-V1.md
 ```
@@ -1204,9 +1288,16 @@ Ask the user:
 Options:
 1. Jira comment on [TICKET-ID]
 2. Slack thread (you'll specify the channel)
-3. Both Jira + Slack
-4. Skip — just keep the local report
+3. Slack reply to existing thread (provide channel + thread timestamp)
+4. Both Jira + Slack
+5. Skip — just keep the local report
 ```
+
+If the user provides a Slack thread URL (e.g., `https://wix.slack.com/archives/C037B4FK24R/p1771347603367389`):
+- Extract channel ID from the URL path (`C037B4FK24R`)
+- Extract thread timestamp from the URL (convert `p1771347603367389` → `1771347603.367389`)
+- Set `SLACK_THREAD_TS` to the extracted timestamp
+- Set `MESSAGE_TYPE` to `"follow_up"` since this is a reply to an existing thread
 
 **CRITICAL: The orchestrator MUST NOT draft Slack/Jira messages inline.** Always use the publisher agent — it knows the correct format (Slack mrkdwn, Jira wiki markup), validates links, includes the Production Master signature, and shows the draft to the user before posting.
 
@@ -1225,16 +1316,19 @@ Prompt: [full content of publisher.md agent prompt]
   + PUBLISH_TO: [user's choice: "jira", "slack", or "both"]
   + SLACK_CHANNEL: [channel name if slack chosen, from user input]
   + SLACK_THREAD_TS: [thread timestamp if replying to existing thread, from user input]
+  + MESSAGE_TYPE: [initial or follow_up — "initial" for first investigation post, "follow_up" for subsequent messages in an existing thread]
   + OUTPUT_FILE: {OUTPUT_DIR}/publisher/publisher-output-V1.md
   + TRACE_FILE: {OUTPUT_DIR}/publisher/publisher-trace-V1.md
 
   IMPORTANT REMINDERS:
   - Show the FULL draft to the user BEFORE posting (Step 3.5 in publisher.md)
   - Use Slack mrkdwn format (<url|text> links), NOT standard Markdown
-  - Include vulnerability/error chain section
+  - Include vulnerability/error chain section (initial posts only)
   - Include PR dates in parentheses
-  - Include Production Master signature at the bottom
+  - Include Production Master signature at the bottom (initial posts only — NOT for follow-ups)
   - NEVER include local file paths (.claude/debug/..., /Users/..., OUTPUT_DIR)
+  - If SLACK_THREAD_TS provided: read the thread first, frame as follow-up, don't repeat info
+  - Auto-hyperlink code references (file.scala:42) to GitHub URLs where possible
 ```
 
 Wait for completion.
