@@ -142,7 +142,7 @@ ok "Pushed to origin"
 
 # ─── GitHub release ──────────────────────────────────────────────────
 info "Creating GitHub release..."
-gh release create "$TAG" --title "$TAG" --generate-notes
+gh release create "$TAG" --title "$TAG" --generate-notes --prerelease
 ok "Created release $TAG"
 
 # ─── Sync cursor-support + cursor release ────────────────────────────

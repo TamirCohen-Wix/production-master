@@ -155,6 +155,38 @@ For pipeline design, data flow, hypothesis loops, output format, and plugin inte
 | [Contributing](docs/contributing.md) | How to add domains, improve agents, submit PRs |
 | [Troubleshooting](docs/troubleshooting.md) | MCP issues, mid-investigation recovery |
 
+## Updating
+
+To update to the latest version:
+
+```bash
+cd production-master
+git pull --rebase origin main
+bash scripts/install.sh          # Re-run installer to pick up new agents/skills/MCP
+```
+
+To install a specific version:
+
+```bash
+git checkout v1.0.2-beta         # Switch to a specific release tag
+bash scripts/install.sh
+```
+
+To downgrade:
+
+```bash
+git checkout v1.0.1-beta         # Any previous tag
+bash scripts/install.sh
+```
+
+> All available versions are listed on the [releases page](https://github.com/TamirCohen-Wix/production-master/releases).
+
+## Feature Requests & Bug Reports
+
+- **Request a feature:** [Open an issue](https://github.com/TamirCohen-Wix/production-master/issues/new?labels=enhancement&template=feature_request.md) with the `enhancement` label
+- **Report a bug:** [Open an issue](https://github.com/TamirCohen-Wix/production-master/issues/new?labels=bug&template=bug_report.md) with the `bug` label
+- **Ask a question:** [Start a discussion](https://github.com/TamirCohen-Wix/production-master/discussions)
+
 ## Contributing
 
 ```bash
