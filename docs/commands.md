@@ -2,7 +2,7 @@
 
 > **Experimental** — Commands and their behavior may change between versions.
 
-Production Master provides 8 commands: the main orchestrator, 5 standalone tools, a domain management command, and a repo sync command.
+Production Master provides 9 commands: the main orchestrator, 5 standalone tools, a domain management command, a repo sync command, and a feedback/reporting command.
 
 ---
 
@@ -162,6 +162,35 @@ Checks exact match, LIKE search, and caller name patterns. Returns a resolution 
 2. Extracts new patterns (services, errors, channels, shortcuts)
 3. Shows diff and applies updates
 4. Offers to PR changes back
+
+---
+
+## /production-master-report
+
+**Submit feedback.** Creates a GitHub issue on `TamirCohen-Wix/production-master` for bug reports, enhancements, or questions.
+
+### Issue Types
+
+| Type | Label | Description |
+|------|-------|-------------|
+| Bug | `bug` | Report a pipeline problem. Automatically enriches with trace data from the most recent debug run. |
+| Enhancement | `enhancement` | Suggest an improvement. Optionally references a recent investigation for context. |
+| Question | `question` | Ask a question about usage, configuration, or behavior. |
+
+### Examples
+
+```bash
+# Bug report — auto-attaches trace data from last debug run
+/production-master-report bug the grafana agent keeps timing out after 30 seconds
+
+# Enhancement request
+/production-master-report enhancement add support for datadog as an alternative to grafana
+
+# Question
+/production-master-report how do I add a new domain config?
+```
+
+All issue types include environment info (plugin version, OS, domain config). A **mandatory review gate** shows the full draft before submitting — nothing is posted without your approval.
 
 ---
 
