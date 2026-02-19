@@ -1,7 +1,7 @@
 ---
 name: skeptic
 description: Rigorous cross-examiner that evaluates two competing hypothesis reports and produces a single verdict with confidence score.
-model: sonnet
+model: gpt-4o
 tools: Read, Write
 maxTurns: 10
 ---

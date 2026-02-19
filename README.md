@@ -85,6 +85,27 @@ After installing, restart Cursor (or reload window), then use the commands:
 
 Every command supports `--help` for usage and flag documentation.
 
+## Model mapping
+
+This branch uses Cursor-optimized models instead of Claude-only models. The mapping is defined in [`cursor-models.json`](cursor-models.json) and applied automatically during sync.
+
+| Agent | Claude Code model | Cursor model | Why |
+|-------|------------------|--------------|-----|
+| `bug-context` | haiku | **gpt-4o-mini** | Simple Jira parsing |
+| `artifact-resolver` | haiku | **gpt-4o-mini** | Validation queries |
+| `documenter` | haiku | **gpt-4o-mini** | Template-based reports |
+| `publisher` | haiku | **gpt-4o-mini** | Format conversion + posting |
+| `slack-analyzer` | sonnet | **gpt-4o-mini** | Search + retrieve |
+| `fix-list` | sonnet | **gpt-4o-mini** | Structured output |
+| `grafana-analyzer` | sonnet | **gpt-4o** | SQL queries + log analysis |
+| `production-analyzer` | sonnet | **gpt-4o** | PR/commit timeline reasoning |
+| `hypotheses` | sonnet | **gpt-4o** | Causal reasoning |
+| `verifier` | sonnet | **gpt-4o** | Critical evaluation |
+| `skeptic` | sonnet | **gpt-4o** | Cross-examination |
+| `codebase-semantics` | sonnet | **claude-3.5-sonnet** | Code understanding |
+
+To change a model, edit `cursor-models.json` on `main` — the next sync will pick it up.
+
 ## How it differs from Claude Code
 
 | Feature | Claude Code (`main`) | Cursor (`cursor-support`) |
@@ -92,12 +113,13 @@ Every command supports `--help` for usage and flag documentation.
 | Multi-agent parallelism | Yes — 4 agents run simultaneously | No — single agent, sequential |
 | Agent teams | Yes — competing hypotheses in parallel | No — sequential hypothesis loop |
 | Task tool | Supported | Not available |
+| Models | Claude only (Haiku, Sonnet) | Mixed (GPT-4o, GPT-4o-mini, Claude 3.5 Sonnet) |
 | Commands | Native plugin commands | `.cursor/commands/` plain Markdown |
 | MCP config | `~/.claude.json` | `~/.cursor/mcp.json` |
 
 ## This branch is auto-synced
 
-The `cursor-support` branch is automatically synced from `main` via [GitHub Actions](https://github.com/TamirCohen-Wix/production-master/actions/workflows/sync-cursor.yml). Every push to `main` triggers a merge + `.cursor/` regeneration. You don't need to manually keep this branch up to date.
+The `cursor-support` branch is automatically synced from `main` via [GitHub Actions](https://github.com/TamirCohen-Wix/production-master/actions/workflows/sync-cursor.yml). Every push to `main` triggers a merge + `.cursor/` regeneration, including model patching from `cursor-models.json`. You don't need to manually keep this branch up to date.
 
 ## Requirements
 

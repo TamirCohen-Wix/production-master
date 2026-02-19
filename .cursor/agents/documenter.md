@@ -1,7 +1,7 @@
 ---
 name: documenter
 description: Compiles debug pipeline reports into a professional, concise Markdown investigation report.
-model: haiku
+model: gpt-4o-mini
 tools: Read, Write
 maxTurns: 10
 ---

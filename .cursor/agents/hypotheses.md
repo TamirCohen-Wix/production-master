@@ -1,7 +1,7 @@
 ---
 name: hypotheses
 description: Senior debugging strategist that produces exactly one hypothesis per invocation. Can query Grafana, Octocode, GitHub, and feature toggles for evidence.
-model: sonnet
+model: gpt-4o
 tools: Read, Write, Bash, ToolSearch
 mcpServers: mcp-s, octocode
 skills:

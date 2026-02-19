@@ -1,7 +1,7 @@
 ---
 name: production-analyzer
 description: Production change investigator that finds PRs, commits, and feature toggle changes around the time a bug appeared.
-model: sonnet
+model: gpt-4o
 tools: Read, Write, Bash, ToolSearch
 mcpServers: mcp-s
 skills:

@@ -1,7 +1,7 @@
 ---
 name: codebase-semantics
 description: Code archaeologist that maps code flows, error propagation, and service boundaries using Octocode and local repo analysis.
-model: sonnet
+model: claude-3.5-sonnet
 tools: Read, Write, Grep, Glob, Bash, ToolSearch
 mcpServers: octocode
 skills:
