@@ -119,40 +119,7 @@ To change a model, edit `cursor-models.json` on `main` — the next sync will pi
 
 ## This branch is auto-synced
 
-Run `/update-context` from your repo in Claude Code. It analyzes your repo, asks a few questions, and generates a domain config (`domain.json`, `CLAUDE.md`, `MEMORY.md`). With a domain config, the pipeline works autonomously — without one, it asks for service names and artifact IDs during the investigation.
-
-## Architecture
-
-12 agents, 8 commands, 9 MCP skill references. The orchestrator classifies intent, gathers context from multiple sources in parallel, generates testable hypotheses, and iterates through a verification loop until a root cause is confirmed.
-
-| Agent | Role |
-|-------|------|
-| `bug-context` | Parses Jira tickets into structured briefs |
-| `artifact-resolver` | Validates service names against Grafana |
-| `grafana-analyzer` | Queries production logs, reports raw findings |
-| `codebase-semantics` | Maps code flows and error propagation |
-| `production-analyzer` | Finds PRs, commits, feature toggle changes |
-| `slack-analyzer` | Searches Slack for related discussions |
-| `hypotheses` | Generates testable root cause theories |
-| `verifier` | Quality gate — evaluates hypothesis proof |
-| `skeptic` | Cross-examines competing hypotheses |
-| `fix-list` | Creates actionable fix plans |
-| `documenter` | Compiles investigation reports |
-| `publisher` | Publishes findings to Jira and/or Slack |
-
-For pipeline design, data flow, hypothesis loops, output format, and plugin internals, see the [architecture overview](docs/architecture.md).
-
-## Documentation
-
-| Topic | Description |
-|-------|-------------|
-| [Architecture](docs/architecture.md) | Pipeline design, agent table, data flow, output format |
-| [Investigation flow](docs/investigation-flow.md) | Step-by-step state machine |
-| [Commands reference](docs/commands.md) | All 8 commands with parameters and examples |
-| [Agent catalog](docs/agents.md) | Agent profiles — inputs, outputs, skills |
-| [Domain configs](docs/domain-configs.md) | Field reference, creation guide, config loading order |
-| [Contributing](docs/contributing.md) | How to add domains, improve agents, submit PRs |
-| [Troubleshooting](docs/troubleshooting.md) | MCP issues, mid-investigation recovery |
+The `cursor-support` branch is automatically synced from `main` via [GitHub Actions](https://github.com/TamirCohen-Wix/production-master/actions/workflows/sync-cursor.yml). Every push to `main` triggers a merge + `.cursor/` regeneration, including model patching from `cursor-models.json`. You don't need to manually keep this branch up to date.
 
 ## Updating
 
@@ -160,41 +127,31 @@ To update to the latest version:
 
 ```bash
 cd production-master
-git pull --rebase origin main
-bash scripts/install.sh          # Re-run installer to pick up new agents/skills/MCP
+git pull --rebase origin cursor-support
+bash scripts/install-cursor.sh
 ```
 
 To install a specific version:
 
 ```bash
-git checkout v1.0.2-beta         # Switch to a specific release tag
-bash scripts/install.sh
+git checkout v1.0.2-beta-cursor    # Switch to a specific Cursor release tag
+bash scripts/install-cursor.sh
 ```
 
 To downgrade:
 
 ```bash
-git checkout v1.0.1-beta         # Any previous tag
-bash scripts/install.sh
+git checkout v1.0.1-beta-cursor    # Any previous Cursor tag
+bash scripts/install-cursor.sh
 ```
 
-> All available versions are listed on the [releases page](https://github.com/TamirCohen-Wix/production-master/releases).
+> All versions are on the [releases page](https://github.com/TamirCohen-Wix/production-master/releases). Cursor releases have a `-cursor` suffix.
 
 ## Feature Requests & Bug Reports
 
 - **Request a feature:** [Open an issue](https://github.com/TamirCohen-Wix/production-master/issues/new?labels=enhancement&template=feature_request.md) with the `enhancement` label
 - **Report a bug:** [Open an issue](https://github.com/TamirCohen-Wix/production-master/issues/new?labels=bug&template=bug_report.md) with the `bug` label
 - **Ask a question:** [Start a discussion](https://github.com/TamirCohen-Wix/production-master/discussions)
-
-## Contributing
-
-```bash
-gh repo fork TamirCohen-Wix/production-master --clone
-cd production-master
-claude --plugin-dir .   # Test changes per-session
-```
-
-PRs to `main` require passing CI and 1 approving review. See the [contributing guide](docs/contributing.md).
 
 ## Requirements
 
