@@ -108,10 +108,12 @@ for src in "$COMMANDS_SRC"/*.md; do
       strip_frontmatter "$src"
     } > "$dest"
     # Replace Claude model references with Cursor equivalents in the command file
-    sed -i '' -e 's/model: "haiku"/model: "gpt-4o-mini"/g' "$dest"
-    sed -i '' -e 's/model: "sonnet"/model: "gpt-4o"/g' "$dest"
-    sed -i '' -e 's/model="haiku"/model="gpt-4o-mini"/g' "$dest"
-    sed -i '' -e 's/model="sonnet"/model="gpt-4o"/g' "$dest"
+    sed -e 's/model: "haiku"/model: "gpt-4o-mini"/g' \
+        -e 's/model: "sonnet"/model: "gpt-4o"/g' \
+        -e 's/model="haiku"/model="gpt-4o-mini"/g' \
+        -e 's/model="sonnet"/model="gpt-4o"/g' \
+        "$dest" > "$dest.tmp"
+    mv "$dest.tmp" "$dest"
   else
     strip_frontmatter "$src" > "$dest"
   fi
@@ -132,9 +134,9 @@ for src in "$AGENTS_SRC"/*.md; do
   if [ -f "$CURSOR_MODELS" ]; then
     CURSOR_MODEL=$(jq -r --arg name "$name" '.agents[$name].model // empty' "$CURSOR_MODELS")
     if [ -n "$CURSOR_MODEL" ] && head -1 "$dest" | grep -q '^---$'; then
-      # Replace the model: line in YAML frontmatter
       if grep -q '^model:' "$dest"; then
-        sed -i '' -e "s/^model:.*$/model: $CURSOR_MODEL/" "$dest"
+        sed "s/^model:.*$/model: $CURSOR_MODEL/" "$dest" > "$dest.tmp"
+        mv "$dest.tmp" "$dest"
       fi
     fi
   fi
