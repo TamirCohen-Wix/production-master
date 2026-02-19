@@ -89,7 +89,7 @@ jobs:
           echo "Cache dir: $CACHE_DIR"
           ERRORS=0
 
-          for cmd in production-master.md git-update-agents.md update-context.md fire-console.md grafana-query.md production-changes.md resolve-artifact.md slack-search.md; do
+          for cmd in production-master.md git-update-agents.md update-context.md fire-console.md grafana-query.md production-changes.md resolve-artifact.md slack-search.md production-master-report.md; do
             if [ ! -f "$CACHE_DIR/commands/$cmd" ]; then
               echo "FAIL: commands/$cmd missing"
               ERRORS=$((ERRORS + 1))
@@ -111,7 +111,7 @@ jobs:
           done
 
           [ "$ERRORS" -eq 0 ] || exit 1
-          echo "OK: all 8 commands, 12 agents, 9 skills present"
+          echo "OK: all 9 commands, 12 agents, 9 skills present"
 
       - name: Uninstall and cleanup
         if: steps.auth.outputs.available == 'true'
@@ -144,7 +144,7 @@ jobs:
           cp -r commands agents skills hooks mcp-servers.json "$CACHE/"
 
           ERRORS=0
-          for cmd in production-master.md git-update-agents.md update-context.md fire-console.md grafana-query.md production-changes.md resolve-artifact.md slack-search.md; do
+          for cmd in production-master.md git-update-agents.md update-context.md fire-console.md grafana-query.md production-changes.md resolve-artifact.md slack-search.md production-master-report.md; do
             [ -f "$CACHE/commands/$cmd" ] || { echo "FAIL: commands/$cmd"; ERRORS=$((ERRORS + 1)); }
           done
 

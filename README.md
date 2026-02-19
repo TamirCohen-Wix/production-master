@@ -9,7 +9,7 @@
 [![Author](https://img.shields.io/badge/author-Tamir%20Cohen-green)](https://wix.slack.com/team/U09H3AHE3C7)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://github.com/anthropics/claude-code/blob/main/plugins/README.md)
 
-Autonomous production investigation pipeline for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). 12 agents, 8 commands, 9 MCP integrations, hypothesis loops.
+Autonomous production investigation pipeline for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). 12 agents, 9 commands, 9 MCP integrations, hypothesis loops.
 
 > [!WARNING]
 > **Beta.** Try it **per-session first** before installing persistently. Use **`local` scope** (the default) to limit blast radius.
@@ -92,6 +92,7 @@ bash scripts/validate-install.sh                      # Diagnose issues
 | `/fire-console` | Query domain objects via Fire Console gRPC |
 | `/update-context` | Create or update your domain config |
 | `/git-update-agents` | Sync agent updates back to the repo |
+| `/production-master-report` | Submit bug reports, enhancements, or questions via GitHub issue |
 
 ### Command options and flags
 
@@ -124,7 +125,7 @@ Run `/update-context` from your repo in Claude Code. It analyzes your repo, asks
 
 ## Architecture
 
-12 agents, 8 commands, 9 MCP skill references. The orchestrator classifies intent, gathers context from multiple sources in parallel, generates testable hypotheses, and iterates through a verification loop until a root cause is confirmed.
+12 agents, 9 commands, 9 MCP skill references. The orchestrator classifies intent, gathers context from multiple sources in parallel, generates testable hypotheses, and iterates through a verification loop until a root cause is confirmed.
 
 | Agent | Role |
 |-------|------|
@@ -149,7 +150,7 @@ For pipeline design, data flow, hypothesis loops, output format, and plugin inte
 |-------|-------------|
 | [Architecture](docs/architecture.md) | Pipeline design, agent table, data flow, output format |
 | [Investigation flow](docs/investigation-flow.md) | Step-by-step state machine |
-| [Commands reference](docs/commands.md) | All 8 commands with parameters and examples |
+| [Commands reference](docs/commands.md) | All 9 commands with parameters and examples |
 | [Agent catalog](docs/agents.md) | Agent profiles — inputs, outputs, skills |
 | [Domain configs](docs/domain-configs.md) | Field reference, creation guide, config loading order |
 | [Contributing](docs/contributing.md) | How to add domains, improve agents, submit PRs |

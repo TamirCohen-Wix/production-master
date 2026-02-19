@@ -6,7 +6,7 @@ Production Master is a multi-agent pipeline that autonomously investigates produ
 
 ## Pipeline Design
 
-12 specialized agents, 8 commands, 9 MCP skill integrations, 2 output styles, 1 link validation hook.
+12 specialized agents, 9 commands, 9 MCP skill integrations, 2 output styles, 1 link validation hook.
 
 The orchestrator (`/production-master`) is the central coordinator. It:
 1. Classifies user intent into 7 modes (full investigation, log query, request trace, metrics, Slack search, code search, toggle check)
@@ -230,7 +230,7 @@ production-master/
 │   ├── plugin.json              ← Plugin metadata
 │   └── marketplace.json         ← Marketplace listing
 ├── agents/                      ← 12 pipeline agents
-├── commands/                    ← 8 commands
+├── commands/                    ← 9 commands
 ├── skills/                      ← 9 MCP skill references
 ├── hooks/
 │   └── hooks.json               ← Notification + link validation hooks
