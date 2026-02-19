@@ -1,5 +1,4 @@
 ---
-name: ft-release
 description: "Feature Toggle (FT-release) — MCP Skill Reference"
 user-invocable: false
 ---

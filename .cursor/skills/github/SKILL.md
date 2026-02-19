@@ -1,5 +1,4 @@
 ---
-name: github
 description: "GitHub — MCP Skill Reference"
 user-invocable: false
 ---

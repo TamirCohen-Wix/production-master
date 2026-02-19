@@ -1,5 +1,4 @@
 ---
-name: jira
 description: "Jira — MCP Skill Reference"
 user-invocable: false
 ---

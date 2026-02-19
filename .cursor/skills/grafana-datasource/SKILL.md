@@ -1,5 +1,4 @@
 ---
-name: grafana-datasource
 description: "Grafana Datasource — MCP Skill Reference"
 user-invocable: false
 ---

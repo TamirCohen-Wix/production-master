@@ -1,4 +1,4 @@
-# Cursor: single agent — no Task tool. When this doc says "Launch Task with agent X", read /Users/tamirc/IdeaProjects/scheduler/production-master/.cursor/agents/X.md and execute those instructions yourself in this turn; write output to the path specified. Use /Users/tamirc/IdeaProjects/scheduler/production-master/.cursor/skills/<name>/SKILL.md for MCP tool names and parameters.
+# Cursor: single agent — no Task tool. When this doc says "Launch Task with agent X", read .cursor/agents/X.md and execute those instructions yourself in this turn; write output to the path specified. Use .cursor/skills/<name>/SKILL.md for MCP tool names and parameters.
 
 # Model note: This branch uses Cursor-optimized models (GPT-4o, GPT-4o-mini, Claude 3.5 Sonnet) instead of Claude-only models. See cursor-models.json for the full mapping.
 

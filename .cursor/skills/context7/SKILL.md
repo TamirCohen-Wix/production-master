@@ -1,5 +1,4 @@
 ---
-name: context7
 description: "Context7 — MCP Skill Reference"
 user-invocable: false
 ---

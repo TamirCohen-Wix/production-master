@@ -1,5 +1,4 @@
 ---
-name: octocode
 description: "Octocode — MCP Skill Reference"
 user-invocable: false
 ---

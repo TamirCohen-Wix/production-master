@@ -9,13 +9,13 @@
 [![Cursor Support](https://img.shields.io/badge/Cursor-Support-blueviolet)](https://cursor.com)
 [![Author](https://img.shields.io/badge/author-Tamir%20Cohen-green)](https://wix.slack.com/team/U09H3AHE3C7)
 
-Autonomous production investigation pipeline for [Cursor](https://cursor.com). This branch contains a `.cursor/` directory with agents, commands, and skills adapted for Cursor's single-agent model.
+Autonomous production investigation pipeline for [Cursor](https://cursor.com). This branch contains a `.cursor/` directory with agents, commands, and skills adapted for Cursor.
 
 > [!TIP]
 > **Using Claude Code?** See the [`main`](https://github.com/TamirCohen-Wix/production-master/tree/main) branch — it has the native Claude Code plugin with full multi-agent support.
 
 > [!WARNING]
-> **Partial support.** Cursor doesn't support the `Task` tool, so the orchestrator runs everything in a single agent context instead of launching parallel subagents. Investigations work but are slower than in Claude Code. The pipeline's multi-agent parallelism and agent teams features are not available in Cursor.
+> **Partial support.** Cursor doesn't support agent teams (`TeamCreate` + `SendMessage`), so the orchestrator runs everything in a single agent context. Investigations work but lose the multi-agent parallelism and competing-hypothesis features available in Claude Code.
 
 ## Install
 
@@ -112,29 +112,40 @@ To change a model, edit `cursor-models.json` on `main` — the next sync will pi
 
 | Feature | Claude Code (`main`) | Cursor (`cursor-support`) |
 |---------|---------------------|--------------------------|
-| Multi-agent parallelism | Yes — 4 agents run simultaneously | No — single agent, sequential |
-| Agent teams | Yes — competing hypotheses in parallel | No — sequential hypothesis loop |
-| Task tool | Supported | Not available |
-| Models | Claude only (Haiku, Sonnet) | Mixed (GPT-4o, GPT-4o-mini, Claude 3.5 Sonnet) |
-| Commands | Native plugin commands | `.cursor/commands/` plain Markdown |
-| MCP config | `~/.claude.json` | `~/.cursor/mcp.json` |
+| Subagents | `Task` tool — programmatic JSON API | Built-in — up to 8 parallel, git worktree isolation |
+| Agent teams | `TeamCreate` + `SendMessage` | Not available |
+| Commands | `.claude/commands/*.md` | `.cursor/commands/*.md` — same format |
+| Rules | `CLAUDE.md` (hierarchical) | `.cursor/rules/*.mdc` (glob-scoped, 4 types) |
+| Skills | `.claude/skills/` on-demand | `.cursor/skills/` — same pattern |
+| Hooks | 5 events in `settings.json` | 6 events in `hooks.json` |
+| MCP | No hard tool cap | 40-tool cap |
+| Models | Claude only | Multi-model (GPT-4o, Claude, Gemini) |
+| Browser | No | Built-in Chromium + DevTools |
 
 ## This branch is synced from main
 
-The `cursor-support` branch is synced from `main` via [`scripts/sync-cursor.sh`](scripts/sync-cursor.sh). Each sync merges main and regenerates `.cursor/`, including model patching from `cursor-models.json`. Syncs can be triggered manually via [GitHub Actions](https://github.com/TamirCohen-Wix/production-master/actions/workflows/sync-cursor.yml) or by running the script locally.
+The `cursor-support` branch is synced from `main` using the `/sync-cursor` command in Claude Code. Each sync merges main and regenerates `.cursor/`, including model patching from `cursor-models.json`.
+
+To sync manually:
+```
+/sync-cursor
+/sync-cursor --tag v1.0.3-beta
+```
 
 ## Updating
 
 To update to the latest version:
 
 ```bash
-claude plugin update production-master
+cd production-master
+git pull --rebase origin cursor-support
+bash scripts/install-cursor.sh
 ```
 
 To install a specific version:
 
 ```bash
-git checkout v1.0.2-beta-cursor    # Switch to a specific Cursor release tag
+git checkout v1.0.3-beta-cursor    # Switch to a specific Cursor release tag
 bash scripts/install-cursor.sh
 ```
 

@@ -1,5 +1,4 @@
 ---
-name: fire-console
 description: "Fire Console — MCP Skill Reference for querying Wix domain objects (Bookings, Services, Events, etc.) via gRPC"
 user-invocable: false
 ---

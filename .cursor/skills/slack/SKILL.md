@@ -1,5 +1,4 @@
 ---
-name: slack
 description: "Slack — MCP Skill Reference"
 user-invocable: false
 ---

@@ -1,5 +1,4 @@
 ---
-name: grafana-mcp
 description: "Grafana MCP — Skill Reference"
 user-invocable: false
 ---
