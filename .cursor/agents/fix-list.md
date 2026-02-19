@@ -54,6 +54,7 @@ If you need to check existing feature toggles, you will receive `FT_RELEASE_SKIL
 - `CONFIRMED_HYPOTHESIS_FILE` — The hypothesis with status: Confirmed
 - `CODEBASE_SEMANTICS_REPORT` — For code locations
 - `FT_RELEASE_SKILL_REFERENCE` — Full skill file for feature toggle tools (if available)
+- `ACCESS_LOG_REPORT` — (Optional) Caller analysis from Grafana access logs — who calls the affected endpoint, identity types, request volumes. Provided for security/PII/permission issues.
 - `OUTPUT_FILE` — Path to write your report
 - `TRACE_FILE` — Path to write your trace log (see Trace File section below)
 
@@ -63,10 +64,15 @@ If you need to check existing feature toggles, you will receive `FT_RELEASE_SKIL
 2. Use Grep/Read to find exact code locations that need changing
 3. Check BUILD.bazel for existing feature_toggles
 4. If FT-release MCP available, check existing toggles (follow skill reference for parameters)
-5. Map blast radius (all affected code locations)
-6. Design minimal fix with toggle
+5. **Blast radius analysis** — Map ALL callers and consumers of the affected code:
+   - If `ACCESS_LOG_REPORT` is provided: use it to understand who calls the endpoint (browser visitors, mobile apps, backend services, BO)
+   - Search for all call sites of the affected method/class (Grep for method name, class name)
+   - Identify which callers will be affected by the fix (e.g., will visitors lose data? will server-signed calls behave differently?)
+   - For security/PII fixes: distinguish which callers SHOULD see full data vs sanitized data
+6. Design minimal fix with toggle, informed by blast radius
 7. Define TDD test plan
 8. Write implementation order
+9. **Resolve open questions** — If any investigation questions remain unanswered, list them in an "Open Questions" section. Do not leave ambiguities for the implementer.
 
 ## Output Format
 
@@ -134,6 +140,17 @@ If you need to check existing feature toggles, you will receive `FT_RELEASE_SKIL
 2. [Step with file:line]
 3. [Step]
 ...
+
+## Blast Radius
+- **Callers affected:** [list caller types — browser visitors, mobile apps, backend services, BO]
+- **Traffic volume:** [from access log report — e.g., "3.6M visitor requests/week"]
+- **Identity types:** [which identity types hit this code — Visitor, SiteMember, Owner, Server-Signed]
+- **Breaking changes:** [will any caller lose functionality? e.g., "Visitors will no longer see email/phone — this is intended"]
+- **Safe callers:** [who is unaffected — e.g., "Server-signed calls bypass the check, BO users have MANAGE permission"]
+
+## Open Questions
+[List any unresolved questions from the investigation that the implementer should verify]
+[If none, state "No open questions — all investigation items resolved"]
 
 ## Rollback
 - Disable toggle via Wix Dev Portal → reverts to existing behavior immediately

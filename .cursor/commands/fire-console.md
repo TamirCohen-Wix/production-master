@@ -5,6 +5,35 @@ You query Wix production domain objects directly via Fire Console gRPC. No subag
 
 ---
 
+## Argument Parsing
+
+Parse `$ARGUMENTS` for flags:
+- If `$ARGUMENTS` is empty or contains `--help` or `-h`, print usage and STOP:
+
+```
+Usage: /fire-console <query> [options]
+
+Arguments:
+  <query>             What to look up (booking ID, service ID, MSID, etc.)
+
+Options:
+  --type TYPE         Object type: booking, service, site, event, user (auto-detected if omitted)
+  --id ID             Explicit object ID
+  --msid MSID         Meta site ID (required for most queries)
+  --help, -h          Show this help message
+
+Examples:
+  /fire-console find site abc123-msid
+  /fire-console get booking abc-def-123 --msid site-msid
+  /fire-console --type service --id svc-123 --msid site-msid
+  /fire-console search bookings
+```
+
+- Parse known flags from `$ARGUMENTS`: split on spaces, extract `--key value` pairs
+- Everything that isn't a flag is the positional argument (query/identifier)
+
+---
+
 ## Step 0: Load Domain Config
 
 Detect the current repo name from `git remote get-url origin` (strip path and `.git` suffix).

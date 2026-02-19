@@ -217,6 +217,31 @@ Required sections:
 3. Updated fail points if PRs touched relevant code
 4. PR table with full Author, Title, Israel Time, PR link, Commit link
 
+## Finding Related Patterns (when TASK requests it)
+
+When the investigation identifies a **missing component** (e.g., missing PII handler, missing rate limiter, missing permission check), search for analogous implementations in the same codebase that can serve as a template:
+
+1. **Identify the pattern name** from the TASK or GRAFANA_REPORT (e.g., "PII sanitization", "rate limiting", "permission gating")
+2. **Search for existing implementations:**
+   - Grep for trait/class names: `Sanitizable`, `PIIHandler`, `RateLimiter`, `PermissionsGateway`
+   - Search for annotation patterns: `(wix.api.pii)`, `@RateLimit`, `@RequiresPermission`
+   - Check sibling services in the same monorepo for analogous code
+3. **Document the reference implementation:**
+   - File:line of the existing pattern
+   - Key classes/traits involved
+   - How it's wired (constructor injection, middleware, gateway wrapper)
+   - What the affected service is missing vs what the reference has
+4. **Output as a "Reference Pattern" section** in your report:
+   ```
+   ### Reference Pattern: [Pattern Name]
+   - **Existing implementation:** [service] — [file:line]
+   - **Key components:** [list classes/traits]
+   - **Missing in affected service:** [what needs to be added]
+   - **Wiring approach:** [how to integrate — e.g., "inject into gateway constructor"]
+   ```
+
+This helps the fix-list agent design a fix that follows established patterns rather than inventing new approaches.
+
 ## What NOT to include
 - NO "this is the root cause" or "this caused the bug"
 - NO hypothesis formation

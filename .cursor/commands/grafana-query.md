@@ -5,6 +5,36 @@ You query Grafana production data directly — app logs, access logs, request tr
 
 ---
 
+## Argument Parsing
+
+Parse `$ARGUMENTS` for flags:
+- If `$ARGUMENTS` is empty or contains `--help` or `-h`, print usage and STOP:
+
+```
+Usage: /grafana-query <service> [options]
+
+Arguments:
+  <service>           Service name (e.g., bookings-service, notifications-server)
+
+Options:
+  --level LEVEL       Log level filter: ERROR, WARN, INFO (default: all)
+  --time RANGE        Time range: 1h, 2h, 6h, 1d, 7d (default: 1h)
+  --search PATTERN    Message pattern to search for
+  --caller CALLER     Code location filter
+  --type TYPE         Query type: app-logs, access-logs, prometheus (default: app-logs)
+  --help, -h          Show this help message
+
+Examples:
+  /grafana-query bookings-service --level ERROR --time 2h
+  /grafana-query notifications-server --search "TimeoutException"
+  /grafana-query bookings-service --type prometheus
+```
+
+- Parse known flags from `$ARGUMENTS`: split on spaces, extract `--key value` pairs
+- Everything that isn't a flag is the positional argument (service name or request_id)
+
+---
+
 ## Step 0: Load Domain Config
 
 Detect the current repo name from `git remote get-url origin` (strip path and `.git` suffix).

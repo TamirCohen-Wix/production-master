@@ -2,80 +2,71 @@
   <img src="assets/banner.jpg" alt="Production Master" width="800">
 </p>
 
-# Production Master
+# Production Master — Cursor Support
 
-[![Version](https://img.shields.io/badge/version-1.0.2--beta-blue)](https://github.com/TamirCohen-Wix/production-master/releases/tag/v1.0.2-beta)
-[![CI](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml/badge.svg)](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml)
+[![Claude Code Plugin](https://img.shields.io/badge/Cursor-Support-blue)](https://cursor.com)
 [![Author](https://img.shields.io/badge/author-Tamir%20Cohen-green)](https://wix.slack.com/team/U09H3AHE3C7)
-[![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://github.com/anthropics/claude-code/blob/main/plugins/README.md)
 
-Autonomous production investigation pipeline for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). 12 agents, 8 commands, 9 MCP integrations, hypothesis loops.
-
-> [!WARNING]
-> **Beta.** Try it **per-session first** before installing persistently. Use **`local` scope** (the default) to limit blast radius.
-
-> [!CAUTION]
-> **MCP connectivity can be unstable.** A full investigation takes ~40 minutes. If you hit MCP errors, check [#mcp-gw-support](https://wix.slack.com/archives/C093RAT0NLS).
+Autonomous production investigation pipeline for [Cursor](https://cursor.com). This branch contains a `.cursor/` directory with agents, commands, and skills adapted for Cursor's single-agent model.
 
 > [!TIP]
-> **Using Cursor?** See the [`cursor-support`](https://github.com/TamirCohen-Wix/production-master/tree/cursor-support) branch — it includes a `.cursor/` directory with agents, commands, and skills adapted for Cursor's single-agent model.
+> **Using Claude Code?** See the [`main`](https://github.com/TamirCohen-Wix/production-master/tree/main) branch — it has the native Claude Code plugin with full multi-agent support.
 
-## Quick Start — Try Per-Session
-
-Nothing is installed. Gone when you close Claude Code:
-
-```bash
-gh repo clone TamirCohen-Wix/production-master
-claude --plugin-dir ./production-master
-```
-
-Then run `/production-master SCHED-45895` to investigate a ticket.
-
-> With `--plugin-dir`, commands are prefixed: `/production-master:grafana-query`. With a persistent install, they're available directly: `/grafana-query`.
+> [!WARNING]
+> **Partial support.** Cursor doesn't support the `Task` tool, so the orchestrator runs everything in a single agent context instead of launching parallel subagents. Investigations work but are slower than in Claude Code. The pipeline's multi-agent parallelism and agent teams features are not available in Cursor.
 
 ## Install
 
+**Option A — Clone this branch:**
+
 ```bash
-gh repo clone TamirCohen-Wix/production-master
+gh repo clone TamirCohen-Wix/production-master -- -b cursor-support
 cd production-master
-bash scripts/install.sh
+bash scripts/install-cursor.sh
 ```
 
-Or [download the ZIP](https://github.com/TamirCohen-Wix/production-master/archive/refs/tags/v1.0.2-beta.zip):
+**Option B — Download the ZIP:**
+
+Download the [cursor-support ZIP](https://github.com/TamirCohen-Wix/production-master/archive/refs/heads/cursor-support.zip), unzip, and run:
 
 ```bash
-unzip production-master-v1.0.2-beta.zip
-cd production-master-v1.0.2-beta
-bash scripts/install.sh
+cd production-master-cursor-support
+bash scripts/install-cursor.sh
 ```
 
-The installer asks for an install scope, registers the plugin, configures MCP servers (prompts for your [access key](https://mcp-s-connect.wewix.net/mcp-servers)), and enables agent teams.
-
-### Plugin scopes
-
-| Scope | Location | Shared via git? | Best for |
-|-------|----------|-----------------|----------|
-| **`local`** (default) | `.claude/plugins/` in project | No | Trying it out |
-| `project` | `.claude/plugins/` in project | Yes | Team sharing |
-| `user` | `~/.claude/plugins/` | No | All projects |
-
-### Plugin management
+**Option C — Switch an existing clone:**
 
 ```bash
-claude plugin list                                    # Show installed plugins
-claude plugin install production-master --scope local # Install
-claude plugin uninstall production-master --scope local # Uninstall
-claude plugin marketplace remove production-master    # Remove marketplace
-bash scripts/validate-install.sh                      # Diagnose issues
+cd production-master
+git checkout cursor-support
+bash scripts/install-cursor.sh
+```
+
+### What the installer does
+
+1. Copies agents to `~/.cursor/agents/` (or your custom target)
+2. Copies commands to `~/.cursor/commands/` — strips YAML frontmatter (Cursor uses plain Markdown)
+3. Copies skills to `~/.cursor/skills/`
+4. Adds a Cursor-specific header to `production-master.md` that tells Cursor to inline agent instructions instead of launching subagents
+5. Configures MCP servers in Cursor's `mcp.json` (prompts for your [access key](https://mcp-s-connect.wewix.net/mcp-servers))
+6. Tracks installed files in a manifest for clean reinstall/uninstall
+
+### Install to a custom directory
+
+```bash
+bash scripts/install-cursor.sh ~/.cursor           # User-global (default)
+bash scripts/install-cursor.sh .cursor             # Project-local
+bash scripts/install-cursor.sh /path/to/target     # Custom path
 ```
 
 ## Usage
+
+After installing, restart Cursor (or reload window), then use the commands:
 
 ```
 /production-master SCHED-45895                                  # Full investigation
 /production-master get errors from bookings-service last 2h     # Query logs
 /production-master trace 1769611570.535540810122211411840        # Trace request
-/production-master show me error rate for bookings-service      # Query metrics
 /production-master search slack for SCHED-45895                 # Search Slack
 /production-master check toggle specs.bookings.SomeToggle       # Check toggles
 ```
@@ -91,83 +82,26 @@ bash scripts/validate-install.sh                      # Diagnose issues
 | `/resolve-artifact` | Validate and resolve service artifact IDs |
 | `/fire-console` | Query domain objects via Fire Console gRPC |
 | `/update-context` | Create or update your domain config |
-| `/git-update-agents` | Sync agent updates back to the repo |
 
-### Command options and flags
+Every command supports `--help` for usage and flag documentation.
 
-Every command supports `--help` to show its full usage, flags, and examples:
+## How it differs from Claude Code
 
-```
-/production-master --help
-/grafana-query --help
-```
+| Feature | Claude Code (`main`) | Cursor (`cursor-support`) |
+|---------|---------------------|--------------------------|
+| Multi-agent parallelism | Yes — 4 agents run simultaneously | No — single agent, sequential |
+| Agent teams | Yes — competing hypotheses in parallel | No — sequential hypothesis loop |
+| Task tool | Supported | Not available |
+| Commands | Native plugin commands | `.cursor/commands/` plain Markdown |
+| MCP config | `~/.claude.json` | `~/.cursor/mcp.json` |
 
-The main pipeline supports these flags:
+## This branch is auto-synced
 
-```
-/production-master SCHED-45895 --skip-slack      # Skip Slack search
-/production-master SCHED-45895 --skip-grafana    # Skip Grafana log analysis
-/production-master SCHED-45895 --service my-svc  # Override primary service name
-/production-master SCHED-45895 --verbose         # Show detailed agent outputs
-```
-
-You can also use natural language — the orchestrator classifies your intent automatically:
-
-```
-/production-master errors from bookings-service since 2pm       # → QUERY_LOGS mode
-/production-master what PRs were merged to scheduler this week  # → SEARCH_CODE mode
-```
-
-### Set up your repo
-
-Run `/update-context` from your repo in Claude Code. It analyzes your repo, asks a few questions, and generates a domain config (`domain.json`, `CLAUDE.md`, `MEMORY.md`). With a domain config, the pipeline works autonomously — without one, it asks for service names and artifact IDs during the investigation.
-
-## Architecture
-
-12 agents, 8 commands, 9 MCP skill references. The orchestrator classifies intent, gathers context from multiple sources in parallel, generates testable hypotheses, and iterates through a verification loop until a root cause is confirmed.
-
-| Agent | Role |
-|-------|------|
-| `bug-context` | Parses Jira tickets into structured briefs |
-| `artifact-resolver` | Validates service names against Grafana |
-| `grafana-analyzer` | Queries production logs, reports raw findings |
-| `codebase-semantics` | Maps code flows and error propagation |
-| `production-analyzer` | Finds PRs, commits, feature toggle changes |
-| `slack-analyzer` | Searches Slack for related discussions |
-| `hypotheses` | Generates testable root cause theories |
-| `verifier` | Quality gate — evaluates hypothesis proof |
-| `skeptic` | Cross-examines competing hypotheses |
-| `fix-list` | Creates actionable fix plans |
-| `documenter` | Compiles investigation reports |
-| `publisher` | Publishes findings to Jira and/or Slack |
-
-For pipeline design, data flow, hypothesis loops, output format, and plugin internals, see the [architecture overview](docs/architecture.md).
-
-## Documentation
-
-| Topic | Description |
-|-------|-------------|
-| [Architecture](docs/architecture.md) | Pipeline design, agent table, data flow, output format |
-| [Investigation flow](docs/investigation-flow.md) | Step-by-step state machine |
-| [Commands reference](docs/commands.md) | All 8 commands with parameters and examples |
-| [Agent catalog](docs/agents.md) | Agent profiles — inputs, outputs, skills |
-| [Domain configs](docs/domain-configs.md) | Field reference, creation guide, config loading order |
-| [Contributing](docs/contributing.md) | How to add domains, improve agents, submit PRs |
-| [Troubleshooting](docs/troubleshooting.md) | MCP issues, mid-investigation recovery |
-
-## Contributing
-
-```bash
-gh repo fork TamirCohen-Wix/production-master --clone
-cd production-master
-claude --plugin-dir .   # Test changes per-session
-```
-
-PRs to `main` require passing CI and 1 approving review. See the [contributing guide](docs/contributing.md).
+The `cursor-support` branch is automatically synced from `main` via [GitHub Actions](https://github.com/TamirCohen-Wix/production-master/actions/workflows/sync-cursor.yml). Every push to `main` triggers a merge + `.cursor/` regeneration. You don't need to manually keep this branch up to date.
 
 ## Requirements
 
-- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
+- [Cursor](https://cursor.com)
 - [GitHub CLI](https://cli.github.com) (`gh`)
 - [MCP access key](https://mcp-s-connect.wewix.net/mcp-servers) for Grafana, Slack, Jira, GitHub, Octocode, FT-release, Context-7, Grafana-MCP, Fire Console
 

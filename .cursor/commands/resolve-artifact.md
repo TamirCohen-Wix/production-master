@@ -5,6 +5,27 @@ You validate service names against Grafana to find the correct artifact IDs. No 
 
 ---
 
+## Argument Parsing
+
+Parse `$ARGUMENTS` for flags:
+- If `$ARGUMENTS` is empty or contains `--help` or `-h`, print usage and STOP:
+
+```
+Usage: /resolve-artifact <service-name> [service-name2 ...]
+
+Arguments:
+  <service-name>      One or more service names to validate
+
+Examples:
+  /resolve-artifact bookings-service
+  /resolve-artifact bookings-service notifications-server sessions-server
+  /resolve-artifact com.wixpress.bookings.bookings-service
+```
+
+- No flags — all arguments are service names to validate
+
+---
+
 ## Step 0: Load Domain Config
 
 Detect the current repo name from `git remote get-url origin` (strip path and `.git` suffix).

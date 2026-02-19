@@ -5,6 +5,34 @@ You find recent PRs, commits, deployments, and feature toggle changes for a serv
 
 ---
 
+## Argument Parsing
+
+Parse `$ARGUMENTS` for flags:
+- If `$ARGUMENTS` is empty or contains `--help` or `-h`, print usage and STOP:
+
+```
+Usage: /production-changes [service] [options]
+
+Arguments:
+  [service]           Service or repo name (default: current repo)
+
+Options:
+  --since RANGE       Time range: 1d, 3d, 7d, 30d (default: 3d)
+  --type TYPE         Change type: prs, commits, toggles, all (default: all)
+  --service NAME      Filter by specific service name
+  --help, -h          Show this help message
+
+Examples:
+  /production-changes --since 7d
+  /production-changes bookings-service --type prs
+  /production-changes --type toggles --since 30d
+```
+
+- Parse known flags from `$ARGUMENTS`: split on spaces, extract `--key value` pairs
+- Everything that isn't a flag is the positional argument (service name)
+
+---
+
 ## Step 0: Load Domain Config
 
 Detect the current repo name from `git remote get-url origin` (strip path and `.git` suffix).
