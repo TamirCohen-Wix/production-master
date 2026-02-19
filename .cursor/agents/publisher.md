@@ -1,7 +1,7 @@
 ---
 name: publisher
 description: Publishes completed investigation reports to Jira and/or Slack. Validates all links before posting.
-model: gpt-4o-mini
+model: haiku
 tools: Read, Write, ToolSearch
 mcpServers: mcp-s, Slack
 skills:

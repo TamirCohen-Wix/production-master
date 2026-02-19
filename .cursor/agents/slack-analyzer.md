@@ -1,7 +1,7 @@
 ---
 name: slack-analyzer
 description: Slack search agent that finds discussions related to production issues and reports raw findings.
-model: gpt-4o-mini
+model: sonnet
 tools: Read, Write, ToolSearch
 mcpServers: mcp-s
 skills:

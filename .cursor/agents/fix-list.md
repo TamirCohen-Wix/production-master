@@ -1,7 +1,7 @@
 ---
 name: fix-list
 description: Senior engineer that creates actionable fix plans from confirmed hypotheses. Queries feature toggles for rollback options.
-model: gpt-4o-mini
+model: sonnet
 tools: Read, Write, ToolSearch
 mcpServers: mcp-s
 skills:

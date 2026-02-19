@@ -1,7 +1,7 @@
 ---
 name: bug-context
 description: Bug context parser that extracts structured briefs from Jira tickets and user input. Parsing only, no codebase access.
-model: gpt-4o-mini
+model: haiku
 tools: Read, Write
 maxTurns: 5
 ---
