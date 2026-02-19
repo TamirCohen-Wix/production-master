@@ -108,10 +108,10 @@ for src in "$COMMANDS_SRC"/*.md; do
       strip_frontmatter "$src"
     } > "$dest"
     # Replace Claude model references with Cursor equivalents in the command file
-    sed -i'' -e 's/model: "haiku"/model: "gpt-4o-mini"/g' "$dest"
-    sed -i'' -e 's/model: "sonnet"/model: "gpt-4o"/g' "$dest"
-    sed -i'' -e 's/model="haiku"/model="gpt-4o-mini"/g' "$dest"
-    sed -i'' -e 's/model="sonnet"/model="gpt-4o"/g' "$dest"
+    sed -i '' -e 's/model: "haiku"/model: "gpt-4o-mini"/g' "$dest"
+    sed -i '' -e 's/model: "sonnet"/model: "gpt-4o"/g' "$dest"
+    sed -i '' -e 's/model="haiku"/model="gpt-4o-mini"/g' "$dest"
+    sed -i '' -e 's/model="sonnet"/model="gpt-4o"/g' "$dest"
   else
     strip_frontmatter "$src" > "$dest"
   fi
@@ -134,7 +134,7 @@ for src in "$AGENTS_SRC"/*.md; do
     if [ -n "$CURSOR_MODEL" ] && head -1 "$dest" | grep -q '^---$'; then
       # Replace the model: line in YAML frontmatter
       if grep -q '^model:' "$dest"; then
-        sed -i'' -e "s/^model:.*$/model: $CURSOR_MODEL/" "$dest"
+        sed -i '' -e "s/^model:.*$/model: $CURSOR_MODEL/" "$dest"
       fi
     fi
   fi
@@ -350,6 +350,8 @@ fi
 
 # ─── Push ────────────────────────────────────────────────────────────
 info "Pushing cursor-support..."
+# Pull remote changes first (CI may have already pushed a sync commit)
+git pull --rebase origin cursor-support 2>/dev/null || true
 git push origin cursor-support
 ok "Pushed cursor-support"
 
