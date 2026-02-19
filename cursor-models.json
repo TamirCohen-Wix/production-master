@@ -1,0 +1,17 @@
+{
+  "_comment": "Cursor model assignments per agent. Used by scripts/sync-cursor.sh to patch .cursor/agents/ frontmatter. Cursor supports non-Claude models — this maps each agent to the best-fit model for its task.",
+  "agents": {
+    "bug-context":          { "model": "gpt-4o-mini",       "reason": "Simple Jira parsing, no reasoning needed" },
+    "artifact-resolver":    { "model": "gpt-4o-mini",       "reason": "Validation queries, pattern matching" },
+    "documenter":           { "model": "gpt-4o-mini",       "reason": "Template-based report compilation" },
+    "publisher":            { "model": "gpt-4o-mini",       "reason": "Format conversion and MCP posting" },
+    "slack-analyzer":       { "model": "gpt-4o-mini",       "reason": "Search + retrieve, minimal reasoning" },
+    "fix-list":             { "model": "gpt-4o-mini",       "reason": "Structured output from confirmed hypothesis" },
+    "grafana-analyzer":     { "model": "gpt-4o",            "reason": "SQL query building + log pattern analysis" },
+    "production-analyzer":  { "model": "gpt-4o",            "reason": "PR/commit analysis + timeline reasoning" },
+    "hypotheses":           { "model": "gpt-4o",            "reason": "Hypothesis generation, causal reasoning" },
+    "verifier":             { "model": "gpt-4o",            "reason": "Critical evaluation, 5-point checklist" },
+    "skeptic":              { "model": "gpt-4o",            "reason": "Cross-examination of competing theories" },
+    "codebase-semantics":   { "model": "claude-3.5-sonnet", "reason": "Code understanding, error propagation tracing" }
+  }
+}

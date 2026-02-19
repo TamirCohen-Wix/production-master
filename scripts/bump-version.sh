@@ -95,6 +95,11 @@ README_COUNT=$(grep -c "$CURRENT" "$README" 2>/dev/null || echo "0")
 echo "  README.md"
 echo "    $README_COUNT occurrence(s) of \"$CURRENT\" → \"$NEW_VERSION\""
 
+echo ""
+echo "  After release:"
+echo "    1. Sync cursor-support branch"
+echo "    2. Tag ${TAG}-cursor and create Cursor release"
+
 if [ "$EXECUTE" = false ]; then
   echo ""
   warn "Dry run — no changes made. Use --execute to apply."
@@ -140,9 +145,21 @@ info "Creating GitHub release..."
 gh release create "$TAG" --title "$TAG" --generate-notes
 ok "Created release $TAG"
 
+# ─── Sync cursor-support + cursor release ────────────────────────────
+info "Syncing cursor-support branch with new version..."
+SYNC_SCRIPT="$REPO_ROOT/scripts/sync-cursor.sh"
+if [ -f "$SYNC_SCRIPT" ]; then
+  bash "$SYNC_SCRIPT" --tag "$TAG"
+  ok "Cursor branch synced and tagged ${TAG}-cursor"
+else
+  warn "sync-cursor.sh not found — skipping cursor release"
+fi
+
 # ─── Summary ─────────────────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}${BOLD}Done!${NC} Version bumped: $CURRENT → $NEW_VERSION"
-echo "  Commit:  $(git rev-parse --short HEAD)"
-echo "  Tag:     $TAG"
-echo "  Release: https://github.com/TamirCohen-Wix/production-master/releases/tag/$TAG"
+echo "  Commit:      $(git rev-parse --short HEAD)"
+echo "  Tag:         $TAG"
+echo "  Cursor tag:  ${TAG}-cursor"
+echo "  Release:     https://github.com/TamirCohen-Wix/production-master/releases/tag/$TAG"
+echo "  Cursor:      https://github.com/TamirCohen-Wix/production-master/releases/tag/${TAG}-cursor"
