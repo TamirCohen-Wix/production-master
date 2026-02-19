@@ -160,9 +160,7 @@ For pipeline design, data flow, hypothesis loops, output format, and plugin inte
 To update to the latest version:
 
 ```bash
-cd production-master
-git pull --rebase origin main
-bash scripts/install.sh          # Re-run installer to pick up new agents/skills/MCP
+claude plugin update production-master
 ```
 
 To install a specific version:
