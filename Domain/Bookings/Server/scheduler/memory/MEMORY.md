@@ -166,3 +166,24 @@ All HTTP servers go through `mcp-s.wewix.net` proxy, authenticated via `x-user-a
 ### TimeCapsule + Greyhound
 - TimeCapsule is built on Greyhound (confirmed by stack traces)
 - Retry config in `notifications-server-config.json.erb`: 1, 10, 20, 60, 120, 360 minutes
+
+### bookings-automations-2: Request ID Switch (Learned 2026-02-18)
+- This service switches request IDs mid-request via `visibility.RequestIdSwitchLogEvent`
+- Initial request ID: `<unix_timestamp>.<random>` format → after `HandleDelayedExecutionEvent`: GUID format
+- The switch happens when consuming from the internal Kafka topic `bookings-automations-2-internal-delayed-execution-event`
+- To trace full request: find initial request ID by MSID + booking time, then look for `RequestIdSwitchLogEvent` to get the GUID, then follow GUID
+- Delays in automation firing are typically Kafka consumer lag on the internal `delayed-execution-event` topic
+- Check `artifact-status-kube` dashboard for pod restarts / DC shifts when investigating delays
+- Grafana query to find the switch: `message LIKE '%RequestIdSwitch%'` filtered by the original request ID
+
+### Frontend Repos (Bookings)
+- **UoU (Viewer):** bookings-booking-checkout-viewer, bookings-calendar-catalog-viewer, bookings-viewer-common
+- **BO (Owner):** bookings-booking-checkout-owner, bookings-calendar-catalog-owner, bookings-catalog-bo, bookings-owner-common, bookings-mobile-owner-serverless, bookings-backoffice-service
+- **Shared/Platform:** bookings-platform-ui, bookings-mobile, bookings-fes, bookings-widgets-blocks
+- All repos live under `wix-private/` org on GitHub
+- **IMPORTANT:** All frontend code inside the `scheduler` repo (`statics/viewer/angular/`) is DEAD/INVALID — never reference it as a product use case
+
+### Terminology
+- **UoU** = User of User = live site visitor (end user browsing a Wix site)
+- **BO** = Back Office = site owner dashboard (Wix business manager)
+- **FES** = Frontend Server (BFF layer between widgets and backend services)

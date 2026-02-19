@@ -71,6 +71,12 @@ Sub-commands (also available standalone):
 
 ### 0.1 Classify User Intent
 
+**Status line:** At each state transition, write the current phase to a temp file so the status bar can display it:
+```bash
+echo "Phase N/9: <phase name>" > /tmp/.production-master-status
+```
+At `COMPLETE`, remove it: `rm -f /tmp/.production-master-status`
+
 Parse `$ARGUMENTS` and classify into one of these modes:
 
 | Mode | Trigger | Example |
@@ -304,6 +310,7 @@ FIRE_CONSOLE_SKILL = read("skills/fire-console/SKILL.md")
 Print: `=== Phase 1/9: Bug Context ===`
 
 **State:** `CONTEXT_GATHERING`
+Write status: `echo "Phase 1/9: Bug Context" > /tmp/.production-master-status`
 
 **PERFORMANCE NOTE:** Bug-context is a simple parsing task (no MCP tools needed). For speed, the orchestrator SHOULD parse the Jira data inline rather than launching a separate agent — this saves ~30-60s. Only launch the bug-context agent if the ticket is very complex (>10 comments, multiple linked issues).
 
@@ -333,6 +340,7 @@ Wait for completion. Read the output file. Store as `BUG_CONTEXT_REPORT`.
 ### STEP 1.3: Data Enrichment via Fire Console
 
 **State:** `DATA_ENRICHMENT`
+Write status: `echo "Phase 1.3/9: Data Enrichment" > /tmp/.production-master-status`
 
 Use Fire Console to fetch full domain objects when bug-context only has partial identifiers (MSID, bookingID, orderID, serviceID, etc.). This enriches the investigation context BEFORE log analysis.
 
@@ -451,6 +459,7 @@ invoke_rpc(
 ### STEP 1.5: Validate Artifact IDs (BEFORE Grafana)
 
 **State:** `ARTIFACT_VALIDATION`
+Write status: `echo "Phase 1.5/9: Artifact Validation" > /tmp/.production-master-status`
 
 For each artifact_id from bug-context, run a quick Grafana count query directly (no agent needed):
 
@@ -483,6 +492,7 @@ query_app_logs(
 Print: `=== Phase 2/9: Grafana Log Analysis ===`
 
 **State:** `LOG_ANALYSIS`
+Write status: `echo "Phase 2/9: Grafana Logs" > /tmp/.production-master-status`
 
 Read the agent prompt from `agents/grafana-analyzer.md`.
 
@@ -559,6 +569,7 @@ Write `{OUTPUT_DIR}/findings-summary.md`:
 ### STEP 2.5: Find Local Code (BEFORE codebase-semantics)
 
 **State:** `LOCAL_CODE_DISCOVERY`
+Write status: `echo "Phase 2.5/9: Local Code Discovery" > /tmp/.production-master-status`
 
 Run locally (no MCP needed) to find local repo clones:
 ```bash
@@ -584,6 +595,7 @@ This prevents the entire codebase analysis from failing due to MCP auth issues.
 Print: `=== Phase 3/9: Codebase Error Propagation ===`
 
 **State:** `CODE_ANALYSIS`
+Write status: `echo "Phase 3/9: Codebase Analysis" > /tmp/.production-master-status`
 
 Read the agent prompt from `agents/codebase-semantics.md`.
 
@@ -627,6 +639,7 @@ If quality gate fails: re-launch with specific missing items.
 Print: `=== Phase 4/9: Parallel Data Fetch (Production, Slack, PRs, Fire Console) ===`
 
 **State:** `PARALLEL_DATA_FETCH`
+Write status: `echo "Phase 4/9: Parallel Data Fetch" > /tmp/.production-master-status`
 
 Read agent prompts from `agents/production-analyzer.md`, `agents/slack-analyzer.md`, and `agents/codebase-semantics.md`.
 
@@ -755,6 +768,7 @@ For any failed quality gate: note what's missing in findings-summary, but procee
 ### STEP 4.5: Recovery Window Analysis (if resolution time known)
 
 **State:** `RECOVERY_ANALYSIS`
+Write status: `echo "Phase 4.5/9: Recovery Analysis" > /tmp/.production-master-status`
 
 If the incident has a known resolution time (from Grafana boundaries or bug-context):
 
@@ -789,6 +803,7 @@ If no resolution time is known, skip this step — the hypothesis agent will not
 Print: `=== Phase 5/9: Hypothesis Generation & Verification ===`
 
 **State:** `HYPOTHESIS_GENERATION`
+Write status: `echo "Phase 5/9: Hypothesis Generation" > /tmp/.production-master-status`
 
 Maintain counter `HYPOTHESIS_INDEX` (start at 1).
 
@@ -1006,6 +1021,7 @@ Wait for completion. Read verifier report.
 Print: `=== Phase 6/9: Decision Point ===`
 
 **State:** `VERIFICATION`
+Write status: `echo "Phase 6/9: Verification" > /tmp/.production-master-status`
 
 Read the verdict (from skeptic in 5A, or verifier in 5B).
 
@@ -1138,6 +1154,7 @@ query_access_logs(
 Print: `=== Phase 7/9: Fix Planning ===`
 
 **State:** `FIX_PLANNING`
+Write status: `echo "Phase 7/9: Fix Planning" > /tmp/.production-master-status`
 
 Read the agent prompt from `agents/fix-list.md`.
 
@@ -1167,6 +1184,7 @@ Wait for completion. Store as `FIX_PLAN_REPORT`.
 Print: `=== Phase 8/9: Documentation ===`
 
 **State:** `DOCUMENTING`
+Write status: `echo "Phase 8/9: Documenting" > /tmp/.production-master-status`
 
 Read the agent prompt from `agents/documenter.md`.
 
@@ -1205,6 +1223,7 @@ Wait for completion.
 Print: `=== Phase 9/9: Publishing ===`
 
 **State:** `PUBLISHING`
+Write status: `echo "Phase 9/9: Publishing" > /tmp/.production-master-status`
 
 After the report is generated, offer to publish findings to Jira and/or Slack.
 
@@ -1264,6 +1283,7 @@ Wait for completion.
 ---
 
 **State:** `COMPLETE`
+Clean up status: `rm -f /tmp/.production-master-status`
 
 Present the final documentation to the user:
 ```

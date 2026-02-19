@@ -204,8 +204,12 @@ production-master/
 │   └── hooks.json               ← Notification + link validation hooks
 ├── scripts/
 │   ├── install.sh               ← Installer
+│   ├── install-cursor.sh        ← Cursor IDE installer (cursor-support branch)
 │   ├── validate-install.sh      ← Installation diagnostics
-│   └── validate-report-links.sh ← Report link validator
+│   ├── validate-report-links.sh ← Report link validator
+│   ├── bump-version.sh          ← Version bump, tag, and release
+│   ├── sync-cursor.sh           ← Sync cursor-support branch from main
+│   └── statusline.sh            ← Claude Code status bar with pipeline phase
 ├── output-styles/               ← Investigation report + publisher formatting
 ├── Domain/                      ← Domain configs (per-repo investigation context)
 ├── mcp-servers.json             ← MCP server template (used by install.sh)

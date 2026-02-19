@@ -126,3 +126,12 @@ jobs:
       - name: Run shellcheck on validate-report-links.sh
         if: hashFiles('scripts/validate-report-links.sh') != ''
         run: shellcheck --severity=error scripts/validate-report-links.sh
+
+      - name: Run shellcheck on bump-version.sh
+        run: shellcheck --severity=error scripts/bump-version.sh
+
+      - name: Run shellcheck on sync-cursor.sh
+        run: shellcheck --severity=error scripts/sync-cursor.sh
+
+      - name: Run shellcheck on statusline.sh
+        run: shellcheck --severity=error scripts/statusline.sh
