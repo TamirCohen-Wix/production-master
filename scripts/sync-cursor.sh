@@ -57,9 +57,12 @@ else
 fi
 
 # ─── Merge main ──────────────────────────────────────────────────────
+# Use -X theirs to auto-resolve conflicts in favor of main.
+# Main is the source of truth — .cursor/ is regenerated below anyway,
+# and non-.cursor files (README, scripts, etc.) should match main.
 info "Merging main into cursor-support..."
-if ! git merge main -m "Sync cursor-support with main (auto-generated)"; then
-  err "Merge conflict detected. Resolve manually, then re-run."
+if ! git merge main -X theirs -m "Sync cursor-support with main (auto-generated)"; then
+  err "Merge failed even with -X theirs. Resolve manually, then re-run."
 fi
 ok "Merged main into cursor-support"
 
@@ -145,9 +148,9 @@ ok "Generated $SKILL_COUNT skills"
 # ─── Commit ──────────────────────────────────────────────────────────
 git add .cursor/
 if git diff --cached --quiet; then
-  ok "No changes to .cursor/ — already in sync"
+  ok "No .cursor/ changes — already in sync"
 else
-  git commit -m "Sync cursor-support with main (auto-generated)"
+  git commit -m "Regenerate .cursor/ from main (auto-sync)"
   ok "Committed .cursor/ changes"
 fi
 
