@@ -295,6 +295,38 @@ To change a model, edit `cursor-models.json` on `main` — the next sync will pi
 
 The `cursor-support` branch is automatically synced from `main` via [GitHub Actions](https://github.com/TamirCohen-Wix/production-master/actions/workflows/sync-cursor.yml). Every push to `main` triggers a merge + `.cursor/` regeneration, including model patching from `cursor-models.json`. You don't need to manually keep this branch up to date.
 
+## Updating
+
+To update to the latest version:
+
+```bash
+cd production-master
+git pull --rebase origin cursor-support
+bash scripts/install-cursor.sh
+```
+
+To install a specific version:
+
+```bash
+git checkout v1.0.2-beta-cursor    # Switch to a specific Cursor release tag
+bash scripts/install-cursor.sh
+```
+
+To downgrade:
+
+```bash
+git checkout v1.0.1-beta-cursor    # Any previous Cursor tag
+bash scripts/install-cursor.sh
+```
+
+> All versions are on the [releases page](https://github.com/TamirCohen-Wix/production-master/releases). Cursor releases have a `-cursor` suffix.
+
+## Feature Requests & Bug Reports
+
+- **Request a feature:** [Open an issue](https://github.com/TamirCohen-Wix/production-master/issues/new?labels=enhancement&template=feature_request.md) with the `enhancement` label
+- **Report a bug:** [Open an issue](https://github.com/TamirCohen-Wix/production-master/issues/new?labels=bug&template=bug_report.md) with the `bug` label
+- **Ask a question:** [Start a discussion](https://github.com/TamirCohen-Wix/production-master/discussions)
+
 ## Requirements
 
 - [Cursor](https://cursor.com)
@@ -328,7 +360,7 @@ if [ -n "$TAG" ]; then
   git tag "$CURSOR_TAG"
   git push origin "$CURSOR_TAG"
   if command -v gh &>/dev/null; then
-    gh release create "$CURSOR_TAG" --title "$CURSOR_TAG" --generate-notes --target cursor-support
+    gh release create "$CURSOR_TAG" --title "$CURSOR_TAG" --generate-notes --prerelease --target cursor-support
     ok "Created release $CURSOR_TAG"
   else
     warn "gh CLI not available — skipping GitHub release creation"
