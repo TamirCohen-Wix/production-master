@@ -39,15 +39,39 @@ When running a full investigation (Jira ticket or bug description):
 11. **Step 8:** Documentation (documenter agent)
 12. **Step 9:** Publish to Jira/Slack (optional, asks user)
 
+### Flags
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `--skip-slack` | Skip Slack search in Step 4 | `/production-master SCHED-45895 --skip-slack` |
+| `--skip-grafana` | Skip Grafana queries in Step 2 | `/production-master SCHED-45895 --skip-grafana` |
+| `--service <name>` | Override the primary service to investigate | `/production-master SCHED-45895 --service bookings-reader` |
+| `--verbose` | Emit detailed step-by-step progress | `/production-master SCHED-45895 --verbose` |
+
+Run `/production-master --help` for full usage.
+
+### Phase Markers
+
+During a full investigation, visible phase markers are printed at each step:
+
+```
+=== Phase 1/9: Bug Context ===
+=== Phase 2/9: Grafana Analyzer ===
+...
+=== Phase 9/9: Publisher ===
+```
+
 ### Ad-hoc Modes
 
-QUERY_LOGS, TRACE_REQUEST, QUERY_METRICS, SEARCH_SLACK, SEARCH_CODE, and TOGGLE_CHECK execute directly without subagents or output directories.
+QUERY_LOGS, TRACE_REQUEST, QUERY_METRICS, SEARCH_SLACK, SEARCH_CODE, and TOGGLE_CHECK now route to the corresponding standalone sub-command logic (`/grafana-query`, `/slack-search`, `/production-changes`, `/resolve-artifact`, `/fire-console`) instead of having duplicate implementations in the orchestrator.
 
 ---
 
 ## /fire-console
 
 **Standalone domain object query.** Query Wix production objects (bookings, services, events, sites) via gRPC.
+
+Run `/fire-console --help` for all options.
 
 | Query Type | Example |
 |-----------|---------|
@@ -64,9 +88,12 @@ QUERY_LOGS, TRACE_REQUEST, QUERY_METRICS, SEARCH_SLACK, SEARCH_CODE, and TOGGLE_
 
 **Standalone Grafana query.** Query logs, trace requests, and check Prometheus metrics.
 
+Run `/grafana-query --help` for all options and flags.
+
 | Mode | Example |
 |------|---------|
 | Query logs | `/grafana-query errors from bookings-service last 2h` |
+| Query logs with flags | `/grafana-query bookings-service --level ERROR --time 2h` |
 | Trace request | `/grafana-query trace 1769611570.535540810122211411840` |
 | Query metrics | `/grafana-query error rate for bookings-service` |
 | Error overview | `/grafana-query bookings-service` |
@@ -76,6 +103,8 @@ QUERY_LOGS, TRACE_REQUEST, QUERY_METRICS, SEARCH_SLACK, SEARCH_CODE, and TOGGLE_
 ## /slack-search
 
 **Standalone Slack search.** Find discussions, incidents, and deployment threads.
+
+Run `/slack-search --help` for all options.
 
 | Example |
 |---------|
@@ -91,6 +120,8 @@ Runs multiple keyword searches, fetches all thread replies, and presents raw res
 
 **Standalone change discovery.** Find recent PRs, commits, and feature toggle changes.
 
+Run `/production-changes --help` for all options.
+
 | Query Type | Example |
 |-----------|---------|
 | Recent PRs | `/production-changes merged PRs last 3 days` |
@@ -103,6 +134,8 @@ Runs multiple keyword searches, fetches all thread replies, and presents raw res
 ## /resolve-artifact
 
 **Standalone artifact validator.** Validate service names against Grafana.
+
+Run `/resolve-artifact --help` for all options.
 
 | Example |
 |---------|

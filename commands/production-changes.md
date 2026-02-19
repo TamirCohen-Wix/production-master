@@ -1,11 +1,40 @@
 ---
-description: "Find recent PRs, commits, and feature toggle changes for a service"
-user-invocable: false
+description: "Find recent PRs, commits, and feature toggle changes"
+argument-hint: "<service> [--since 3d] [--type prs|commits|toggles|all] [--help]"
+user-invocable: true
 ---
 
 # Production Changes — Standalone Change Discovery Tool
 
 You find recent PRs, commits, deployments, and feature toggle changes for a service or repo. No subagents — execute MCP calls inline.
+
+---
+
+## Argument Parsing
+
+Parse `$ARGUMENTS` for flags:
+- If `$ARGUMENTS` is empty or contains `--help` or `-h`, print usage and STOP:
+
+```
+Usage: /production-changes [service] [options]
+
+Arguments:
+  [service]           Service or repo name (default: current repo)
+
+Options:
+  --since RANGE       Time range: 1d, 3d, 7d, 30d (default: 3d)
+  --type TYPE         Change type: prs, commits, toggles, all (default: all)
+  --service NAME      Filter by specific service name
+  --help, -h          Show this help message
+
+Examples:
+  /production-changes --since 7d
+  /production-changes bookings-service --type prs
+  /production-changes --type toggles --since 30d
+```
+
+- Parse known flags from `$ARGUMENTS`: split on spaces, extract `--key value` pairs
+- Everything that isn't a flag is the positional argument (service name)
 
 ---
 
