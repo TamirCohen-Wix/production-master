@@ -90,10 +90,13 @@ echo "    \"version\": \"$CURRENT\" → \"$NEW_VERSION\""
 echo "  .claude-plugin/marketplace.json"
 echo "    \"version\": \"$CURRENT\" → \"$NEW_VERSION\""
 
-# Count README occurrences
-README_COUNT=$(grep -c "$CURRENT" "$README" 2>/dev/null || echo "0")
+# Count README occurrences (plain + shields.io escaped)
+SHIELDS_OLD=$(echo "$CURRENT" | sed 's/-/--/g')
+README_COUNT_PLAIN=$(grep -c "$CURRENT" "$README" 2>/dev/null || echo "0")
+README_COUNT_SHIELDS=$(grep -c "$SHIELDS_OLD" "$README" 2>/dev/null || echo "0")
+README_COUNT=$((README_COUNT_PLAIN + README_COUNT_SHIELDS))
 echo "  README.md"
-echo "    $README_COUNT occurrence(s) of \"$CURRENT\" → \"$NEW_VERSION\""
+echo "    $README_COUNT occurrence(s) of \"$CURRENT\" → \"$NEW_VERSION\" (including shields.io badge)"
 
 echo ""
 echo "  After release:"
@@ -120,8 +123,11 @@ jq --arg v "$NEW_VERSION" '.plugins[0].version = $v' "$MARKETPLACE_JSON" > "$MAR
 mv "$MARKETPLACE_JSON.tmp" "$MARKETPLACE_JSON"
 ok "Updated marketplace.json"
 
-# README.md — replace all occurrences of old version with new
-sed -i '' "s/${CURRENT}/${NEW_VERSION}/g" "$README"
+# README.md — replace version (plain + shields.io escaped)
+SHIELDS_OLD=$(echo "$CURRENT" | sed 's/-/--/g')
+SHIELDS_NEW=$(echo "$NEW_VERSION" | sed 's/-/--/g')
+sed "s/${CURRENT}/${NEW_VERSION}/g; s/${SHIELDS_OLD}/${SHIELDS_NEW}/g" "$README" > "$README.tmp"
+mv "$README.tmp" "$README"
 ok "Updated README.md ($README_COUNT occurrences)"
 
 # ─── Git commit + tag ────────────────────────────────────────────────

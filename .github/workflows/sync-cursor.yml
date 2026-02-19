@@ -1,8 +1,7 @@
 name: Sync Cursor Support
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:  # Manual trigger only — auto-sync disabled until duplicate commit issue resolved
 
 permissions:
   contents: write
