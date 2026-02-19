@@ -174,14 +174,14 @@ info "Generating Cursor README..."
 # Read version from plugin.json for download links
 VERSION=$(jq -r '.version' "$REPO_ROOT/.claude-plugin/plugin.json" 2>/dev/null || echo "1.0.0-beta")
 SHIELDS_VERSION=$(echo "$VERSION" | sed 's/-/--/g')
-cat > "$REPO_ROOT/README.md" << CURSOR_README_EOF
+cat > "$REPO_ROOT/README.md" << 'CURSOR_README_EOF'
 <p align="center">
   <img src="assets/banner.jpg" alt="Production Master" width="800">
 </p>
 
 # Production Master — Cursor Support
 
-[![Version](https://img.shields.io/badge/version-${SHIELDS_VERSION}-blue)](https://github.com/TamirCohen-Wix/production-master/releases/tag/v${VERSION}-cursor)
+[![Version](https://img.shields.io/badge/version-__SHIELDS_VERSION__-blue)](https://github.com/TamirCohen-Wix/production-master/releases/tag/v__VERSION__-cursor)
 [![CI](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml/badge.svg)](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml)
 [![Cursor Support](https://img.shields.io/badge/Cursor-Support-blueviolet)](https://cursor.com)
 [![Author](https://img.shields.io/badge/author-Tamir%20Cohen-green)](https://wix.slack.com/team/U09H3AHE3C7)
@@ -342,6 +342,9 @@ bash scripts/install-cursor.sh
 
 Made by [Tamir Cohen](https://wix.slack.com/team/U09H3AHE3C7)
 CURSOR_README_EOF
+# Inject dynamic version into the generated README
+sed "s/__SHIELDS_VERSION__/${SHIELDS_VERSION}/g; s/__VERSION__/${VERSION}/g" "$REPO_ROOT/README.md" > "$REPO_ROOT/README.md.tmp"
+mv "$REPO_ROOT/README.md.tmp" "$REPO_ROOT/README.md"
 ok "Generated Cursor README"
 
 # ─── Commit ──────────────────────────────────────────────────────────
