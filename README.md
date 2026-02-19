@@ -4,7 +4,7 @@
 
 # Production Master
 
-[![Version](https://img.shields.io/badge/version-1.0.2--beta-blue)](https://github.com/TamirCohen-Wix/production-master/releases/tag/v1.0.2-beta)
+[![Version](https://img.shields.io/badge/version-1.0.2--beta-blue)](https://github.com/TamirCohen-Wix/production-master/releases/tag/v1.0.3-beta)
 [![CI](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml/badge.svg)](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml)
 [![Author](https://img.shields.io/badge/author-Tamir%20Cohen-green)](https://wix.slack.com/team/U09H3AHE3C7)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://github.com/anthropics/claude-code/blob/main/plugins/README.md)
@@ -41,11 +41,11 @@ cd production-master
 bash scripts/install.sh
 ```
 
-Or [download the ZIP](https://github.com/TamirCohen-Wix/production-master/archive/refs/tags/v1.0.2-beta.zip):
+Or [download the ZIP](https://github.com/TamirCohen-Wix/production-master/archive/refs/tags/v1.0.3-beta.zip):
 
 ```bash
-unzip production-master-v1.0.2-beta.zip
-cd production-master-v1.0.2-beta
+unzip production-master-v1.0.3-beta.zip
+cd production-master-v1.0.3-beta
 bash scripts/install.sh
 ```
 
@@ -168,7 +168,7 @@ bash scripts/install.sh          # Re-run installer to pick up new agents/skills
 To install a specific version:
 
 ```bash
-git checkout v1.0.2-beta         # Switch to a specific release tag
+git checkout v1.0.3-beta         # Switch to a specific release tag
 bash scripts/install.sh
 ```
 
