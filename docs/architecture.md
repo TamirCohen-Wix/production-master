@@ -235,9 +235,25 @@ production-master/
 ├── hooks/
 │   └── hooks.json               ← Notification + link validation hooks
 ├── scripts/
-│   └── validate-report-links.sh ← Report link validator
+│   ├── install.sh               ← Plugin installer
+│   ├── install-cursor.sh        ← Cursor IDE installer (cursor-support branch)
+│   ├── validate-install.sh      ← Installation diagnostics
+│   ├── validate-report-links.sh ← Report link validator
+│   ├── bump-version.sh          ← Version bump, tag, and release
+│   ├── sync-cursor.sh           ← Sync cursor-support branch from main
+│   └── statusline.sh            ← Claude Code status bar with pipeline phase
 ├── output-styles/               ← Investigation report + publisher formatting
 ├── docs/                        ← Documentation
 ├── Domain/                      ← Company/team/repo domain configs
 └── README.md
 ```
+
+## Output Format
+
+Investigation reports follow a structured format designed for clarity in the terminal. Reports include status updates at each pipeline stage, structured findings tables, inline code references, and hyperlinks to Grafana dashboards, Jira tickets, and Slack threads.
+
+When publishing to external tools (Jira, Slack, GitHub), the output is automatically adapted to each platform's markup — Jira wiki syntax, Slack mrkdwn, or GitHub-flavored markdown. See the templates in `output-styles/` for details.
+
+## Why `mcp-servers.json` instead of `.mcp.json`?
+
+Claude Code plugins can declare MCP servers via a `.mcp.json` file at the plugin root, which auto-starts servers when the plugin loads. However, our 9 MCP servers require **personal access keys** — auto-starting them with placeholder keys would fail. Instead, `mcp-servers.json` serves as a **template** that `install.sh` processes: it substitutes your real access key and merges only missing servers into `~/.claude.json`, without overwriting any existing server configs.
