@@ -92,6 +92,7 @@ Dry run — no changes made. Use --execute to apply.
 5. Tags: `vX.Y.Z-beta`
 6. Pushes commit + tag to `origin/main`
 7. Creates GitHub release with auto-generated notes
+8. Runs `sync-cursor.sh --tag vX.Y.Z-beta` to sync cursor-support and create a `vX.Y.Z-beta-cursor` release
 
 **Why only the repo owner can run this:** The script pushes directly to `main` and creates tags. GitHub rulesets block direct pushes to `main` for everyone except admins. The script also requires a clean working tree and fails if there are uncommitted changes.
 

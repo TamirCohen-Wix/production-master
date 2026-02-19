@@ -103,8 +103,15 @@ for src in "$COMMANDS_SRC"/*.md; do
     {
       echo "# Cursor: single agent — no Task tool. When this doc says \"Launch Task with agent X\", read $CURSOR_DIR/agents/X.md and execute those instructions yourself in this turn; write output to the path specified. Use $CURSOR_DIR/skills/<name>/SKILL.md for MCP tool names and parameters."
       echo ''
+      echo "# Model note: This branch uses Cursor-optimized models (GPT-4o, GPT-4o-mini, Claude 3.5 Sonnet) instead of Claude-only models. See cursor-models.json for the full mapping."
+      echo ''
       strip_frontmatter "$src"
     } > "$dest"
+    # Replace Claude model references with Cursor equivalents in the command file
+    sed -i'' -e 's/model: "haiku"/model: "gpt-4o-mini"/g' "$dest"
+    sed -i'' -e 's/model: "sonnet"/model: "gpt-4o"/g' "$dest"
+    sed -i'' -e 's/model="haiku"/model="gpt-4o-mini"/g' "$dest"
+    sed -i'' -e 's/model="sonnet"/model="gpt-4o"/g' "$dest"
   else
     strip_frontmatter "$src" > "$dest"
   fi
@@ -112,14 +119,29 @@ for src in "$COMMANDS_SRC"/*.md; do
 done
 ok "Generated $CMD_COUNT commands"
 
-# ─── Agents (copy as-is) ────────────────────────────────────────────
+# ─── Agents (copy + patch models from cursor-models.json) ───────────
+CURSOR_MODELS="$REPO_ROOT/cursor-models.json"
 AGENT_COUNT=0
 for src in "$AGENTS_SRC"/*.md; do
   [ -f "$src" ] || continue
-  cp "$src" "$CURSOR_DIR/agents/$(basename "$src")"
+  name=$(basename "$src" .md)
+  dest="$CURSOR_DIR/agents/$(basename "$src")"
+  cp "$src" "$dest"
+
+  # Patch model in frontmatter if cursor-models.json has an entry
+  if [ -f "$CURSOR_MODELS" ]; then
+    CURSOR_MODEL=$(jq -r --arg name "$name" '.agents[$name].model // empty' "$CURSOR_MODELS")
+    if [ -n "$CURSOR_MODEL" ] && head -1 "$dest" | grep -q '^---$'; then
+      # Replace the model: line in YAML frontmatter
+      if grep -q '^model:' "$dest"; then
+        sed -i'' -e "s/^model:.*$/model: $CURSOR_MODEL/" "$dest"
+      fi
+    fi
+  fi
+
   AGENT_COUNT=$((AGENT_COUNT + 1))
 done
-ok "Copied $AGENT_COUNT agents"
+ok "Copied $AGENT_COUNT agents (models patched from cursor-models.json)"
 
 # ─── Skills ──────────────────────────────────────────────────────────
 SKILL_COUNT=0
@@ -237,6 +259,27 @@ After installing, restart Cursor (or reload window), then use the commands:
 
 Every command supports `--help` for usage and flag documentation.
 
+## Model mapping
+
+This branch uses Cursor-optimized models instead of Claude-only models. The mapping is defined in [`cursor-models.json`](cursor-models.json) and applied automatically during sync.
+
+| Agent | Claude Code model | Cursor model | Why |
+|-------|------------------|--------------|-----|
+| `bug-context` | haiku | **gpt-4o-mini** | Simple Jira parsing |
+| `artifact-resolver` | haiku | **gpt-4o-mini** | Validation queries |
+| `documenter` | haiku | **gpt-4o-mini** | Template-based reports |
+| `publisher` | haiku | **gpt-4o-mini** | Format conversion + posting |
+| `slack-analyzer` | sonnet | **gpt-4o-mini** | Search + retrieve |
+| `fix-list` | sonnet | **gpt-4o-mini** | Structured output |
+| `grafana-analyzer` | sonnet | **gpt-4o** | SQL queries + log analysis |
+| `production-analyzer` | sonnet | **gpt-4o** | PR/commit timeline reasoning |
+| `hypotheses` | sonnet | **gpt-4o** | Causal reasoning |
+| `verifier` | sonnet | **gpt-4o** | Critical evaluation |
+| `skeptic` | sonnet | **gpt-4o** | Cross-examination |
+| `codebase-semantics` | sonnet | **claude-3.5-sonnet** | Code understanding |
+
+To change a model, edit `cursor-models.json` on `main` — the next sync will pick it up.
+
 ## How it differs from Claude Code
 
 | Feature | Claude Code (`main`) | Cursor (`cursor-support`) |
@@ -244,12 +287,13 @@ Every command supports `--help` for usage and flag documentation.
 | Multi-agent parallelism | Yes — 4 agents run simultaneously | No — single agent, sequential |
 | Agent teams | Yes — competing hypotheses in parallel | No — sequential hypothesis loop |
 | Task tool | Supported | Not available |
+| Models | Claude only (Haiku, Sonnet) | Mixed (GPT-4o, GPT-4o-mini, Claude 3.5 Sonnet) |
 | Commands | Native plugin commands | `.cursor/commands/` plain Markdown |
 | MCP config | `~/.claude.json` | `~/.cursor/mcp.json` |
 
 ## This branch is auto-synced
 
-The `cursor-support` branch is automatically synced from `main` via [GitHub Actions](https://github.com/TamirCohen-Wix/production-master/actions/workflows/sync-cursor.yml). Every push to `main` triggers a merge + `.cursor/` regeneration. You don't need to manually keep this branch up to date.
+The `cursor-support` branch is automatically synced from `main` via [GitHub Actions](https://github.com/TamirCohen-Wix/production-master/actions/workflows/sync-cursor.yml). Every push to `main` triggers a merge + `.cursor/` regeneration, including model patching from `cursor-models.json`. You don't need to manually keep this branch up to date.
 
 ## Requirements
 
