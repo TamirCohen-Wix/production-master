@@ -128,9 +128,7 @@ The `cursor-support` branch is synced from `main` via [`scripts/sync-cursor.sh`]
 To update to the latest version:
 
 ```bash
-cd production-master
-git pull --rebase origin cursor-support
-bash scripts/install-cursor.sh
+claude plugin update production-master
 ```
 
 To install a specific version:
