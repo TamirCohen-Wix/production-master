@@ -173,14 +173,17 @@ ok "Generated $SKILL_COUNT skills"
 info "Generating Cursor README..."
 # Read version from plugin.json for download links
 VERSION=$(jq -r '.version' "$REPO_ROOT/.claude-plugin/plugin.json" 2>/dev/null || echo "1.0.0-beta")
-cat > "$REPO_ROOT/README.md" << 'CURSOR_README_EOF'
+SHIELDS_VERSION=$(echo "$VERSION" | sed 's/-/--/g')
+cat > "$REPO_ROOT/README.md" << CURSOR_README_EOF
 <p align="center">
   <img src="assets/banner.jpg" alt="Production Master" width="800">
 </p>
 
 # Production Master — Cursor Support
 
-[![Claude Code Plugin](https://img.shields.io/badge/Cursor-Support-blue)](https://cursor.com)
+[![Version](https://img.shields.io/badge/version-${SHIELDS_VERSION}-blue)](https://github.com/TamirCohen-Wix/production-master/releases/tag/v${VERSION}-cursor)
+[![CI](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml/badge.svg)](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml)
+[![Cursor Support](https://img.shields.io/badge/Cursor-Support-blueviolet)](https://cursor.com)
 [![Author](https://img.shields.io/badge/author-Tamir%20Cohen-green)](https://wix.slack.com/team/U09H3AHE3C7)
 
 Autonomous production investigation pipeline for [Cursor](https://cursor.com). This branch contains a `.cursor/` directory with agents, commands, and skills adapted for Cursor's single-agent model.
@@ -293,9 +296,9 @@ To change a model, edit `cursor-models.json` on `main` — the next sync will pi
 | Commands | Native plugin commands | `.cursor/commands/` plain Markdown |
 | MCP config | `~/.claude.json` | `~/.cursor/mcp.json` |
 
-## This branch is auto-synced
+## This branch is synced from main
 
-The `cursor-support` branch is automatically synced from `main` via [GitHub Actions](https://github.com/TamirCohen-Wix/production-master/actions/workflows/sync-cursor.yml). Every push to `main` triggers a merge + `.cursor/` regeneration, including model patching from `cursor-models.json`. You don't need to manually keep this branch up to date.
+The `cursor-support` branch is synced from `main` via [`scripts/sync-cursor.sh`](scripts/sync-cursor.sh). Each sync merges main and regenerates `.cursor/`, including model patching from `cursor-models.json`. Syncs can be triggered manually via [GitHub Actions](https://github.com/TamirCohen-Wix/production-master/actions/workflows/sync-cursor.yml) or by running the script locally.
 
 ## Updating
 
