@@ -9,13 +9,16 @@
 [![Author](https://img.shields.io/badge/author-Tamir%20Cohen-green)](https://wix.slack.com/team/U09H3AHE3C7)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://github.com/anthropics/claude-code/blob/main/plugins/README.md)
 
-Autonomous production investigation pipeline for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and [Cursor](https://cursor.com). 12 agents, 8 commands, 9 MCP integrations, hypothesis loops.
+Autonomous production investigation pipeline for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). 12 agents, 8 commands, 9 MCP integrations, hypothesis loops.
 
 > [!WARNING]
 > **Beta.** Try it **per-session first** before installing persistently. Use **`local` scope** (the default) to limit blast radius.
 
 > [!CAUTION]
 > **MCP connectivity can be unstable.** A full investigation takes ~40 minutes. If you hit MCP errors, check [#mcp-gw-support](https://wix.slack.com/archives/C093RAT0NLS).
+
+> [!TIP]
+> **Using Cursor?** See the [`cursor-support`](https://github.com/TamirCohen-Wix/production-master/tree/cursor-support) branch — it includes a `.cursor/` directory with agents, commands, and skills adapted for Cursor's single-agent model.
 
 ## Quick Start — Try Per-Session
 
@@ -32,8 +35,6 @@ Then run `/production-master SCHED-45895` to investigate a ticket.
 
 ## Install
 
-### Claude Code
-
 ```bash
 gh repo clone TamirCohen-Wix/production-master
 cd production-master
@@ -49,34 +50,6 @@ bash scripts/install.sh
 ```
 
 The installer asks for an install scope, registers the plugin, configures MCP servers (prompts for your [access key](https://mcp-s-connect.wewix.net/mcp-servers)), and enables agent teams.
-
-### Cursor
-
-Cursor support lives on the `cursor-support` branch — it includes a `.cursor/` directory with agents, commands, and skills adapted for Cursor's single-agent model.
-
-**Option A — Clone the branch:**
-
-```bash
-gh repo clone TamirCohen-Wix/production-master -- -b cursor-support
-cd production-master
-bash scripts/install-cursor.sh
-```
-
-**Option B — Download the ZIP:**
-
-Download from the [cursor-support branch](https://github.com/TamirCohen-Wix/production-master/archive/refs/heads/cursor-support.zip), unzip, and run `bash scripts/install-cursor.sh`.
-
-**Option C — Switch an existing clone:**
-
-```bash
-cd production-master
-git checkout cursor-support
-bash scripts/install-cursor.sh
-```
-
-The Cursor installer copies agents, commands, and skills into your Cursor config directory (`~/.cursor/` by default or a custom path), strips YAML frontmatter from commands, and configures MCP servers in Cursor's `mcp.json`.
-
-> **Key difference:** Cursor doesn't support the `Task` tool, so the orchestrator runs everything in a single agent context. The `cursor-support` branch includes a header in `production-master.md` that tells Cursor to inline agent instructions instead of launching subagents.
 
 ### Plugin scopes
 
@@ -194,7 +167,7 @@ PRs to `main` require passing CI and 1 approving review. See the [contributing g
 
 ## Requirements
 
-- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) or [Cursor](https://cursor.com)
+- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
 - [GitHub CLI](https://cli.github.com) (`gh`)
 - [MCP access key](https://mcp-s-connect.wewix.net/mcp-servers) for Grafana, Slack, Jira, GitHub, Octocode, FT-release, Context-7, Grafana-MCP, Fire Console
 
