@@ -1,11 +1,33 @@
 ---
 description: "Validate and resolve service names to Grafana artifact IDs"
-user-invocable: false
+argument-hint: "<service-name> [--help]"
+user-invocable: true
 ---
 
 # Resolve Artifact — Service Name Validator
 
 You validate service names against Grafana to find the correct artifact IDs. No subagents — execute MCP calls inline.
+
+---
+
+## Argument Parsing
+
+Parse `$ARGUMENTS` for flags:
+- If `$ARGUMENTS` is empty or contains `--help` or `-h`, print usage and STOP:
+
+```
+Usage: /resolve-artifact <service-name> [service-name2 ...]
+
+Arguments:
+  <service-name>      One or more service names to validate
+
+Examples:
+  /resolve-artifact bookings-service
+  /resolve-artifact bookings-service notifications-server sessions-server
+  /resolve-artifact com.wixpress.bookings.bookings-service
+```
+
+- No flags — all arguments are service names to validate
 
 ---
 

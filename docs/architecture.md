@@ -6,9 +6,7 @@ Production Master is a multi-agent pipeline that autonomously investigates produ
 
 ## Pipeline Design
 
-12 specialized agents, 1 active command (production-master), 9 MCP skill integrations, 2 output styles, 1 link validation hook.
-
-> **Note:** Other commands (fire-console, grafana-query, production-changes, resolve-artifact, slack-search, update-context) are temporarily disabled (`user-invocable: false`) while the main production-master pipeline is being refined. They will be re-enabled when stable.
+12 specialized agents, 8 commands, 9 MCP skill integrations, 2 output styles, 1 link validation hook.
 
 The orchestrator (`/production-master`) is the central coordinator. It:
 1. Classifies user intent into 7 modes (full investigation, log query, request trace, metrics, Slack search, code search, toggle check)
@@ -19,20 +17,27 @@ The orchestrator (`/production-master`) is the central coordinator. It:
 
 ## Agent Table
 
-| Agent | Role | Inputs | MCP Skills |
-|-------|------|--------|------------|
-| `bug-context` | Parses Jira tickets into structured briefs | Jira data, user input | — |
-| `artifact-resolver` | Validates service names against Grafana | Bug context, Grafana | grafana-datasource |
-| `grafana-analyzer` | Queries production logs, reports raw findings | Bug context, enriched context | grafana-datasource |
-| `codebase-semantics` | Maps code flows, error propagation, service boundaries | Bug context, Grafana report | octocode |
-| `production-analyzer` | Finds PRs, commits, feature toggle changes | Bug context, codebase report | github, ft-release |
-| `slack-analyzer` | Searches Slack for related discussions | Bug context, codebase report | slack |
-| `hypotheses` | Generates testable root cause theories | All reports, findings summary | fire-console |
-| `verifier` | Quality gate — evaluates hypothesis proof | Hypothesis, all reports | fire-console |
-| `skeptic` | Cross-examines competing hypotheses (agent teams) | Two hypothesis reports | — |
-| `fix-list` | Creates actionable fix plans with rollback options | Confirmed hypothesis, codebase report | ft-release |
-| `documenter` | Compiles pipeline output into investigation reports | All reports, all hypotheses | — |
-| `publisher` | Publishes findings to Jira and/or Slack | Report, bug context | jira, slack |
+| Agent | Model | Role | Inputs | MCP Skills |
+|-------|-------|------|--------|------------|
+| `bug-context` | haiku | Parses Jira tickets into structured briefs | Jira data, user input | — |
+| `artifact-resolver` | haiku | Validates service names against Grafana | Bug context, Grafana | grafana-datasource |
+| `grafana-analyzer` | sonnet | Queries production logs, reports raw findings | Bug context, enriched context | grafana-datasource |
+| `codebase-semantics` | sonnet | Maps code flows, error propagation, service boundaries | Bug context, Grafana report | octocode |
+| `production-analyzer` | sonnet | Finds PRs, commits, feature toggle changes | Bug context, codebase report | github, ft-release |
+| `slack-analyzer` | sonnet | Searches Slack for related discussions | Bug context, codebase report | slack |
+| `hypotheses` | sonnet | Generates testable root cause theories | All reports, findings summary | fire-console |
+| `verifier` | sonnet | Quality gate — evaluates hypothesis proof | Hypothesis, all reports | fire-console |
+| `skeptic` | sonnet | Cross-examines competing hypotheses (agent teams) | Two hypothesis reports | — |
+| `fix-list` | sonnet | Creates actionable fix plans with rollback options | Confirmed hypothesis, codebase report | ft-release |
+| `documenter` | haiku | Compiles pipeline output into investigation reports | All reports, all hypotheses | — |
+| `publisher` | haiku | Publishes findings to Jira and/or Slack | Report, bug context | jira, slack |
+
+## Model Tiering
+
+Agents are assigned models based on the complexity of their task:
+
+- **Haiku** — Used for agents that follow structured templates without needing to reason across large bodies of evidence: `bug-context` (structured Jira parsing), `artifact-resolver` (table lookup + validation), `documenter` (template-driven report compilation), and `publisher` (format conversion + posting).
+- **Sonnet** — Used for agents that require reasoning across multiple data sources, writing hypotheses, or evaluating evidence chains: `grafana-analyzer`, `codebase-semantics`, `production-analyzer`, `slack-analyzer`, `hypotheses`, `verifier`, `skeptic`, and `fix-list`.
 
 ## Investigation Flow
 
@@ -40,9 +45,9 @@ The orchestrator (`/production-master`) is the central coordinator. It:
 flowchart TD
     START["/production-master TICKET-ID"] --> CLASSIFY["Step 0: Classify Intent"]
     CLASSIFY --> |FULL_INVESTIGATION| INIT["Step 0.2: Create Output Dir"]
-    CLASSIFY --> |QUERY_LOGS| DIRECT_GRAFANA["Direct Grafana Query"]
-    CLASSIFY --> |TRACE_REQUEST| DIRECT_TRACE["Direct Request Trace"]
-    CLASSIFY --> |Other modes| DIRECT_OTHER["Direct Execution"]
+    CLASSIFY --> |QUERY_LOGS / TRACE_REQUEST / QUERY_METRICS| SUB_GRAFANA["/grafana-query logic"]
+    CLASSIFY --> |SEARCH_SLACK| SUB_SLACK["/slack-search logic"]
+    CLASSIFY --> |SEARCH_CODE / TOGGLE_CHECK| SUB_OTHER["/production-changes or /resolve-artifact logic"]
 
     INIT --> MCP_CHECK["Step 0.3: Verify 7 MCP Servers"]
     MCP_CHECK --> |All OK| JIRA["Step 0.4: Fetch Jira Ticket"]

@@ -1,10 +1,12 @@
 # Agents
 
-Production Master uses 12 specialized agents, each with a single focused role. Agents are launched as subagents via the `Task` tool with `model: "sonnet"`.
+Production Master uses 12 specialized agents, each with a single focused role. Agents are launched as subagents via the `Task` tool. Model assignment is tiered: reasoning-heavy agents run on **sonnet**, while structured/template-driven agents run on **haiku**. See [Model Tiering](architecture.md#model-tiering) for details.
 
 ---
 
 ## bug-context
+
+**Model:** haiku
 
 **Role:** Parses Jira tickets into structured investigation briefs.
 
@@ -23,6 +25,8 @@ Production Master uses 12 specialized agents, each with a single focused role. A
 
 ## artifact-resolver
 
+**Model:** haiku
+
 **Role:** Validates service names against Grafana to find correct artifact IDs.
 
 **Inputs:** Bug context report, service names to validate.
@@ -39,6 +43,8 @@ Production Master uses 12 specialized agents, each with a single focused role. A
 ---
 
 ## grafana-analyzer
+
+**Model:** sonnet
 
 **Role:** Queries production logs and reports raw findings.
 
@@ -58,6 +64,8 @@ Production Master uses 12 specialized agents, each with a single focused role. A
 ---
 
 ## codebase-semantics
+
+**Model:** sonnet
 
 **Role:** Maps code flows, error propagation paths, and service boundaries.
 
@@ -80,6 +88,8 @@ Production Master uses 12 specialized agents, each with a single focused role. A
 
 ## production-analyzer
 
+**Model:** sonnet
+
 **Role:** Finds PRs, commits, and feature toggle changes around the incident time.
 
 **Inputs:** Bug context, codebase semantics report, Grafana report (for error context only), skill references.
@@ -100,6 +110,8 @@ Production Master uses 12 specialized agents, each with a single focused role. A
 
 ## slack-analyzer
 
+**Model:** sonnet
+
 **Role:** Searches Slack for discussions related to the incident.
 
 **Inputs:** Bug context, codebase semantics report (for service names and keywords), skill reference.
@@ -118,6 +130,8 @@ Production Master uses 12 specialized agents, each with a single focused role. A
 ---
 
 ## hypotheses
+
+**Model:** sonnet
 
 **Role:** Generates testable root cause theories from all collected data.
 
@@ -141,6 +155,8 @@ Production Master uses 12 specialized agents, each with a single focused role. A
 ---
 
 ## verifier
+
+**Model:** sonnet
 
 **Role:** Quality gate that evaluates whether a hypothesis is proven with airtight evidence.
 
@@ -166,6 +182,8 @@ Production Master uses 12 specialized agents, each with a single focused role. A
 
 ## skeptic
 
+**Model:** sonnet
+
 **Role:** Cross-examines competing hypotheses when agent teams are enabled.
 
 **Inputs:** Two hypothesis reports (Tester A and Tester B), bug context, Grafana report, production report, Slack report, findings summary.
@@ -182,6 +200,8 @@ Production Master uses 12 specialized agents, each with a single focused role. A
 ---
 
 ## fix-list
+
+**Model:** sonnet
 
 **Role:** Creates actionable fix plans from confirmed hypotheses.
 
@@ -201,6 +221,8 @@ Production Master uses 12 specialized agents, each with a single focused role. A
 
 ## documenter
 
+**Model:** haiku
+
 **Role:** Compiles all pipeline output into a professional investigation report.
 
 **Inputs:** All data reports, all hypothesis iterations, verifier report, fix plan, user input.
@@ -213,9 +235,13 @@ Production Master uses 12 specialized agents, each with a single focused role. A
 
 **Post-processing:** The `validate-report-links` hook runs automatically and flags broken/placeholder URLs.
 
+**Citation rules:** Every claim in the report must cite a source — a Grafana log line, PR number, Slack message, or file:line reference. Do not include statements without traceable evidence.
+
 ---
 
 ## publisher
+
+**Model:** haiku
 
 **Role:** Publishes investigation findings to Jira and/or Slack.
 
@@ -227,6 +253,10 @@ Production Master uses 12 specialized agents, each with a single focused role. A
 - Jira comment on the ticket (formatted summary)
 - Slack thread in specified channel (formatted summary)
 - Verification that all links in the published content are valid
+
+**Interactive edit flow:** Before posting, the publisher shows a preview of the formatted content and prompts the user to confirm, edit, or cancel via `AskUserQuestion`. Edits loop until the user confirms. Slack posts support thread replies (reply to an existing thread instead of posting top-level). Jira posts support reply-to-comment quoting.
+
+**Citation rules:** Every claim in the published content must trace back to a source — Grafana URL, PR link, Jira ticket, or Slack thread. Do not publish unsupported statements.
 
 **Rules:**
 - Never include Slack channel links without verifying the channel exists

@@ -123,10 +123,12 @@ For the full list of modes and examples, see the [commands reference](docs/comma
 
 ### All commands
 
+All commands support `--help` for full usage and flag documentation (e.g., `/grafana-query --help`).
+
 | Command | Description |
 |---------|-------------|
-| `/production-master` | Full investigation pipeline |
-| `/grafana-query` | Query Grafana logs & metrics directly |
+| `/production-master` | Full investigation pipeline (`--skip-slack`, `--skip-grafana`, `--service`, `--verbose`) |
+| `/grafana-query` | Query Grafana logs & metrics directly (accepts `--level`, `--time` flags) |
 | `/slack-search` | Search Slack discussions |
 | `/production-changes` | Find PRs, commits, and feature toggle changes |
 | `/resolve-artifact` | Validate and resolve service artifact IDs |
@@ -155,9 +157,9 @@ For details on formatting rules and cross-platform publishing, see the [investig
 
 ### Model configuration
 
-The `/production-master` orchestrator runs on your session's current model (typically **Opus 4.6**). All 12 subagents run on **Sonnet** by default because Opus token usage is limited — a full investigation spawns 12+ subagents across multiple pipeline steps, and running all of them on Opus would quickly exhaust your token budget. Sonnet handles data fetching, MCP queries, and report writing well at a fraction of the cost, while Opus is reserved for the orchestrator where complex reasoning and coordination matter most.
+The `/production-master` orchestrator runs on your session's current model (typically **Opus 4.6**). Subagents use a **tiered model assignment**: reasoning-heavy agents (Grafana analysis, hypothesis generation, verification, code semantics) run on **Sonnet**, while structured/template-driven agents (Jira parsing, artifact validation, report compilation, publishing) run on **Haiku**. This balances cost and capability — a full investigation spawns 12+ subagents, so right-sizing each agent's model avoids unnecessary token spend.
 
-To change the subagent model, edit the `model` parameter in `commands/production-master.md` — every `Task` call specifies `model="sonnet"`. Replace with `"opus"` or `"haiku"` as needed. The orchestrator's own model is determined by your Claude Code session (use `/model` to switch).
+To override a specific agent's model, edit the `model` parameter in its corresponding `Task` call inside `commands/production-master.md`. The orchestrator's own model is determined by your Claude Code session (use `/model` to switch).
 
 | Agent | Role |
 |-------|------|
