@@ -49,7 +49,7 @@ fi
 ok "jq available"
 
 # ─── Step 1: Add marketplace & install plugin ────────────────────────
-header "Step 1/4 — Install Plugin"
+header "Step 1/5 — Install Plugin"
 
 # Choose scope
 echo ""
@@ -97,7 +97,7 @@ else
 fi
 
 # ─── Step 2: Configure MCP servers ───────────────────────────────────
-header "Step 2/4 — Configure MCP Servers"
+header "Step 2/5 — Configure MCP Servers"
 
 # Try local file first, fall back to GitHub API
 if [ -f "$PLUGIN_DIR/mcp-servers.json" ]; then
@@ -189,8 +189,37 @@ else
   fi
 fi
 
-# ─── Step 3: Enable Agent Teams ──────────────────────────────────────
-header "Step 3/4 — Enable Agent Teams"
+# ─── Step 3: Configure Status Line ───────────────────────────────────
+header "Step 3/5 — Configure Status Line"
+
+STATUSLINE_SCRIPT="$PLUGIN_DIR/scripts/statusline.sh"
+
+if [ -f "$STATUSLINE_SCRIPT" ]; then
+  chmod +x "$STATUSLINE_SCRIPT"
+
+  if [ -f "$SETTINGS_JSON" ]; then
+    HAS_STATUSLINE=$(jq -r '.statusLine.type // ""' "$SETTINGS_JSON" 2>/dev/null || echo "")
+  else
+    HAS_STATUSLINE=""
+  fi
+
+  if [ -n "$HAS_STATUSLINE" ]; then
+    ok "Status line already configured — skipping (existing config preserved)"
+  else
+    if [ -f "$SETTINGS_JSON" ]; then
+      UPDATED_SETTINGS=$(jq --arg cmd "$STATUSLINE_SCRIPT" '.statusLine = {"type":"command","command":$cmd,"padding":2}' "$SETTINGS_JSON")
+    else
+      UPDATED_SETTINGS=$(jq -n --arg cmd "$STATUSLINE_SCRIPT" '{"statusLine":{"type":"command","command":$cmd,"padding":2}}')
+    fi
+    echo "$UPDATED_SETTINGS" > "$SETTINGS_JSON"
+    ok "Status line configured: $STATUSLINE_SCRIPT"
+  fi
+else
+  warn "statusline.sh not found at $STATUSLINE_SCRIPT — skipping"
+fi
+
+# ─── Step 4: Enable Agent Teams ──────────────────────────────────────
+header "Step 4/5 — Enable Agent Teams"
 
 mkdir -p "$(dirname "$SETTINGS_JSON")"
 
@@ -212,8 +241,8 @@ else
   ok "Agent teams enabled in settings.json"
 fi
 
-# ─── Step 4: Summary ─────────────────────────────────────────────────
-header "Step 4/4 — Done!"
+# ─── Step 5: Summary ─────────────────────────────────────────────────
+header "Step 5/5 — Done!"
 echo ""
 echo -e "  ${GREEN}Production Master is installed and ready.${NC}"
 echo ""

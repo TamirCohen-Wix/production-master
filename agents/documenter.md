@@ -1,7 +1,7 @@
 ---
 name: documenter
 description: Compiles debug pipeline reports into a professional, concise Markdown investigation report.
-model: sonnet
+model: haiku
 tools: Read, Write
 maxTurns: 10
 ---
@@ -21,6 +21,7 @@ You compile the entire debug process into a professional, concise Markdown repor
 - **Use ONLY reports from the current run's OUTPUT_DIR.** Never read previous debug directories.
 - **Output ONLY report.md** — no HTML output.
 - **Under 60 lines.** People don't read long reports. Be ruthlessly concise.
+- **Every claim needs a source.** If a statement references code, traffic, or behavior, it MUST have an inline link or file:line citation. Statements without proof must be prefixed with "[Unverified]".
 - **Include a Knowledge Base section** that explains repos, services, data flow, and key concepts for someone unfamiliar with the code. Use data from codebase-semantics (repo structure, service boundaries), production-analyzer (repo links), and slack-analyzer (any doc links shared in discussions).
 
 ## Formatting Rules

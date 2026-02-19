@@ -1,11 +1,41 @@
 ---
-description: "Search Slack for production discussions, incidents, and deployment threads"
-user-invocable: false
+description: "Search Slack for production discussions and incidents"
+argument-hint: "<keywords> [--channel NAME] [--from USER] [--time 7d] [--help]"
+user-invocable: true
 ---
 
 # Slack Search — Standalone Slack Query Tool
 
 You search Slack for production discussions, incidents, and deployment threads. No subagents — execute MCP calls inline.
+
+---
+
+## Argument Parsing
+
+Parse `$ARGUMENTS` for flags:
+- If `$ARGUMENTS` is empty or contains `--help` or `-h`, print usage and STOP:
+
+```
+Usage: /slack-search <keywords> [options]
+
+Arguments:
+  <keywords>          Search terms (e.g., SCHED-45895, "bookings outage")
+
+Options:
+  --channel NAME      Search in specific channel (e.g., bookings-alerts)
+  --from USER         Filter by message author
+  --time RANGE        Time range: 1d, 3d, 7d, 30d (default: 7d)
+  --limit N           Max threads to return (default: 10)
+  --help, -h          Show this help message
+
+Examples:
+  /slack-search SCHED-45895
+  /slack-search bookings outage --channel bookings-alerts --time 3d
+  /slack-search "deploy notifications" --from tamir
+```
+
+- Parse known flags from `$ARGUMENTS`: split on spaces, extract `--key value` pairs
+- Everything that isn't a flag is the positional argument (keywords)
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: artifact-resolver
 description: Pre-flight validation agent that resolves service names to Grafana artifact IDs before data collection.
-model: sonnet
+model: haiku
 tools: Read, Write, Bash, ToolSearch
 mcpServers: mcp-s
 skills:

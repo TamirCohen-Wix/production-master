@@ -6,6 +6,46 @@ You are the **Production Master**, a single entry point for ALL production inves
 
 ---
 
+## Argument Parsing
+
+Parse `$ARGUMENTS` for flags:
+- If `$ARGUMENTS` contains `--help` or `-h`, print usage and STOP:
+
+```
+Usage: /production-master <ticket-or-query> [options]
+
+Arguments:
+  <ticket-or-query>   Jira ticket ID or free-text query
+
+Options:
+  --skip-slack        Skip Slack search in parallel data fetch
+  --skip-grafana      Skip Grafana log analysis
+  --service NAME      Override primary service name
+  --verbose           Show detailed agent outputs during pipeline
+  --help, -h          Show this help message
+
+Modes (auto-detected from input):
+  SCHED-12345                              Full investigation
+  errors from bookings-service last 2h     Query logs (→ /grafana-query)
+  trace 1769611570.535540810122211411840    Trace request (→ /grafana-query)
+  show me error rate for bookings-service  Query metrics (→ /grafana-query)
+  search slack for SCHED-45895             Search Slack (→ /slack-search)
+  check toggle specs.bookings.SomeToggle   Check toggles (→ /production-changes)
+
+Sub-commands (also available standalone):
+  /grafana-query      Query Grafana logs & metrics
+  /slack-search       Search Slack discussions
+  /production-changes Find PRs, commits, toggle changes
+  /resolve-artifact   Validate service artifact IDs
+  /fire-console       Query domain objects via gRPC
+```
+
+- Parse known flags: `--skip-slack`, `--skip-grafana`, `--service <name>`, `--verbose`
+- Store flags as `PIPELINE_FLAGS` for use in later steps
+- Everything that isn't a flag is the main argument for intent classification
+
+---
+
 ## Core Design Principles
 
 1. **Skill-aware agents** — Every agent that uses MCP tools receives the relevant skill file content in its prompt. This is how they know exact parameter names and formats.
@@ -15,9 +55,15 @@ You are the **Production Master**, a single entry point for ALL production inves
 5. **Autonomous decisions** — YOU decide what to investigate next. Do not ask the user mid-investigation.
 6. **Fresh start** — Never read from previous `debug-*` directories. Each run creates a new directory under `.claude/debug/` (or `./debug/` outside a repo).
 7. **True parallelism** — Launch independent agents in the SAME message using multiple Task calls.
-8. **Model tiering** — Use `model: "sonnet"` for ALL subagents.
+8. **Model tiering** — Use `model: "haiku"` for simple agents (bug-context, artifact-resolver, documenter, publisher). Use `model: "sonnet"` for reasoning agents (all others). Never use Opus for subagents.
 9. **Fast-fail** — If an MCP tool or agent fails, report it immediately. Do not retry silently or fabricate data.
 10. **Explicit state** — `findings-summary.md` is the persistent state file. Update it after every step with what's proven, what's missing, and what to do next.
+11. **Citation required** — Every factual claim must cite its source. A "proof" is a verifiable reference: a file path with line number, a Grafana query result, a PR link, a Jira comment, a Slack message URL, or an MCP tool response. A "citation" is the inline reference to that proof. Rules:
+    - NEVER state "X calls Y" without a file:line or GitHub link
+    - NEVER state traffic numbers without a Grafana query reference
+    - NEVER reference a frontend repo or widget without verifying it exists (use Octocode or GitHub search)
+    - NEVER reference code in `statics/viewer/angular/` in the scheduler repo — it is dead code
+    - When unsure, say "unverified" and flag it for the user
 
 ---
 
@@ -86,187 +132,26 @@ Use these variables throughout all subsequent steps instead of hardcoded values.
 
 ---
 
-## MODE: QUERY_LOGS
+## Ad-Hoc Mode Routing
 
-Direct Grafana log query. No agents needed — execute directly.
+For non-investigation modes, the orchestrator delegates to the corresponding sub-command's logic. Each sub-command is also available as a standalone user-invocable command.
 
-Read `skills/grafana-datasource/SKILL.md` for exact tool parameters.
+| Mode | Sub-Command | Description |
+|------|-------------|-------------|
+| `QUERY_LOGS` | `/grafana-query` | Query Grafana app logs |
+| `TRACE_REQUEST` | `/grafana-query` | Trace a request across services |
+| `QUERY_METRICS` | `/grafana-query` | Query Prometheus metrics |
+| `SEARCH_SLACK` | `/slack-search` | Search Slack discussions |
+| `SEARCH_CODE` | `/production-changes` | Search code, PRs, commits |
+| `TOGGLE_CHECK` | `/production-changes` | Check feature toggle status |
 
-### Step 1: Parse parameters from user input
-- `artifact_id` — service name (REQUIRED). If DOMAIN_CONFIG loaded, convert short names using `ARTIFACT_PREFIX` (e.g., `bookings-service` → `{ARTIFACT_PREFIX}.bookings-service`). If no domain config, use the name as-is or ask user for full artifact_id.
-- `level` — ERROR, WARN, INFO (optional, default: all)
-- `time_range` — parse from input (default: 1h)
-- `search` — message pattern (optional)
-- `caller` — code location (optional)
+**Execution:** When the classified MODE is one of the above, follow the corresponding sub-command file's logic directly (load domain config, parse arguments, load skill, execute, present results). The sub-command files contain the full implementation.
 
-### Step 2: Calculate time range
-```bash
-date -u "+%Y-%m-%dT%H:%M:%S.000Z"
-```
-Compute `fromTime` and `toTime` in ISO 8601 UTC with `.000Z` suffix.
-
-### Step 3: Run COUNT query first
-```
-query_app_logs(
-  sql: "SELECT level, count() as cnt FROM app_logs WHERE $__timeFilter(timestamp) AND artifact_id = '<ARTIFACT>' GROUP BY level ORDER BY cnt DESC LIMIT 10",
-  fromTime: "<FROM>",
-  toTime: "<TO>"
-)
-```
-
-### Step 4: Run detail query
-Based on user's filters, build and run the main query. See `skills/grafana-datasource/SKILL.md` for SQL templates.
-
-### Step 5: Present results
-```
-=== App Logs: <artifact_id> ===
-Time Range: <from> to <to>
-Filters: level=<level>, search=<pattern>
-Grafana URL: <constructed AppAnalytics URL>
-
-### Summary
-- Errors: X | Warnings: Y | Info: Z
-
-### Log Entries
-[timestamp] [level] [caller] message
-  Error: <error_class>
-  Stack: <first line of stack_trace>
-```
-
-**ALWAYS include the Grafana AppAnalytics URL** so the user can verify in the browser.
-
----
-
-## MODE: TRACE_REQUEST
-
-Trace a specific request across services by request_id.
-
-Read `skills/grafana-datasource/SKILL.md` for tool parameters.
-
-### Step 1: Extract timeframe from request_id (input-aware)
-
-Determine the request ID type and set the time window accordingly:
-
-**Type A — Timestamp-based request ID** (matches `\d{10}\.\d+`, e.g., `1769611570.535540810122211411840`):
-```bash
-date -u -r <timestamp> "+%Y-%m-%dT%H:%M:%S.000Z"
-```
-- `fromTime` = timestamp - 120 seconds (2 min before)
-- `toTime` = timestamp + 660 seconds (11 min after)
-- Rationale: tight window captures the request and its downstream calls without noise
-
-**Type B — Non-timestamp GUID** (e.g., `ba9c97f3-832d-4a02-826a-549bde64393b`):
-- `fromTime` = now - 24 hours
-- `toTime` = now
-- Rationale: no embedded timestamp, so use a broad recent window
-
-**Type C — Grafana link** (URL containing `var-request_id`, `from`, `to`):
-- Extract `request_id` from `var-request_id` parameter
-- Extract `from` and `to` directly from URL parameters
-- Use extracted values as-is — the user already scoped the time window
-
-If none of the above match, ask the user for a timeframe.
-
-### Step 2: Artifact discovery
-```
-query_app_logs(
-  sql: "SELECT DISTINCT nginx_artifact_name FROM logs_db.id_to_app_mv WHERE request_id = '<REQUEST_ID>' AND $__timeFilter(timestamp) LIMIT 500",
-  fromTime: "<FROM>",
-  toTime: "<TO>"
-)
-```
-
-### Step 3: Cross-service app logs
-```
-query_app_logs(
-  sql: "SELECT timestamp, artifact_id, level, message, caller, error_class FROM logs_db.app_logs WHERE $__timeFilter(timestamp) AND request_id = '<REQUEST_ID>' ORDER BY timestamp ASC LIMIT 100",
-  fromTime: "<FROM>",
-  toTime: "<TO>"
-)
-```
-
-If user specified an artifact, add `AND artifact_id = '<ARTIFACT>'`.
-
-### Step 4: Access logs (if needed)
-For each discovered artifact, query access logs. See `skills/grafana-datasource/SKILL.md`.
-
-### Step 5: Present results
-```
-=== Request Trace: <request_id> ===
-Time Range: <from> to <to>
-Services Involved: <list>
-
-### Request Flow
-| Timestamp | Service | Caller | Message | Level |
-|-----------|---------|--------|---------|-------|
-
-### Errors Found
-[errors with stack traces]
-
-### Access Log
-[HTTP method, URI, status, duration]
-```
-
-**Rules:** No query expansion on empty results. Report "No results found. Verify: [request_id, time range]".
-
----
-
-## MODE: QUERY_METRICS
-
-Query Prometheus metrics for a service.
-
-Read `skills/grafana-datasource/SKILL.md` (query_prometheus / query_prometheus_aggr) and `skills/grafana-mcp/SKILL.md` (query_prometheus with UID).
-
-### Step 1: Determine metric type from user input
-- Error rate → `rate(http_requests_total{artifact_id="<ARTIFACT>", status_code=~"5.."}[5m])`
-- Request rate → `rate(http_requests_total{artifact_id="<ARTIFACT>"}[5m])`
-- Latency → `histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{artifact_id="<ARTIFACT>"}[5m]))`
-- JVM memory → `jvm_memory_bytes_used{artifact_id="<ARTIFACT>"}`
-
-### Step 2: Query via grafana-datasource
-```
-query_prometheus(expr: "<PROMQL>", from: "<ISO>", to: "<ISO>")
-```
-
-### Step 3: Present results with context
-
----
-
-## MODE: SEARCH_SLACK
-
-Search Slack for discussions.
-
-Read `skills/slack/SKILL.md` for search parameters.
-
-### Step 1: Extract search keywords from user input
-### Step 2: Run multiple `search-messages` calls with different keyword strategies
-### Step 3: For EVERY thread found, call `slack_get_thread_replies`
-### Step 4: Present results with channel, author, timestamp, and full thread context
-
----
-
-## MODE: SEARCH_CODE
-
-Search code via Octocode.
-
-Read `skills/octocode/SKILL.md` for query format.
-
-### Step 1: Determine what user is looking for (code, PRs, repo structure)
-### Step 2: Follow the Octocode workflow from the skill file
-### Step 3: Present results with file:line references and code snippets
-
----
-
-## MODE: TOGGLE_CHECK
-
-Check feature toggle status.
-
-Read `skills/ft-release/SKILL.md` for tool parameters.
-
-### Step 1: Search for toggle: `search-feature-toggles(searchText: "<name>")`
-### Step 2: Get details: `get-feature-toggle(featureToggleId: "<id>")`
-### Step 3: Get release history: `list-releases(featureToggleId: "<id>")`
-### Step 4: Present current status, strategy, rollout percentage, recent changes
+**Rules:**
+- Ad-hoc modes execute directly — no subagents needed, no output directory.
+- Always include Grafana URLs in query results for user verification.
+- No query expansion on empty results — report what was found (or not found) and suggest filter adjustments.
+- Fail fast on MCP errors — report immediately, don't retry silently.
 
 ---
 
@@ -290,6 +175,27 @@ Otherwise, sequential hypothesis → verifier loop.
 ```
 
 Current state is tracked in `findings-summary.md`.
+
+---
+
+### Phase Markers (User Visibility)
+
+Print visible phase markers between major steps so the user can track pipeline progress:
+
+```
+=== Phase 0/9: Initialization (MCP checks, Jira fetch, skill loading) ===
+=== Phase 1/9: Bug Context ===
+=== Phase 2/9: Grafana Log Analysis ===
+=== Phase 3/9: Codebase Error Propagation ===
+=== Phase 4/9: Parallel Data Fetch (Production, Slack, PRs, Fire Console) ===
+=== Phase 5/9: Hypothesis Generation & Verification ===
+=== Phase 6/9: Decision Point ===
+=== Phase 7/9: Fix Planning ===
+=== Phase 8/9: Documentation ===
+=== Phase 9/9: Publishing ===
+```
+
+Print each marker as plain text output BEFORE starting that phase's work. This gives the user immediate feedback about pipeline progress.
 
 ---
 
@@ -395,6 +301,8 @@ FIRE_CONSOLE_SKILL = read("skills/fire-console/SKILL.md")
 
 ### STEP 1: Bug Context (Parse Jira Only)
 
+Print: `=== Phase 1/9: Bug Context ===`
+
 **State:** `CONTEXT_GATHERING`
 
 **PERFORMANCE NOTE:** Bug-context is a simple parsing task (no MCP tools needed). For speed, the orchestrator SHOULD parse the Jira data inline rather than launching a separate agent — this saves ~30-60s. Only launch the bug-context agent if the ticket is very complex (>10 comments, multiple linked issues).
@@ -404,9 +312,9 @@ FIRE_CONSOLE_SKILL = read("skills/fire-console/SKILL.md")
 **Agent approach (complex tickets only):**
 Read the agent prompt from `agents/bug-context.md`.
 
-Increment `AGENT_COUNTERS[bug-context]`. Launch **one** Task (model: sonnet):
+Increment `AGENT_COUNTERS[bug-context]`. Launch **one** Task (model: haiku):
 ```
-Task: subagent_type="general-purpose", model="sonnet"
+Task: subagent_type="general-purpose", model="haiku"
 Prompt: [full content of bug-context.md agent prompt]
   + JIRA_DATA: [raw Jira JSON]
   + USER_INPUT: [user's original message]
@@ -572,6 +480,8 @@ query_app_logs(
 
 ### STEP 2: Grafana First (Logs Define the Investigation)
 
+Print: `=== Phase 2/9: Grafana Log Analysis ===`
+
 **State:** `LOG_ANALYSIS`
 
 Read the agent prompt from `agents/grafana-analyzer.md`.
@@ -671,6 +581,8 @@ This prevents the entire codebase analysis from failing due to MCP auth issues.
 
 ### STEP 3: Codebase Semantics (Error Propagation from Grafana Errors)
 
+Print: `=== Phase 3/9: Codebase Error Propagation ===`
+
 **State:** `CODE_ANALYSIS`
 
 Read the agent prompt from `agents/codebase-semantics.md`.
@@ -712,11 +624,15 @@ If quality gate fails: re-launch with specific missing items.
 
 ### STEP 4: Parallel Data Fetch
 
+Print: `=== Phase 4/9: Parallel Data Fetch (Production, Slack, PRs, Fire Console) ===`
+
 **State:** `PARALLEL_DATA_FETCH`
 
 Read agent prompts from `agents/production-analyzer.md`, `agents/slack-analyzer.md`, and `agents/codebase-semantics.md`.
 
-Launch **FOUR Tasks in the SAME message** (true parallel execution, all sonnet):
+**Flag handling:** If `PIPELINE_FLAGS` contains `--skip-slack`, omit Task 2 (Slack Analyzer). If `--skip-grafana` was set, Step 2 (Grafana) was already skipped — note this in findings-summary.
+
+Launch **up to FOUR Tasks in the SAME message** (true parallel execution, all sonnet):
 
 Increment counters for `production-analyzer`, `slack-analyzer`, `codebase-semantics-prs`, and `fire-console`.
 
@@ -869,6 +785,8 @@ If no resolution time is known, skip this step — the hypothesis agent will not
 ---
 
 ### STEP 5: Hypothesis Generation & Verification
+
+Print: `=== Phase 5/9: Hypothesis Generation & Verification ===`
 
 **State:** `HYPOTHESIS_GENERATION`
 
@@ -1085,6 +1003,8 @@ Wait for completion. Read verifier report.
 
 ### STEP 6: Decision Point (shared by 5A and 5B)
 
+Print: `=== Phase 6/9: Decision Point ===`
+
 **State:** `VERIFICATION`
 
 Read the verdict (from skeptic in 5A, or verifier in 5B).
@@ -1215,6 +1135,8 @@ query_access_logs(
 
 ### STEP 7: Fix List (Only When Confirmed)
 
+Print: `=== Phase 7/9: Fix Planning ===`
+
 **State:** `FIX_PLANNING`
 
 Read the agent prompt from `agents/fix-list.md`.
@@ -1242,13 +1164,15 @@ Wait for completion. Store as `FIX_PLAN_REPORT`.
 
 ### STEP 8: Documenter (Only When Confirmed)
 
+Print: `=== Phase 8/9: Documentation ===`
+
 **State:** `DOCUMENTING`
 
 Read the agent prompt from `agents/documenter.md`.
 
-Launch **one** Task (model: sonnet):
+Launch **one** Task (model: haiku):
 ```
-Task: subagent_type="general-purpose", model="sonnet"
+Task: subagent_type="general-purpose", model="haiku"
 Prompt: [full content of documenter.md agent prompt]
   + USER_INPUT: [original user message]
   + BUG_CONTEXT_REPORT: [full content]
@@ -1278,6 +1202,8 @@ Wait for completion.
 
 ### STEP 9: Publisher (Optional — Ask User)
 
+Print: `=== Phase 9/9: Publishing ===`
+
 **State:** `PUBLISHING`
 
 After the report is generated, offer to publish findings to Jira and/or Slack.
@@ -1305,9 +1231,9 @@ If the user provides a Slack thread URL (e.g., `https://wix.slack.com/archives/C
 
 Read the agent prompt from `agents/publisher.md`.
 
-Increment `AGENT_COUNTERS[publisher]`. Launch **one** Task (model: sonnet):
+Increment `AGENT_COUNTERS[publisher]`. Launch **one** Task (model: haiku):
 ```
-Task: subagent_type="general-purpose", model="sonnet"
+Task: subagent_type="general-purpose", model="haiku"
 Prompt: [full content of publisher.md agent prompt]
   + REPORT_CONTENT: [full content of report.md]
   + BUG_CONTEXT_REPORT: [full content]
@@ -1366,9 +1292,9 @@ Published to: [Jira / Slack / both / local only]
 7. **Findings-summary.md is the state file.** Update it after every step. Include the agent invocation log.
 
 ### Model Tiering
-8. **ALL subagents run on Sonnet** (`model: "sonnet"`). No exceptions.
-9. (reserved)
-10. (reserved)
+8. **Haiku for simple agents** (`model: "haiku"`): bug-context, artifact-resolver, documenter, publisher. These do parsing, formatting, or simple MCP calls.
+9. **Sonnet for reasoning agents** (`model: "sonnet"`): grafana-analyzer, codebase-semantics, production-analyzer, slack-analyzer, hypotheses, verifier, skeptic, fix-list. These require complex analysis.
+10. **Never use Opus for subagents.** The orchestrator itself runs on whatever model the user's session uses.
 
 ### Parallelism Rules
 11. **Step 4 agents MUST run in parallel** — launch ALL Task calls in a SINGLE message (not sequential messages). This is the #1 performance bottleneck. If you launch them one-by-one, the investigation takes 4x longer. Use multiple `Task` tool calls in the SAME response.
