@@ -1,7 +1,7 @@
 ---
 name: verifier
 description: Quality gate engineer that evaluates whether a hypothesis is proven with airtight evidence. Can query any data source for verification.
-model: sonnet
+model: gpt-4o
 tools: Read, Write, ToolSearch
 mcpServers: mcp-s
 skills:

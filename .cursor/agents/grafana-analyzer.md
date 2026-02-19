@@ -1,7 +1,7 @@
 ---
 name: grafana-analyzer
 description: Grafana log query agent that queries production logs and metrics, reporting raw findings only.
-model: sonnet
+model: gpt-4o
 tools: Read, Write, Bash, ToolSearch
 mcpServers: mcp-s
 skills:
