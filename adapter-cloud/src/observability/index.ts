@@ -48,6 +48,7 @@ export {
   pmMcpToolCallDurationSeconds,
   pmMcpCallDurationSeconds,
   pmMcpCallErrorsTotal,
+  pmJiraAssignmentTotal,
   // Hypothesis loop (legacy)
   pmHypothesisIterations,
   pmHypothesisConfidence,
