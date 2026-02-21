@@ -96,7 +96,7 @@ jobs:
             fi
           done
 
-          for agent in artifact-resolver.md bug-context.md codebase-semantics.md documenter.md fix-list.md grafana-analyzer.md hypotheses.md meta-improver.md production-analyzer.md publisher.md skeptic.md slack-analyzer.md verifier.md; do
+          for agent in bug-context.md change-analyzer.md codebase-semantics.md comms-analyzer.md documenter.md fix-list.md hypotheses.md log-analyzer.md meta-improver.md publisher.md service-resolver.md skeptic.md verifier.md; do
             if [ ! -f "$CACHE_DIR/core/agents/$agent" ]; then
               echo "FAIL: core/agents/$agent missing"
               ERRORS=$((ERRORS + 1))
@@ -150,7 +150,7 @@ jobs:
             [ -f "$CACHE/adapter-claude/commands/$cmd" ] || { echo "FAIL: adapter-claude/commands/$cmd"; ERRORS=$((ERRORS + 1)); }
           done
 
-          for agent in artifact-resolver.md bug-context.md codebase-semantics.md documenter.md fix-list.md grafana-analyzer.md hypotheses.md meta-improver.md production-analyzer.md publisher.md skeptic.md slack-analyzer.md verifier.md; do
+          for agent in bug-context.md change-analyzer.md codebase-semantics.md comms-analyzer.md documenter.md fix-list.md hypotheses.md log-analyzer.md meta-improver.md publisher.md service-resolver.md skeptic.md verifier.md; do
             [ -f "$CACHE/core/agents/$agent" ] || { echo "FAIL: core/agents/$agent"; ERRORS=$((ERRORS + 1)); }
           done
 

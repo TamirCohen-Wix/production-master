@@ -80,7 +80,7 @@ jobs:
 
       - name: Check required agents
         run: |
-          EXPECTED="artifact-resolver.md bug-context.md codebase-semantics.md documenter.md fix-list.md grafana-analyzer.md hypotheses.md meta-improver.md production-analyzer.md publisher.md skeptic.md slack-analyzer.md verifier.md"
+          EXPECTED="bug-context.md change-analyzer.md codebase-semantics.md comms-analyzer.md documenter.md fix-list.md hypotheses.md log-analyzer.md meta-improver.md publisher.md service-resolver.md skeptic.md verifier.md"
           MISSING=0
           for agent in $EXPECTED; do
             if [ ! -f "core/agents/$agent" ]; then

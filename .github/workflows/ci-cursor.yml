@@ -72,7 +72,7 @@ jobs:
 
       - name: Check required agents (no skeptic)
         run: |
-          EXPECTED="artifact-resolver.md bug-context.md codebase-semantics.md documenter.md fix-list.md grafana-analyzer.md hypotheses.md production-analyzer.md publisher.md slack-analyzer.md verifier.md"
+          EXPECTED="bug-context.md change-analyzer.md codebase-semantics.md comms-analyzer.md documenter.md fix-list.md hypotheses.md log-analyzer.md publisher.md service-resolver.md verifier.md"
           MISSING=0
           for agent in $EXPECTED; do
             if [ ! -f "adapter-cursor/agents/$agent" ]; then
