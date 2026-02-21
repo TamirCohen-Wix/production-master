@@ -1,0 +1,29 @@
+# Placeholder for scheduled health checks / maintenance jobs
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "production-master.fullname" . }}-scheduled-check
+  labels:
+    {{- include "production-master.labels" . | nindent 4 }}
+spec:
+  schedule: "0 */6 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: scheduled-check
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["node", "dist/workers/scheduled-check.js"]
+              envFrom:
+                - configMapRef:
+                    name: {{ include "production-master.fullname" . }}-config
+                - secretRef:
+                    name: {{ include "production-master.fullname" . }}-secret
+          restartPolicy: OnFailure

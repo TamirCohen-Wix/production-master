@@ -1,0 +1,71 @@
+# Default values for production-master
+
+replicaCount:
+  api: 2
+  orchestrator: 1
+  worker: 3
+
+image:
+  repository: production-master
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
+  host: production-master.example.com
+  tls: []
+
+resources:
+  api:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  orchestrator:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  worker:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+env:
+  NODE_ENV: production
+  PORT: "3000"
+  LOG_LEVEL: info
+  OTEL_SERVICE_NAME: production-master
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+postgresql:
+  host: postgres
+  port: "5432"
+  database: production_master
+
+redis:
+  host: redis
+  port: "6379"

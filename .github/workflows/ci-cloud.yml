@@ -1,0 +1,119 @@
+name: CI Cloud Pipeline
+
+on:
+  push:
+    paths:
+      - 'adapter-cloud/**'
+      - 'core/**'
+  pull_request:
+    paths:
+      - 'adapter-cloud/**'
+      - 'core/**'
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: adapter-cloud/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: adapter-cloud
+
+      - name: Typecheck
+        run: npm run typecheck
+        working-directory: adapter-cloud
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: adapter-cloud/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: adapter-cloud
+
+      - name: Run tests
+        run: npm run test
+        working-directory: adapter-cloud
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t production-master:ci adapter-cloud/
+
+  helm:
+    name: Helm Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Lint Helm chart
+        run: helm lint adapter-cloud/helm/
+
+  migrations:
+    name: Validate Migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check migration files are numbered sequentially
+        run: |
+          cd adapter-cloud/migrations
+          files=$(ls *.sql 2>/dev/null | sort)
+          if [ -z "$files" ]; then
+            echo "No migration files found"
+            exit 0
+          fi
+          expected=1
+          for f in $files; do
+            num=$(echo "$f" | grep -oE '^[0-9]+' | sed 's/^0*//')
+            if [ "$num" != "$expected" ]; then
+              echo "FAIL: expected migration $expected but found $f (parsed as $num)"
+              exit 1
+            fi
+            expected=$((expected + 1))
+          done
+          echo "OK: $((expected - 1)) migrations numbered sequentially"
+
+      - name: Validate SQL syntax (basic)
+        run: |
+          cd adapter-cloud/migrations
+          for f in *.sql; do
+            echo "Checking $f ..."
+            # Verify file is non-empty
+            if [ ! -s "$f" ]; then
+              echo "FAIL: $f is empty"
+              exit 1
+            fi
+            # Verify file contains at least one SQL keyword
+            if ! grep -qiE '(CREATE|ALTER|INSERT|UPDATE|DELETE|DROP|SELECT)' "$f"; then
+              echo "FAIL: $f does not contain valid SQL statements"
+              exit 1
+            fi
+            echo "  OK"
+          done
+          echo "All migration files have valid SQL syntax"
