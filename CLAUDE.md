@@ -35,3 +35,24 @@ This is a monorepo with shared core logic and adapter-specific layers:
 
 - `adapter-cursor/` — Cursor IDE support (planned)
 - `adapter-cloud/` — Cloud/API deployment (planned)
+
+## Git/Worktree Hygiene (Required)
+
+To avoid branch cleanup failures and stale worktrees, follow this policy for every task:
+
+- **One PR = one branch = one worktree**.
+- **Do not reuse old worktrees** across PRs.
+- **Close in this order after merge**:
+  1. verify PR merged to `main`,
+  2. remove worktree,
+  3. delete local branch,
+  4. prune/fetch remote refs.
+- **Never delete a branch before removing its worktree** (Git will block it).
+- Keep only actively worked branches locally; delete merged feature branches promptly.
+
+### Merge strategy (repo expectation)
+
+- Squash merge only.
+- Auto-delete branch on merge enabled.
+
+If these settings drift, fix repo settings before starting a new PR wave.
