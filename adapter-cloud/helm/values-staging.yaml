@@ -1,36 +1,23 @@
-# Staging overrides
+# Wix staging cluster overrides
 
 replicaCount:
   api: 1
   orchestrator: 1
   worker: 1
 
-ingress:
-  host: production-master.staging.example.com
-
-resources:
-  api:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 250m
-      memory: 256Mi
-  orchestrator:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 250m
-      memory: 256Mi
-  worker:
-    requests:
-      cpu: 250m
-      memory: 256Mi
-    limits:
-      cpu: 500m
-      memory: 512Mi
-
 env:
   NODE_ENV: staging
   LOG_LEVEL: debug
+  LOG_TO_PANORAMA: "true"
+
+hpa:
+  enabled: false
+
+postgresql:
+  host: staging-postgres.wixpress.com
+  port: "5432"
+  database: production_master_staging
+
+redis:
+  host: staging-redis.wixpress.com
+  port: "6379"
