@@ -40,9 +40,6 @@
     "yaml": "^2.7.0",
     "zod": "^3.24.0"
   },
-  "optionalDependencies": {
-    "@wix/panorama-client-node": "latest"
-  },
   "devDependencies": {
     "@types/express": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.0",
@@ -50,9 +47,29 @@
     "@types/pg": "^8.11.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
+    "concurrently": "^9.0.0",
+    "dotenv-cli": "^8.0.0",
     "eslint": "^9.17.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
+  },
+  "wix": {
+    "framework": {
+      "type": "WIX_SERVERLESS"
+    },
+    "artifact": {
+      "groupId": "com.wixpress.b7",
+      "artifactId": "production-master",
+      "targets": {
+        "docker": true
+      }
+    },
+    "validations": {
+      "postBuild": [
+        "lint",
+        "test"
+      ]
+    }
   }
 }
