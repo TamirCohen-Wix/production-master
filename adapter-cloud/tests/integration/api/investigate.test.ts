@@ -113,6 +113,45 @@ async function request(
   });
 }
 
+/**
+ * Binary-oriented request helper for zip/download endpoints.
+ */
+async function requestBinary(
+  app: express.Express,
+  method: string,
+  path: string,
+  body?: unknown,
+): Promise<{ status: number; headers: Headers; bytes: Uint8Array }> {
+  return new Promise((resolve, reject) => {
+    const server = app.listen(0, () => {
+      const addr = server.address();
+      if (!addr || typeof addr === 'string') {
+        server.close();
+        reject(new Error('Failed to get server address'));
+        return;
+      }
+      const url = `http://127.0.0.1:${addr.port}${path}`;
+      const opts: RequestInit = {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+      };
+      if (body !== undefined) {
+        opts.body = JSON.stringify(body);
+      }
+      fetch(url, opts)
+        .then(async (res) => {
+          const buf = new Uint8Array(await res.arrayBuffer());
+          server.close();
+          resolve({ status: res.status, headers: res.headers, bytes: buf });
+        })
+        .catch((err) => {
+          server.close();
+          reject(err);
+        });
+    });
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -414,5 +453,38 @@ describe('GET /api/v1/investigations/:id/bundle', () => {
 
     expect(res.status).toBe(404);
     expect(res.body.error).toBe('Investigation not found');
+  });
+
+  it('should return a zip bundle with expected headers and PK signature', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'inv-100',
+            ticket_id: 'PROD-1234',
+            domain: 'payments',
+            mode: 'balanced',
+            status: 'completed',
+            error: null,
+            created_at: '2026-02-21T10:00:00Z',
+            updated_at: '2026-02-21T10:05:00Z',
+            completed_at: '2026-02-21T10:05:00Z',
+          },
+        ],
+      }) // investigations
+      .mockResolvedValueOnce({ rows: [] }) // investigation_reports
+      .mockResolvedValueOnce({ rows: [] }) // investigation_phases
+      .mockResolvedValueOnce({ rows: [] }) // agent_runs
+      .mockResolvedValueOnce({ rows: [] }); // feedback
+
+    const res = await requestBinary(app, 'GET', '/api/v1/investigations/inv-100/bundle');
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type') ?? '').toContain('application/zip');
+    expect(res.headers.get('content-disposition') ?? '').toContain('investigation-inv-100-bundle.zip');
+    expect(res.bytes.length).toBeGreaterThan(20);
+    // ZIP local file header signature
+    expect(res.bytes[0]).toBe(0x50);
+    expect(res.bytes[1]).toBe(0x4b);
   });
 });
