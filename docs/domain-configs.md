@@ -65,7 +65,8 @@ The core config file. Every field maps directly to a pipeline variable:
   "build_system": "bazel",
   "monorepo": true,
   "grafana_url": "https://grafana.wixpress.com",
-  "grafana_app_analytics_dashboard": "olcdJbinz"
+  "grafana_app_analytics_dashboard": "olcdJbinz",
+  "cloud_api_url": "https://pm-api.wixpress.com"
 }
 ```
 
@@ -78,6 +79,7 @@ The core config file. Every field maps directly to a pipeline variable:
 | `artifact_prefix` | grafana-analyzer | Expands short service names (e.g., `bookings-service` → `com.wixpress.bookings.bookings-service`) |
 | `toggle_prefix` | production-analyzer, fix-list | Searches feature toggles scoped to the team |
 | `github_org` / `github_repo` | codebase-semantics, production-analyzer | Searches code and PRs |
+| `cloud_api_url` | similar-investigations, feedback | Base URL for the production-master Cloud API |
 | `request_id_format` | grafana-query | Extracts timestamps from request IDs for time-range queries |
 
 ### `jira_assignment` (optional)

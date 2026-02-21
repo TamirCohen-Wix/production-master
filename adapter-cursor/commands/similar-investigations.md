@@ -1,4 +1,10 @@
-# Similar Investigations
+---
+description: "Find similar past investigations by semantic similarity"
+argument-hint: "<INVESTIGATION_ID> [--limit N]"
+user-invocable: true
+---
+
+# Similar Investigations (Cursor Adapter)
 
 Find similar past investigations by semantic similarity.
 
@@ -33,7 +39,7 @@ Examples:
 ## Error Handling
 
 - **Missing API key:** Print setup instructions for `PRODUCTION_MASTER_API_KEY`
-- **Network error:** "Cloud API unavailable — check connectivity and PRODUCTION_MASTER_CLOUD_URL"
+- **Network error:** "Cloud API unavailable — check connectivity and Cloud API URL configuration (PRODUCTION_MASTER_CLOUD_URL env or cloud_api_url in domain.json)"
 - **404 response:** "Investigation not found or no embedding available yet"
 
 ## Notes
