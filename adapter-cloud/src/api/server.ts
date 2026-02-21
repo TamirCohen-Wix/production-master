@@ -30,7 +30,7 @@ import { healthRouter, setHealthRegistry } from './routes/health.js';
 import { metaRouter, setMetaRegistry } from './routes/meta.js';
 
 // Webhooks
-import { jiraWebhookRouter, closeJiraWebhookQueue } from './webhooks/jira.js';
+import { jiraWebhookRouter, closeJiraWebhookQueue, setJiraWebhookRegistry } from './webhooks/jira.js';
 import { slackWebhookRouter, closeSlackQueue } from './webhooks/slack.js';
 import { pagerdutyWebhookRouter, closePagerdutyQueue } from './webhooks/pagerduty.js';
 import { grafanaAlertWebhookRouter, closeGrafanaAlertQueue } from './webhooks/grafana-alert.js';
@@ -173,6 +173,7 @@ async function start(): Promise<void> {
   // Inject registry into modules that need it
   setQueryRegistry(mcpRegistry);
   setHealthRegistry(mcpRegistry);
+  setJiraWebhookRegistry(mcpRegistry);
 
   // Build the adapted registry for the orchestrator (bridges class -> interface)
   const adaptedRegistry = adaptRegistry(mcpRegistry);
