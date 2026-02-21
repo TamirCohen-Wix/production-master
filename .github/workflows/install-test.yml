@@ -90,22 +90,22 @@ jobs:
           ERRORS=0
 
           for cmd in production-master.md git-update-agents.md update-context.md fire-console.md grafana-query.md production-changes.md resolve-artifact.md slack-search.md production-master-report.md; do
-            if [ ! -f "$CACHE_DIR/commands/$cmd" ]; then
-              echo "FAIL: commands/$cmd missing"
+            if [ ! -f "$CACHE_DIR/adapter-claude/commands/$cmd" ]; then
+              echo "FAIL: adapter-claude/commands/$cmd missing"
               ERRORS=$((ERRORS + 1))
             fi
           done
 
           for agent in artifact-resolver.md bug-context.md codebase-semantics.md documenter.md fix-list.md grafana-analyzer.md hypotheses.md production-analyzer.md publisher.md skeptic.md slack-analyzer.md verifier.md; do
-            if [ ! -f "$CACHE_DIR/agents/$agent" ]; then
-              echo "FAIL: agents/$agent missing"
+            if [ ! -f "$CACHE_DIR/core/agents/$agent" ]; then
+              echo "FAIL: core/agents/$agent missing"
               ERRORS=$((ERRORS + 1))
             fi
           done
 
           for skill in context7 fire-console ft-release github grafana-datasource grafana-mcp jira octocode slack; do
-            if [ ! -f "$CACHE_DIR/skills/$skill/SKILL.md" ]; then
-              echo "FAIL: skills/$skill/SKILL.md missing"
+            if [ ! -f "$CACHE_DIR/core/skills/$skill/SKILL.md" ]; then
+              echo "FAIL: core/skills/$skill/SKILL.md missing"
               ERRORS=$((ERRORS + 1))
             fi
           done
@@ -133,7 +133,7 @@ jobs:
 
       - name: Validate install.sh is runnable
         run: |
-          bash -n scripts/install.sh
+          bash -n adapter-claude/scripts/install.sh
           echo "OK: install.sh has valid syntax"
 
       - name: Simulate install structure
@@ -141,7 +141,7 @@ jobs:
           # Simulate what the plugin cache should look like
           CACHE="/tmp/plugin-test"
           mkdir -p "$CACHE"
-          cp -r commands agents skills hooks mcp-servers.json "$CACHE/"
+          cp -r adapter-claude/commands core/agents core/skills adapter-claude/hooks mcp-servers.json "$CACHE/"
 
           ERRORS=0
           for cmd in production-master.md git-update-agents.md update-context.md fire-console.md grafana-query.md production-changes.md resolve-artifact.md slack-search.md production-master-report.md; do
