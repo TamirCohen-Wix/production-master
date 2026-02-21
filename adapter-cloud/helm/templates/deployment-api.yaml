@@ -5,6 +5,10 @@ metadata:
   labels:
     {{- include "production-master.labels" . | nindent 4 }}
     app.kubernetes.io/component: api
+  {{- with .Values.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   replicas: {{ .Values.replicaCount.api }}
   selector:
@@ -32,9 +36,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "production-master.fullname" . }}-config
-            - secretRef:
-                name: {{ include "production-master.fullname" . }}-secret
-          command: ["node", "dist/api/server.js"]
           livenessProbe:
             httpGet:
               path: /health
