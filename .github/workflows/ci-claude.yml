@@ -1,0 +1,105 @@
+name: CI Claude Code Adapter
+
+on:
+  push:
+    paths: ['adapter-claude/**', 'core/**']
+  pull_request:
+    paths: ['adapter-claude/**', 'core/**']
+
+jobs:
+  validate-plugin:
+    name: Validate plugin metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate plugin.json
+        run: |
+          echo "Checking adapter-claude/.claude-plugin/plugin.json..."
+          test -f adapter-claude/.claude-plugin/plugin.json || { echo "FAIL: plugin.json missing"; exit 1; }
+          jq empty adapter-claude/.claude-plugin/plugin.json || { echo "FAIL: plugin.json is not valid JSON"; exit 1; }
+
+          NAME=$(jq -r '.name' adapter-claude/.claude-plugin/plugin.json)
+          [ "$NAME" = "production-master" ] || { echo "FAIL: unexpected plugin name: $NAME"; exit 1; }
+          echo "OK: plugin.json is valid (name=$NAME)"
+
+      - name: Validate marketplace.json
+        run: |
+          echo "Checking adapter-claude/.claude-plugin/marketplace.json..."
+          test -f adapter-claude/.claude-plugin/marketplace.json || { echo "FAIL: marketplace.json missing"; exit 1; }
+          jq empty adapter-claude/.claude-plugin/marketplace.json || { echo "FAIL: marketplace.json is not valid JSON"; exit 1; }
+          echo "OK: marketplace.json is valid"
+
+  validate-commands:
+    name: Validate commands
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required commands
+        run: |
+          EXPECTED="production-master.md grafana-query.md slack-search.md production-changes.md resolve-artifact.md fire-console.md update-context.md production-master-report.md git-update-agents.md"
+          MISSING=0
+          for cmd in $EXPECTED; do
+            if [ ! -f "adapter-claude/commands/$cmd" ]; then
+              echo "FAIL: adapter-claude/commands/$cmd missing"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+          TOTAL=$(ls adapter-claude/commands/*.md 2>/dev/null | wc -l | tr -d ' ')
+          echo "Commands: $TOTAL found"
+          [ "$MISSING" -eq 0 ] || exit 1
+          echo "OK: all expected commands present"
+
+  validate-hooks:
+    name: Validate hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate hooks.json
+        run: |
+          echo "Checking adapter-claude/hooks/hooks.json..."
+          test -f adapter-claude/hooks/hooks.json || { echo "FAIL: hooks.json missing"; exit 1; }
+          jq empty adapter-claude/hooks/hooks.json || { echo "FAIL: hooks.json is not valid JSON"; exit 1; }
+
+          # Verify required hook types exist
+          jq -e '.hooks.Notification' adapter-claude/hooks/hooks.json > /dev/null || { echo "FAIL: Notification hook missing"; exit 1; }
+          jq -e '.hooks.PostToolUse' adapter-claude/hooks/hooks.json > /dev/null || { echo "FAIL: PostToolUse hook missing"; exit 1; }
+          echo "OK: hooks.json is valid with Notification and PostToolUse hooks"
+
+  lint-scripts:
+    name: Lint shell scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck on all scripts
+        run: |
+          SCRIPTS=$(find adapter-claude/scripts/ -name '*.sh' -type f)
+          if [ -z "$SCRIPTS" ]; then
+            echo "No .sh files found in adapter-claude/scripts/"
+            exit 0
+          fi
+          echo "Linting scripts:"
+          echo "$SCRIPTS"
+          echo "$SCRIPTS" | xargs shellcheck --severity=error
+          echo "OK: all scripts passed shellcheck"
+
+  secrets-scan:
+    name: Scan for secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for potential secrets
+        run: |
+          echo "Scanning adapter-claude/ for potential secrets..."
+          if grep -rE '"[a-f0-9]{32,}"' adapter-claude/; then
+            echo "FAIL: potential secrets detected (hex strings 32+ chars)"
+            exit 1
+          fi
+          echo "OK: no secrets detected"
