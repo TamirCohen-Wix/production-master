@@ -3,12 +3,21 @@ import {
   PutObjectCommand,
   GetObjectCommand,
 } from '@aws-sdk/client-s3';
+import { getAwsConfig } from '../config/wix-config.js';
+
+const awsConfig = getAwsConfig();
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION ?? 'us-east-1',
+  ...(awsConfig.accessKeyId && {
+    credentials: {
+      accessKeyId: awsConfig.accessKeyId,
+      secretAccessKey: awsConfig.secretAccessKey,
+    },
+  }),
 });
 
-const BUCKET = process.env.S3_REPORTS_BUCKET ?? 'production-master-reports';
+const BUCKET = awsConfig.bucket;
 
 /**
  * Upload an investigation report to S3.

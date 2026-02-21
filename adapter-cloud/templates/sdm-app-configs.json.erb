@@ -1,0 +1,13 @@
+{
+  "appSecret": "<%= databag_passwd('production-master', 'app_secret') %>",
+  "postgresHost": "<%= databag_config('production-master', 'postgres_host') %>",
+  "postgresPassword": "<%= databag_passwd('production-master', 'postgres_password') %>",
+  "redisHost": "<%= databag_config('production-master', 'redis_host') %>",
+  "redisPassword": "<%= databag_passwd('production-master', 'redis_password') %>",
+  "anthropicApiKey": "<%= databag_passwd('production-master', 'anthropic_api_key') %>",
+  "jwtSecret": "<%= databag_passwd('production-master', 'jwt_secret') %>",
+  "mcpServiceAccountToken": "<%= databag_passwd('production-master', 'mcp_service_account_token') %>",
+  "awsAccessKeyId": "<%= databag_passwd('production-master', 'aws_access_key_id') %>",
+  "awsSecretAccessKey": "<%= databag_passwd('production-master', 'aws_secret_access_key') %>",
+  "s3Bucket": "<%= databag_config('production-master', 's3_bucket') %>"
+}
