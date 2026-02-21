@@ -1,0 +1,161 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "code-search",
+  "description": "Interface schema for cross-repository code search and file retrieval",
+  "type": "object",
+  "properties": {
+    "operations": {
+      "type": "object",
+      "properties": {
+        "search_code": {
+          "description": "Search code across repositories by keywords or patterns",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["keywords"],
+              "properties": {
+                "keywords": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Search terms (code identifiers, error messages, etc.)"
+                },
+                "repo": {
+                  "type": "string",
+                  "description": "Repository to search in (e.g., owner/repo)"
+                },
+                "match": {
+                  "type": "string",
+                  "enum": ["file", "path"],
+                  "description": "Match against file content or file path"
+                },
+                "extension": {
+                  "type": "string",
+                  "description": "File extension filter (e.g., scala, proto)"
+                },
+                "limit": {
+                  "type": "integer",
+                  "description": "Maximum number of results"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "results": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "file_path": { "type": "string" },
+                      "repo": { "type": "string" },
+                      "matches": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "line_number": { "type": "integer" },
+                            "content": { "type": "string" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "total": { "type": "integer" }
+              }
+            }
+          }
+        },
+        "get_file": {
+          "description": "Retrieve the content of a specific file from a repository",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["repo", "path"],
+              "properties": {
+                "repo": {
+                  "type": "string",
+                  "description": "Repository (e.g., owner/repo)"
+                },
+                "path": {
+                  "type": "string",
+                  "description": "File path within the repository"
+                },
+                "branch": {
+                  "type": "string",
+                  "description": "Branch or ref to read from"
+                },
+                "match_string": {
+                  "type": "string",
+                  "description": "Highlight/focus on this string in the file"
+                },
+                "start_line": {
+                  "type": "integer",
+                  "description": "Start line for partial content"
+                },
+                "end_line": {
+                  "type": "integer",
+                  "description": "End line for partial content"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "path": { "type": "string" },
+                "content": { "type": "string" },
+                "language": { "type": "string" },
+                "size_bytes": { "type": "integer" }
+              }
+            }
+          }
+        },
+        "search_symbols": {
+          "description": "Search for code symbols (classes, functions, types) across repositories",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["symbol"],
+              "properties": {
+                "symbol": {
+                  "type": "string",
+                  "description": "Symbol name to search for"
+                },
+                "repo": {
+                  "type": "string",
+                  "description": "Repository to scope the search"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": ["class", "function", "interface", "type", "variable"],
+                  "description": "Symbol kind filter"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "symbols": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "kind": { "type": "string" },
+                      "file_path": { "type": "string" },
+                      "line_number": { "type": "integer" },
+                      "repo": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

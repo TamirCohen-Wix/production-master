@@ -1,0 +1,104 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "domain-objects",
+  "description": "Interface schema for querying production domain entities via RPC",
+  "type": "object",
+  "properties": {
+    "operations": {
+      "type": "object",
+      "properties": {
+        "query_domain": {
+          "description": "Query domain objects by service, method, and filters",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["service", "method"],
+              "properties": {
+                "service": {
+                  "type": "string",
+                  "description": "Fully qualified service name (e.g., com.wixpress.bookings.bookings.v2.Bookings)"
+                },
+                "method": {
+                  "type": "string",
+                  "description": "RPC method name (e.g., Query, Get)"
+                },
+                "artifact_id": {
+                  "type": "string",
+                  "description": "Service artifact identifier for routing"
+                },
+                "payload": {
+                  "type": "object",
+                  "description": "Request payload (query filters, IDs, etc.)"
+                },
+                "context": {
+                  "type": "object",
+                  "description": "Request context (meta_site_id, user_id, etc.)",
+                  "properties": {
+                    "meta_site_id": { "type": "string" },
+                    "user_id": { "type": "string" }
+                  }
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "description": "Response payload from the RPC call"
+                },
+                "paging": {
+                  "type": "object",
+                  "properties": {
+                    "count": { "type": "integer" },
+                    "has_next": { "type": "boolean" },
+                    "cursor": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "list_domain_types": {
+          "description": "Discover available services, methods, and their schemas",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "artifact_id": {
+                  "type": "string",
+                  "description": "Artifact to list services for"
+                },
+                "search_query": {
+                  "type": "string",
+                  "description": "Fuzzy search for services by name"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "services": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "service_name": { "type": "string" },
+                      "methods": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                      },
+                      "artifact_id": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

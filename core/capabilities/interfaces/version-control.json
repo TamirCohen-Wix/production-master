@@ -1,0 +1,209 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "version-control",
+  "description": "Interface schema for git hosting with commits, pull requests, and diffs",
+  "type": "object",
+  "properties": {
+    "operations": {
+      "type": "object",
+      "properties": {
+        "list_commits": {
+          "description": "List commits on a branch with optional filters",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["owner", "repo"],
+              "properties": {
+                "owner": {
+                  "type": "string",
+                  "description": "Repository owner"
+                },
+                "repo": {
+                  "type": "string",
+                  "description": "Repository name"
+                },
+                "branch": {
+                  "type": "string",
+                  "description": "Branch name or SHA"
+                },
+                "since": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Only commits after this date"
+                },
+                "until": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Only commits before this date"
+                },
+                "limit": {
+                  "type": "integer",
+                  "description": "Maximum number of commits"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "commits": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sha": { "type": "string" },
+                      "message": { "type": "string" },
+                      "author": { "type": "string" },
+                      "date": { "type": "string", "format": "date-time" },
+                      "files_changed": { "type": "integer" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "list_prs": {
+          "description": "List pull requests with optional state and sort filters",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["owner", "repo"],
+              "properties": {
+                "owner": {
+                  "type": "string",
+                  "description": "Repository owner"
+                },
+                "repo": {
+                  "type": "string",
+                  "description": "Repository name"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": ["open", "closed", "all"],
+                  "description": "PR state filter"
+                },
+                "sort": {
+                  "type": "string",
+                  "enum": ["created", "updated", "popularity"],
+                  "description": "Sort order"
+                },
+                "limit": {
+                  "type": "integer",
+                  "description": "Maximum number of PRs"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "pull_requests": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "number": { "type": "integer" },
+                      "title": { "type": "string" },
+                      "state": { "type": "string" },
+                      "author": { "type": "string" },
+                      "created": { "type": "string", "format": "date-time" },
+                      "merged": { "type": "boolean" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "get_diff": {
+          "description": "Get the diff between two refs (branches, tags, commits)",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["owner", "repo", "base", "head"],
+              "properties": {
+                "owner": {
+                  "type": "string",
+                  "description": "Repository owner"
+                },
+                "repo": {
+                  "type": "string",
+                  "description": "Repository name"
+                },
+                "base": {
+                  "type": "string",
+                  "description": "Base ref (branch, tag, or SHA)"
+                },
+                "head": {
+                  "type": "string",
+                  "description": "Head ref to compare"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "files": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "filename": { "type": "string" },
+                      "status": { "type": "string" },
+                      "additions": { "type": "integer" },
+                      "deletions": { "type": "integer" },
+                      "patch": { "type": "string" }
+                    }
+                  }
+                },
+                "total_commits": { "type": "integer" }
+              }
+            }
+          }
+        },
+        "get_pr_details": {
+          "description": "Get full details of a specific pull request",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["owner", "repo", "pr_number"],
+              "properties": {
+                "owner": {
+                  "type": "string",
+                  "description": "Repository owner"
+                },
+                "repo": {
+                  "type": "string",
+                  "description": "Repository name"
+                },
+                "pr_number": {
+                  "type": "integer",
+                  "description": "Pull request number"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "number": { "type": "integer" },
+                "title": { "type": "string" },
+                "body": { "type": "string" },
+                "state": { "type": "string" },
+                "author": { "type": "string" },
+                "created": { "type": "string", "format": "date-time" },
+                "merged": { "type": "boolean" },
+                "merge_commit": { "type": "string" },
+                "files_changed": { "type": "integer" },
+                "additions": { "type": "integer" },
+                "deletions": { "type": "integer" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

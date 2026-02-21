@@ -1,6 +1,8 @@
 ---
 description: "Grafana Datasource — MCP Skill Reference"
 user-invocable: false
+capability: log-system
+provider: grafana-datasource
 ---
 
 # Grafana Datasource — MCP Skill Reference

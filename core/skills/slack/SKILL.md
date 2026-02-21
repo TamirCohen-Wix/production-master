@@ -1,6 +1,8 @@
 ---
 description: "Slack — MCP Skill Reference"
 user-invocable: false
+capability: team-communications
+provider: slack
 ---
 
 # Slack — MCP Skill Reference

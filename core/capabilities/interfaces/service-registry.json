@@ -1,0 +1,125 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "service-registry",
+  "description": "Interface schema for service discovery and metadata lookup",
+  "type": "object",
+  "properties": {
+    "operations": {
+      "type": "object",
+      "properties": {
+        "resolve_service": {
+          "description": "Resolve a service name to its deployment details and endpoints",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["service_name"],
+              "properties": {
+                "service_name": {
+                  "type": "string",
+                  "description": "Service name or artifact ID to resolve"
+                },
+                "environment": {
+                  "type": "string",
+                  "description": "Target environment (production, staging, etc.)"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "service_id": { "type": "string" },
+                "service_name": { "type": "string" },
+                "endpoints": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "url": { "type": "string" },
+                      "protocol": { "type": "string" }
+                    }
+                  }
+                },
+                "status": { "type": "string" }
+              }
+            }
+          }
+        },
+        "list_services": {
+          "description": "List all registered services with optional filters",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "filter": {
+                  "type": "string",
+                  "description": "Optional filter by name or tag"
+                },
+                "type": {
+                  "type": "string",
+                  "description": "Service type filter"
+                },
+                "limit": {
+                  "type": "integer",
+                  "description": "Maximum number of services to return"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "services": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "service_id": { "type": "string" },
+                      "service_name": { "type": "string" },
+                      "type": { "type": "string" },
+                      "status": { "type": "string" }
+                    }
+                  }
+                },
+                "total": { "type": "integer" }
+              }
+            }
+          }
+        },
+        "get_service_metadata": {
+          "description": "Get detailed metadata for a specific service including ownership and dependencies",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["service_id"],
+              "properties": {
+                "service_id": {
+                  "type": "string",
+                  "description": "Service identifier"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "service_id": { "type": "string" },
+                "service_name": { "type": "string" },
+                "owner_team": { "type": "string" },
+                "slack_channel": { "type": "string" },
+                "dependencies": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "tags": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

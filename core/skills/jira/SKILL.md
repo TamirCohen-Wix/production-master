@@ -1,6 +1,8 @@
 ---
 description: "Jira — MCP Skill Reference"
 user-invocable: false
+capability: ticket-system
+provider: jira
 ---
 
 # Jira — MCP Skill Reference
