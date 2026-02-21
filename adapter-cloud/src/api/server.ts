@@ -27,6 +27,11 @@ import { healthRouter, setHealthRegistry } from './routes/health.js';
 import { jiraWebhookRouter, closeJiraWebhookQueue } from './webhooks/jira.js';
 import { slackWebhookRouter, closeSlackQueue } from './webhooks/slack.js';
 import { pagerdutyWebhookRouter, closePagerdutyQueue } from './webhooks/pagerduty.js';
+import { grafanaAlertWebhookRouter, closeGrafanaAlertQueue } from './webhooks/grafana-alert.js';
+import { cicdWebhookRouter, closeCicdQueues } from './webhooks/cicd.js';
+
+// Health check route (authenticated)
+import { healthCheckRouter, closeHealthCheckQueue } from './routes/health-check.js';
 
 // Orchestrator
 import { startEngine, stopEngine } from '../orchestrator/engine.js';
@@ -116,6 +121,8 @@ app.get('/metrics', getMetricsEndpoint);
 app.use('/api/v1/webhooks/jira', jiraWebhookRouter);
 app.use('/api/v1/webhooks/slack', slackWebhookRouter);
 app.use('/api/v1/webhooks/pagerduty', pagerdutyWebhookRouter);
+app.use('/api/v1/webhooks/grafana-alert', grafanaAlertWebhookRouter);
+app.use('/api/v1/webhooks/deploy', cicdWebhookRouter);
 
 // All other /api/v1 routes require authentication
 app.use('/api/v1', authMiddleware);
@@ -125,6 +132,7 @@ app.use('/api/v1/investigate', investigateRouter);
 app.use('/api/v1/investigations', investigationsRouter);
 app.use('/api/v1/query', queriesRouter);
 app.use('/api/v1/domains', domainsRouter);
+app.use('/api/v1/health-check', healthCheckRouter);
 
 // ---------------------------------------------------------------------------
 // Startup
@@ -195,6 +203,9 @@ async function start(): Promise<void> {
       await closeJiraWebhookQueue();
       await closeSlackQueue();
       await closePagerdutyQueue();
+      await closeGrafanaAlertQueue();
+      await closeCicdQueues();
+      await closeHealthCheckQueue();
       log.info('Investigation queues closed');
     } catch (err) {
       log.error('Error closing investigation queues', {
