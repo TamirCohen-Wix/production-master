@@ -23,6 +23,8 @@ import { investigationsRouter } from './routes/investigations.js';
 import { queriesRouter, setQueryRegistry } from './routes/queries.js';
 import { domainsRouter } from './routes/domains.js';
 import { similarRouter } from './routes/similar.js';
+import { feedbackRouter } from './routes/feedback.js';
+import { analyticsRouter } from './routes/analytics.js';
 import { healthRouter, setHealthRegistry } from './routes/health.js';
 
 // Webhooks
@@ -134,6 +136,8 @@ app.use('/api/v1/investigate', investigateRouter);
 app.use('/api/v1/investigate/batch', batchRouter);
 app.use('/api/v1/investigations', investigationsRouter);
 app.use('/api/v1/investigations', similarRouter);
+app.use('/api/v1/investigations', feedbackRouter);
+app.use('/api/v1/analytics', analyticsRouter);
 app.use('/api/v1/query', queriesRouter);
 app.use('/api/v1/domains', domainsRouter);
 app.use('/api/v1/health-check', healthCheckRouter);
