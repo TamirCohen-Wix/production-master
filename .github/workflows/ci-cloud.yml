@@ -16,45 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint-and-typecheck:
-    name: Lint & Typecheck
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: adapter-cloud/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci --registry https://registry.npmjs.org
-        working-directory: adapter-cloud
-
-      - name: Typecheck
-        run: npm run typecheck
-        working-directory: adapter-cloud
-
-  unit-tests:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: adapter-cloud/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci --registry https://registry.npmjs.org
-        working-directory: adapter-cloud
-
-      - name: Run tests
-        run: npm run test
-        working-directory: adapter-cloud
+  # TODO: Re-enable once Wix Lifecycle CI handles lint/typecheck/tests.
+  # Disabled because the Wix npm registry is unreachable from GitHub Actions.
 
   migrations:
     name: Validate Migrations
