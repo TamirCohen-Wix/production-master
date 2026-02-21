@@ -1,0 +1,225 @@
+/**
+ * Express API server for production-master cloud pipeline.
+ *
+ * - Initializes tracing, metrics, database pool
+ * - Mounts REST routes under /api/v1/
+ * - Exposes /metrics for Prometheus scraping
+ * - Graceful shutdown on SIGTERM / SIGINT
+ */
+
+import express from 'express';
+import { initTracing, initMetrics, getMetricsEndpoint, createLogger } from '../observability/index.js';
+import { McpRegistry } from '../mcp/registry.js';
+import type { McpRegistry as McpRegistryInterface, McpServer, McpToolInfo, McpToolResult } from '../workers/tool-handler.js';
+import { closePool } from '../storage/db.js';
+
+// Middleware
+import { authMiddleware } from './middleware/auth.js';
+
+// Routes
+import { investigateRouter, closeInvestigateQueue } from './routes/investigate.js';
+import { investigationsRouter } from './routes/investigations.js';
+import { queriesRouter, setQueryRegistry } from './routes/queries.js';
+import { domainsRouter } from './routes/domains.js';
+import { healthRouter, setHealthRegistry } from './routes/health.js';
+
+// Orchestrator
+import { startEngine, stopEngine } from '../orchestrator/engine.js';
+
+// ---------------------------------------------------------------------------
+// Setup
+// ---------------------------------------------------------------------------
+
+const log = createLogger('api:server');
+
+/**
+ * Adapt the McpRegistry class to the McpRegistry interface expected by
+ * tool-handler / orchestrator. Bridges the two different APIs.
+ */
+function adaptRegistry(registry: McpRegistry): McpRegistryInterface {
+  // Build a tool-name -> server-name lookup cache
+  const toolServerMap = new Map<string, string>();
+  const serverCache = new Map<string, McpServer>();
+
+  async function ensureClient(serverName: string): Promise<McpServer> {
+    if (serverCache.has(serverName)) return serverCache.get(serverName)!;
+    const client = await registry.getClient(serverName);
+    const server: McpServer = {
+      name: serverName,
+      callTool: async (toolName: string, input: Record<string, unknown>) => {
+        const result = await client.callTool(toolName, input);
+        return result as McpToolResult;
+      },
+      listTools: async () => {
+        const tools = await client.listTools();
+        return tools as McpToolInfo[];
+      },
+    };
+    serverCache.set(serverName, server);
+    return server;
+  }
+
+  return {
+    resolveServer(toolName: string): McpServer | undefined {
+      const serverName = toolServerMap.get(toolName);
+      return serverName ? serverCache.get(serverName) : undefined;
+    },
+    getServers(): McpServer[] {
+      return [...serverCache.values()];
+    },
+    async listAllTools(): Promise<McpToolInfo[]> {
+      const servers = registry.listServers();
+      const allTools: McpToolInfo[] = [];
+      for (const s of servers) {
+        try {
+          const server = await ensureClient(s.name);
+          const tools = await server.listTools();
+          for (const t of tools) {
+            toolServerMap.set(t.name, s.name);
+            allTools.push(t);
+          }
+        } catch {
+          // Skip unhealthy servers
+        }
+      }
+      return allTools;
+    },
+  };
+}
+
+// Initialize observability first (tracing must happen before other imports)
+initTracing();
+initMetrics();
+
+// ---------------------------------------------------------------------------
+// App
+// ---------------------------------------------------------------------------
+
+const app = express();
+
+// Body parsing
+app.use(express.json({ limit: '1mb' }));
+
+// Health routes are unauthenticated
+app.use('/', healthRouter);
+
+// Prometheus metrics endpoint (unauthenticated for scraper access)
+app.get('/metrics', getMetricsEndpoint);
+
+// All /api/v1 routes require authentication
+app.use('/api/v1', authMiddleware);
+
+// Mount API routes
+app.use('/api/v1/investigate', investigateRouter);
+app.use('/api/v1/investigations', investigationsRouter);
+app.use('/api/v1/query', queriesRouter);
+app.use('/api/v1/domains', domainsRouter);
+
+// ---------------------------------------------------------------------------
+// Startup
+// ---------------------------------------------------------------------------
+
+const PORT = parseInt(process.env.PORT ?? '3000', 10);
+
+async function start(): Promise<void> {
+  // Initialize MCP registry
+  let mcpRegistry: McpRegistry;
+  try {
+    mcpRegistry = new McpRegistry();
+    log.info('MCP registry initialized');
+  } catch (err) {
+    log.warn('MCP registry initialization failed — starting without MCP', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    mcpRegistry = new McpRegistry([]);
+  }
+
+  // Inject registry into modules that need it
+  setQueryRegistry(mcpRegistry);
+  setHealthRegistry(mcpRegistry);
+
+  // Build the adapted registry for the orchestrator (bridges class -> interface)
+  const adaptedRegistry = adaptRegistry(mcpRegistry);
+
+  // Start orchestrator engine (BullMQ worker)
+  try {
+    startEngine(adaptedRegistry);
+    log.info('Orchestrator engine started');
+  } catch (err) {
+    log.warn('Orchestrator engine failed to start', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  // Start HTTP server
+  const server = app.listen(PORT, () => {
+    log.info(`Server listening on port ${PORT}`, {
+      port: PORT,
+      node_env: process.env.NODE_ENV ?? 'development',
+    });
+  });
+
+  // --- Graceful shutdown ---
+  const shutdown = async (signal: string) => {
+    log.info(`Received ${signal}, shutting down gracefully...`);
+
+    // Stop accepting new connections
+    server.close(() => {
+      log.info('HTTP server closed');
+    });
+
+    try {
+      // Stop orchestrator worker
+      await stopEngine();
+      log.info('Orchestrator engine stopped');
+    } catch (err) {
+      log.error('Error stopping orchestrator', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+
+    try {
+      // Close BullMQ queue
+      await closeInvestigateQueue();
+      log.info('Investigation queue closed');
+    } catch (err) {
+      log.error('Error closing investigation queue', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+
+    try {
+      // Disconnect MCP clients
+      await mcpRegistry.disconnectAll();
+      log.info('MCP clients disconnected');
+    } catch (err) {
+      log.error('Error disconnecting MCP clients', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+
+    try {
+      // Close database pool
+      await closePool();
+      log.info('Database pool closed');
+    } catch (err) {
+      log.error('Error closing database pool', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+
+    process.exit(0);
+  };
+
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
+}
+
+start().catch((err) => {
+  log.error('Server startup failed', {
+    error: err instanceof Error ? err.message : String(err),
+  });
+  process.exit(1);
+});
+
+export { app };
