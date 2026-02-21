@@ -52,7 +52,7 @@ export interface JiraAutoAssignResult {
 }
 
 let cachedGroupField: { fieldName: string; fieldKey: string; expiresAt: number } | null = null;
-let inFlightGroupFieldLookup: Promise<string | undefined> | null = null;
+const inFlightGroupFieldLookupByName = new Map<string, Promise<string | undefined>>();
 const toolNameCache = new Map<string, string>();
 
 function normalize(value: string): string {
@@ -223,9 +223,11 @@ async function resolveGroupFieldKey(
     return cachedGroupField.fieldKey;
   }
 
+  const fieldLookupKey = normalize(groupFieldName);
+
   // Deduplicate concurrent field discovery calls during cold cache windows.
-  if (!inFlightGroupFieldLookup) {
-    inFlightGroupFieldLookup = (async () => {
+  if (!inFlightGroupFieldLookupByName.has(fieldLookupKey)) {
+    inFlightGroupFieldLookupByName.set(fieldLookupKey, (async () => {
       try {
         const result = await callJiraTool(client, 'list_fields', {});
         const text = extractTextContent(result);
@@ -246,13 +248,13 @@ async function resolveGroupFieldKey(
           group_field_name: groupFieldName,
         });
       } finally {
-        inFlightGroupFieldLookup = null;
+        inFlightGroupFieldLookupByName.delete(fieldLookupKey);
       }
       return undefined;
-    })();
+    })());
   }
 
-  const discovered = await inFlightGroupFieldLookup;
+  const discovered = await inFlightGroupFieldLookupByName.get(fieldLookupKey);
   return discovered ?? fallbackKey;
 }
 
@@ -303,7 +305,7 @@ async function resolveAssigneeAccountId(
 
 export function resetJiraAutoAssignCaches(): void {
   cachedGroupField = null;
-  inFlightGroupFieldLookup = null;
+  inFlightGroupFieldLookupByName.clear();
   toolNameCache.clear();
 }
 
