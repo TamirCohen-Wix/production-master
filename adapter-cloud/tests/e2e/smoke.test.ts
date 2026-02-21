@@ -47,6 +47,7 @@ vi.mock('../../src/observability/index.js', () => ({
   initTracing: vi.fn(),
   initMetrics: vi.fn(),
   getMetricsEndpoint: vi.fn(),
+  injectTraceContext: <T extends Record<string, unknown>>(carrier: T): T => carrier,
   pmInvestigationTotal: { inc: mockInc },
   pmInvestigationDurationSeconds: { observe: vi.fn() },
   pmInvestigationVerdict: { inc: vi.fn() },
