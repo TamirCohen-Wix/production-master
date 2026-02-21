@@ -9,6 +9,9 @@ import { Router } from 'express';
 import { query } from '../../storage/db.js';
 import { queryRateLimit } from '../middleware/rate-limit.js';
 import { createLogger } from '../../observability/index.js';
+import archiver from 'archiver';
+import { getReport } from '../../storage/object-store.js';
+import type { QueryResultRow } from 'pg';
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -21,6 +24,15 @@ const log = createLogger('api:investigations');
 // ---------------------------------------------------------------------------
 
 export const investigationsRouter = Router();
+
+async function safeQuery<T extends QueryResultRow>(sql: string, params: unknown[]): Promise<T[]> {
+  try {
+    const result = await query<T>(sql, params);
+    return result.rows;
+  } catch {
+    return [];
+  }
+}
 
 // --- GET /:id — single investigation ---
 investigationsRouter.get('/:id', queryRateLimit, async (req, res) => {
@@ -96,6 +108,166 @@ investigationsRouter.get('/:id/report', queryRateLimit, async (req, res) => {
     res.json(result.rows[0]);
   } catch (err) {
     log.error('Failed to fetch report', {
+      error: err instanceof Error ? err.message : String(err),
+      investigation_id: req.params.id,
+    });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// --- GET /:id/bundle — download full debug bundle as zip ---
+investigationsRouter.get('/:id/bundle', queryRateLimit, async (req, res) => {
+  try {
+    const investigationId = req.params.id as string;
+
+    const investigations = await safeQuery<{
+      id: string;
+      ticket_id: string;
+      domain: string | null;
+      mode: string;
+      status: string;
+      error: string | null;
+      created_at: string;
+      updated_at: string;
+      completed_at?: string | null;
+    }>(
+      `SELECT id, ticket_id, domain, mode, status, error, created_at, updated_at, completed_at
+       FROM investigations WHERE id = $1`,
+      [investigationId],
+    );
+
+    if (investigations.length === 0) {
+      res.status(404).json({ error: 'Investigation not found' });
+      return;
+    }
+
+    const reportRows = await safeQuery<{
+      summary: string;
+      evidence: unknown;
+      recommendations: unknown;
+      created_at: string;
+    }>(
+      `SELECT summary, evidence, recommendations, created_at
+       FROM investigation_reports
+       WHERE investigation_id = $1
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [investigationId],
+    );
+
+    const phaseRows = await safeQuery<{
+      phase: string;
+      output: string;
+      duration_ms: number;
+      created_at?: string;
+    }>(
+      `SELECT phase, output, duration_ms, created_at
+       FROM investigation_phases
+       WHERE investigation_id = $1
+       ORDER BY created_at ASC`,
+      [investigationId],
+    );
+
+    const agentRows = await safeQuery<{
+      agent_name: string;
+      model: string | null;
+      iterations: number | null;
+      token_usage: unknown;
+      stop_reason: string | null;
+      duration_ms: number | null;
+      created_at?: string;
+    }>(
+      `SELECT agent_name, model, iterations, token_usage, stop_reason, duration_ms, created_at
+       FROM agent_runs
+       WHERE investigation_id = $1
+       ORDER BY created_at ASC`,
+      [investigationId],
+    );
+
+    const feedbackRows = await safeQuery<{
+      rating: string;
+      corrected_root_cause: string | null;
+      submitted_by: string | null;
+      submitted_at: string;
+    }>(
+      `SELECT rating, corrected_root_cause, submitted_by, submitted_at
+       FROM feedback
+       WHERE investigation_id = $1
+       ORDER BY submitted_at ASC`,
+      [investigationId],
+    );
+
+    let s3Report: string | null = null;
+    try {
+      s3Report = await getReport(investigationId);
+    } catch {
+      s3Report = null;
+    }
+
+    const report = reportRows[0] ?? null;
+    const investigation = investigations[0];
+    const tokenTotals = agentRows.reduce(
+      (acc, row) => {
+        const usage = (row.token_usage as { inputTokens?: number; outputTokens?: number; totalTokens?: number } | null) ?? {};
+        acc.input += usage.inputTokens ?? 0;
+        acc.output += usage.outputTokens ?? 0;
+        acc.total += usage.totalTokens ?? 0;
+        return acc;
+      },
+      { input: 0, output: 0, total: 0 },
+    );
+
+    const bundleMeta = {
+      investigation,
+      generated_at: new Date().toISOString(),
+      report_available: Boolean(report),
+      s3_report_available: Boolean(s3Report),
+      phases_count: phaseRows.length,
+      agents_count: agentRows.length,
+      feedback_count: feedbackRows.length,
+      token_usage: tokenTotals,
+    };
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=\"investigation-${investigationId}-bundle.zip\"`,
+    );
+
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    archive.on('error', (err) => {
+      throw err;
+    });
+    archive.pipe(res);
+
+    archive.append(JSON.stringify(bundleMeta, null, 2), { name: 'bundle/metadata.json' });
+    archive.append(JSON.stringify(report ?? {}, null, 2), { name: 'bundle/report.json' });
+    archive.append(JSON.stringify(phaseRows, null, 2), { name: 'bundle/phases.json' });
+    archive.append(JSON.stringify(agentRows, null, 2), { name: 'bundle/agent-runs.json' });
+    archive.append(JSON.stringify(feedbackRows, null, 2), { name: 'bundle/feedback.json' });
+
+    if (s3Report) {
+      archive.append(s3Report, { name: 'bundle/report-from-object-store.html' });
+    }
+
+    const diagnostics = [
+      '# Self Diagnostics',
+      '',
+      `- Phase count: ${phaseRows.length}`,
+      `- Agent run count: ${agentRows.length}`,
+      `- Feedback entries: ${feedbackRows.length}`,
+      `- Input tokens: ${tokenTotals.input}`,
+      `- Output tokens: ${tokenTotals.output}`,
+      `- Total tokens: ${tokenTotals.total}`,
+      '',
+      '## Per-Agent Durations (ms)',
+      ...agentRows.map((a) => `- ${a.agent_name}: ${a.duration_ms ?? 0}`),
+    ].join('\n');
+    archive.append(diagnostics, { name: 'bundle/self-diagnostics.md' });
+
+    await archive.finalize();
+  } catch (err) {
+    log.error('Failed to build debug bundle', {
       error: err instanceof Error ? err.message : String(err),
       investigation_id: req.params.id,
     });

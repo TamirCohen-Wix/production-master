@@ -1,0 +1,28 @@
+service: auth-service
+investigation_hints:
+  - signal: "5xx spike on /api/auth/token"
+    likely_causes:
+      - Redis connection pool exhaustion
+      - Certificate expiry/rotation drift
+      - Upstream identity provider outage
+    required_phases:
+      - metrics
+      - logs
+    skip_phases: []
+    confidence: medium
+    source: human-verified
+    last_verified: 2026-02-21
+
+  - signal: "Latency increase on /api/auth/verify"
+    likely_causes:
+      - JWT verification key rotation in progress
+      - Database connection pool saturation
+    required_phases:
+      - metrics
+      - logs
+      - traces
+    skip_phases:
+      - slack
+    confidence: medium
+    source: agent-generated
+    last_verified: 2026-02-21

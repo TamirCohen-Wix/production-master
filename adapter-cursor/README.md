@@ -26,3 +26,5 @@ Cursor IDE surface for the Production Master autonomous investigation pipeline.
 All core logic (agents, skills, output styles, orchestrator) lives in `core/`. This adapter provides the Cursor IDE integration layer on top of the shared engine.
 
 The `skills/` directory is a symlink to `core/skills/` so that skill definitions are always in sync across adapters.
+
+The command set includes `production-master-feedback.md` to submit structured post-investigation feedback into the cloud feedback loop.

@@ -83,6 +83,15 @@ This adapter exposes the Production Master investigation engine as a cloud servi
 - **OpenTelemetry** for distributed tracing
 - **Prometheus** for metrics collection
 
+## Key API Endpoints
+
+- `POST /api/v1/investigate` — start investigation
+- `GET /api/v1/investigations/:id` — investigation status
+- `GET /api/v1/investigations/:id/report` — latest report
+- `GET /api/v1/investigations/:id/similar` — semantically similar incidents (pgvector)
+- `POST /api/v1/investigations/:id/feedback` — submit quality feedback
+- `GET /api/v1/investigations/:id/bundle` — download debug bundle (`.zip`)
+
 ## Environment Variables
 
 See `.env.example` for all required and optional configuration.

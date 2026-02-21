@@ -37,6 +37,7 @@ Manual testing checklist for validating the Cursor adapter before marketplace su
 
 - [ ] /production-master starts full pipeline
 - [ ] /production-master-report generates summary
+- [ ] /production-master-feedback submits structured feedback
 - [ ] /grafana-query executes datasource queries
 - [ ] /slack-search returns relevant threads
 - [ ] /resolve-artifact resolves artifact references

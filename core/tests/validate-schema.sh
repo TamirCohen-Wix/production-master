@@ -30,6 +30,7 @@ echo ""
 
 check_json "$REPO_ROOT/core/domain/schema.json" "core/domain/schema.json"
 check_json "$REPO_ROOT/core/domain/defaults.json" "core/domain/defaults.json"
+check_json "$REPO_ROOT/core/domain/feedback.schema.json" "core/domain/feedback.schema.json"
 
 # Check that the reference domain.json exists
 DOMAIN_FILE="$REPO_ROOT/Domain/Bookings/Server/scheduler/domain.json"

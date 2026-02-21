@@ -5,6 +5,10 @@
 **Source**: Strategic Principles Audit (42 principles × 7 design docs)
 **Status**: Draft
 **Last Updated**: 2026-02-21
+**Implementation Update**:
+- Cloud feedback API and meta-analysis worker are implemented.
+- Embedding generation and similarity retrieval are implemented in cloud.
+- Remaining priorities: structured knowledge lifecycle automation, cross-surface UX parity, and full capability-provider runtime abstraction.
 
 ---
 

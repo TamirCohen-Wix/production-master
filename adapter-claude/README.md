@@ -18,8 +18,8 @@ platform-specific scripts.
 | `.claude-plugin/` | Plugin manifest (`plugin.json`) and marketplace listing (`marketplace.json`) |
 | `hooks/` | Claude Code hook definitions (`hooks.json`) -- notification and post-tool-use hooks |
 | `scripts/` | Installation, validation, version-bump, and status-line scripts |
-| `commands/` | Slash-command definitions (to be added in PR 2.2) |
-| `tests/` | Adapter-level tests (to be added) |
+| `commands/` | Slash-command definitions, including feedback capture (`production-master-feedback.md`) |
+| `tests/` | Adapter-level validation scripts |
 
 ## Hook path note
 
