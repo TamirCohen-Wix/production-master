@@ -14,7 +14,9 @@
     "test:watch": "vitest",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
-    "migrate": "node scripts/migrate.js"
+    "migrate": "node scripts/migrate.js",
+    "dev:server": "wix-serverless-cli start",
+    "dev:wix": "concurrently \"npm run dev:server\" \"npm run dev\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
