@@ -1,0 +1,20 @@
+# Model configuration for the cloud agent worker.
+#
+# `aliases` maps logical names used in agent frontmatter to concrete
+# Anthropic model identifiers.
+#
+# `agentOverrides` allows pinning a specific agent to a model that
+# differs from its frontmatter default.
+
+aliases:
+  haiku: claude-haiku-4-5-20251001
+  sonnet: claude-sonnet-4-6
+
+defaults:
+  maxTokens: 16384
+  temperature: 0
+
+agentOverrides: {}
+  # Example:
+  # hypotheses: sonnet
+  # publisher: haiku
