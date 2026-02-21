@@ -35,7 +35,7 @@ This is a monorepo with shared core logic and adapter-specific layers:
 - Core changes go in `core/` and are shared across all adapters.
 - Adapter-specific changes go in their respective `adapter-*/` directory.
 - CI workflows:
-  - `.github/workflows/ci.yml` — Core tests
+  - `.github/workflows/ci.yml` — Plugin & root-level validation
   - `.github/workflows/ci-claude.yml` — Claude Code adapter
   - `.github/workflows/ci-cursor.yml` — Cursor adapter
   - `.github/workflows/ci-cloud.yml` — Cloud adapter
