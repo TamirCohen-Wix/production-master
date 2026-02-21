@@ -26,6 +26,7 @@ import { healthRouter, setHealthRegistry } from './routes/health.js';
 // Webhooks
 import { jiraWebhookRouter, closeJiraWebhookQueue } from './webhooks/jira.js';
 import { slackWebhookRouter, closeSlackQueue } from './webhooks/slack.js';
+import { pagerdutyWebhookRouter, closePagerdutyQueue } from './webhooks/pagerduty.js';
 
 // Orchestrator
 import { startEngine, stopEngine } from '../orchestrator/engine.js';
@@ -114,6 +115,7 @@ app.get('/metrics', getMetricsEndpoint);
 // Webhook routes — authenticated via their own signature verification, not API keys
 app.use('/api/v1/webhooks/jira', jiraWebhookRouter);
 app.use('/api/v1/webhooks/slack', slackWebhookRouter);
+app.use('/api/v1/webhooks/pagerduty', pagerdutyWebhookRouter);
 
 // All other /api/v1 routes require authentication
 app.use('/api/v1', authMiddleware);
@@ -192,6 +194,7 @@ async function start(): Promise<void> {
       await closeInvestigateQueue();
       await closeJiraWebhookQueue();
       await closeSlackQueue();
+      await closePagerdutyQueue();
       log.info('Investigation queues closed');
     } catch (err) {
       log.error('Error closing investigation queues', {
