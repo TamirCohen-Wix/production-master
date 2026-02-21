@@ -1,56 +1,47 @@
 # Custom MCPs
 
-Local MCP adapters and mocks used by Production Master to support capability-based abstraction.
+Local MCP servers that expose abstract capability-level tool names, decoupling agent prompts from vendor-specific APIs.
 
-## Who this is for
+Each server is a translation layer: it accepts capability-level parameters (defined in `core/capabilities/interfaces/`), and delegates to the upstream vendor MCP server. The initial implementation returns scaffold responses matching the interface schema — upstream delegation is added when MCP-to-MCP forwarding is wired.
 
-Use this area if you are developing or testing custom MCP server behavior beyond the default platform-provided servers.
+## Servers
 
-## Quick start
+| Server | Dir | Tools | Upstream Provider | Interface Schema |
+|--------|-----|-------|-------------------|------------------|
+| `log-system` | `log-system/` | `query_logs`, `query_metrics`, `get_error_details`, `trace_request`, `list_services` | grafana-datasource | `core/capabilities/interfaces/log-system.json` |
+| `ticket-system` | `ticket-system/` | `get_ticket`, `search_tickets`, `add_comment`, `update_status` | jira | `core/capabilities/interfaces/ticket-system.json` |
+| `code-search` | `code-search/` | `search_code`, `get_file`, `search_symbols` | octocode | `core/capabilities/interfaces/code-search.json` |
+| `team-comms` | `team-comms/` | `search_messages`, `get_thread`, `post_message`, `find_channel` | slack | `core/capabilities/interfaces/team-communications.json` |
+| `version-control` | `version-control/` | `list_commits`, `list_prs`, `get_diff`, `get_pr_details` | github | `core/capabilities/interfaces/version-control.json` |
+| `feature-flags` | `feature-flags/` | `get_flag`, `list_flags`, `get_rollout_history` | ft-release | `core/capabilities/interfaces/feature-flags.json` |
 
-1. Inspect available custom MCP folders in this directory.
-2. Wire the MCP server into your local MCP config.
-3. Run a simple capability call from your adapter workflow.
+## Per-server structure
 
-## Install and setup
+```
+custom-mcps/{name}/
+  package.json      # Dependencies: @modelcontextprotocol/sdk, zod
+  tsconfig.json     # ES2022, NodeNext, strict
+  src/
+    index.ts        # MCP server + tool registrations
+```
 
-- Add your custom server entry to the relevant MCP config (`.mcp.json`, plugin config, or runtime env).
-- Ensure required credentials/environment variables are configured.
-- Start the custom MCP server process before running investigation workflows.
+## Build
 
-## Included
-
-- `log-system/` — capability-level scaffold that exposes `query_logs` and `query_metrics`.
-
-## Usage examples
-
-Typical capability-level calls:
-
-- `query_logs(service, time_range, filters)`
-- `query_metrics(service, metric_name, aggregation, window)`
+```bash
+cd custom-mcps/{name}
+npm install
+npm run build
+```
 
 ## Purpose
 
-- Decouple agent prompts from vendor-specific APIs.
-- Provide a stable capability contract while providers evolve.
-- Enable testing with deterministic mock/scaffold responses.
+- Decouple agent prompts from vendor-specific APIs
+- Provide a stable capability contract while providers evolve
+- Enable testing with deterministic scaffold responses
+- Support provider swapping (e.g., Grafana → Datadog) without changing agent prompts
 
 ## Configuration
 
-- Keep capability names stable (`query_logs`, `query_metrics`) across providers.
-- Map provider-specific tool names in adapter or server layer, not in prompts.
-- Document auth and endpoint requirements per custom MCP folder.
-
-## Troubleshooting
-
-- If tools are discovered but fail at runtime, validate credentials and host reachability.
-- If capability names mismatch expected contracts, align mappings before prompt changes.
-- If behavior drifts from production MCPs, capture fixture-based tests to compare outputs.
-
-## Contributing
-
-When adding a new custom MCP:
-
-1. Document supported capabilities and auth requirements.
-2. Add usage examples and limitations in that MCP folder.
-3. Update [docs/README.md](../docs/README.md) with a pointer if the MCP is generally useful.
+- Keep capability names stable (`query_logs`, `search_code`, etc.) across providers
+- Map provider-specific tool names in the server layer, not in agent prompts
+- Wire custom MCP servers into your MCP config when ready for runtime use

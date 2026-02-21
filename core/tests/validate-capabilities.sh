@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REGISTRY="$ROOT_DIR/core/capabilities/registry.yaml"
 INTERFACES_DIR="$ROOT_DIR/core/capabilities/interfaces"
-CUSTOM_MCP_DIR="$ROOT_DIR/custom-mcps/log-system/src/index.ts"
+CUSTOM_MCP_DIR="$ROOT_DIR/custom-mcps"
 KNOWLEDGE_DIR="$ROOT_DIR/.production-master/knowledge"
 
 errors=0
@@ -33,10 +33,34 @@ for file in "${EXPECTED_INTERFACES[@]}"; do
   fi
 done
 
-if [ ! -s "$CUSTOM_MCP_DIR" ]; then
-  echo "FAIL: missing custom MCP scaffold: $CUSTOM_MCP_DIR"
-  errors=$((errors + 1))
-fi
+# Validate all 6 custom MCP servers exist
+EXPECTED_CUSTOM_MCPS=(
+  "log-system"
+  "ticket-system"
+  "code-search"
+  "team-comms"
+  "version-control"
+  "feature-flags"
+)
+
+for mcp in "${EXPECTED_CUSTOM_MCPS[@]}"; do
+  mcp_index="$CUSTOM_MCP_DIR/$mcp/src/index.ts"
+  mcp_pkg="$CUSTOM_MCP_DIR/$mcp/package.json"
+  mcp_tsconfig="$CUSTOM_MCP_DIR/$mcp/tsconfig.json"
+
+  if [ ! -s "$mcp_index" ]; then
+    echo "FAIL: missing or empty custom MCP source: $mcp/src/index.ts"
+    errors=$((errors + 1))
+  fi
+  if [ ! -s "$mcp_pkg" ]; then
+    echo "FAIL: missing or empty custom MCP package.json: $mcp/package.json"
+    errors=$((errors + 1))
+  fi
+  if [ ! -s "$mcp_tsconfig" ]; then
+    echo "FAIL: missing or empty custom MCP tsconfig.json: $mcp/tsconfig.json"
+    errors=$((errors + 1))
+  fi
+done
 
 if [ ! -d "$KNOWLEDGE_DIR" ]; then
   echo "FAIL: missing knowledge registry directory: $KNOWLEDGE_DIR"
