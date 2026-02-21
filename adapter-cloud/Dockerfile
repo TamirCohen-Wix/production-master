@@ -3,8 +3,8 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci
+COPY .npmrc package*.json ./
+RUN npm install -g npm@latest && npm ci
 
 COPY src/ ./src/
 COPY tsconfig.json ./
