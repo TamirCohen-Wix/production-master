@@ -1,14 +1,24 @@
 # Troubleshooting
 
+## Surface-Aware Checks
+
+Production Master supports Claude, Cursor, and Cloud surfaces. Start by confirming where the failure occurs:
+
+- `adapter-claude/` (CLI/plugin command flow)
+- `adapter-cursor/` (Cursor integration flow)
+- `adapter-cloud/` (API/worker flow)
+
+If a failure appears on only one surface, inspect adapter-specific config first. If it appears on all surfaces, inspect `core/` behavior and MCP/provider health.
+
 ## MCP Server Issues
 
 ### "MCP servers not connected"
 
 The plugin uses 9 MCP servers total. Full investigations check 7 of them at Step 0.3 before proceeding:
 
-1. Run `/mcp` in Claude Code to see server status
-2. Reconnect failed servers
-3. Re-run `/production-master` — it will re-check all servers
+1. Check MCP/server status in your active surface runtime
+2. Reconnect failed servers or refresh credentials
+3. Re-run the investigation entrypoint for that surface
 
 ### MCP Servers
 
@@ -30,6 +40,13 @@ If a server fails after Step 0.3 passed:
 - The pipeline will NOT silently fall back to local tools
 - It will report the failure and propose alternatives
 - You must approve any fallback before it proceeds
+
+### Surface-Specific Fails, Shared Core Works
+
+If only one adapter fails while others work:
+1. Verify adapter-specific environment variables and config files
+2. Verify adapter command/hook/webhook wiring
+3. Compare with the working surface to isolate integration drift
 
 ## Common Problems
 

@@ -9,7 +9,7 @@
 [![Author](https://img.shields.io/badge/author-Tamir%20Cohen-green)](https://wix.slack.com/team/U09H3AHE3C7)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://github.com/anthropics/claude-code/blob/main/plugins/README.md)
 
-Autonomous production investigation pipeline for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). 12 agents, 9 commands, 9 MCP integrations, hypothesis loops.
+Autonomous production investigation platform with a shared core and multiple surfaces: Claude Code plugin, Cursor plugin, and cloud pipeline.
 
 > [!WARNING]
 > **Beta.** Try it **per-session first** before installing persistently. Use **`local` scope** (the default) to limit blast radius.
@@ -18,7 +18,10 @@ Autonomous production investigation pipeline for [Claude Code](https://docs.anth
 > **MCP connectivity can be unstable.** A full investigation takes ~40 minutes. If you hit MCP errors, check [#mcp-gw-support](https://wix.slack.com/archives/C093RAT0NLS).
 
 > [!TIP]
-> **Using Cursor?** See the [`cursor-support`](https://github.com/TamirCohen-Wix/production-master/tree/cursor-support) branch — it includes a `.cursor/` directory with agents, commands, and skills adapted for Cursor's single-agent model.
+> Surface-specific setup guides:
+> - Claude: `adapter-claude/README.md`
+> - Cursor: `adapter-cursor/README.md`
+> - Cloud: `adapter-cloud/README.md`
 
 ## Repository Structure
 
@@ -37,14 +40,14 @@ production-master/
 │   ├── hooks/               # Claude Code lifecycle hooks
 │   ├── scripts/             # Install, validate, sync scripts
 │   └── tests/               # Adapter-specific tests
+├── adapter-cursor/          # Cursor adapter
+├── adapter-cloud/           # Cloud adapter/service
 ├── Domain/                  # User domain configs (per-repo)
 ├── docs/                    # User-facing documentation
 ├── design-docs/             # Architecture & design documents
 ├── mcp-servers.json         # Root MCP server config
 └── cursor-models.json       # Cursor adapter model config
 ```
-
-> **Future adapters:** `adapter-cursor/` and `adapter-cloud/` are planned.
 
 ## Quick Start — Try Per-Session
 

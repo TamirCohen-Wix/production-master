@@ -2,7 +2,7 @@
 
 > **Experimental** — Commands and their behavior may change between versions.
 
-Production Master provides 9 commands: the main orchestrator, 5 standalone tools, a domain management command, a repo sync command, and a feedback/reporting command.
+Production Master command documentation in this file is for the Claude surface (`adapter-claude/`). Cursor and cloud surfaces expose equivalent capabilities through their own adapter UX/API.
 
 ---
 

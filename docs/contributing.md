@@ -1,5 +1,15 @@
 # Contributing
 
+## Surface-Aware Contributions
+
+Production Master has three surfaces sharing one core runtime:
+
+- Claude (`adapter-claude/`)
+- Cursor (`adapter-cursor/`)
+- Cloud (`adapter-cloud/`)
+
+When possible, implement behavior in `core/` first, then keep adapter changes minimal and surface-specific.
+
 ## Contributing a New Domain
 
 The easiest way — use `/update-context`:
@@ -22,24 +32,25 @@ If you prefer to create domain configs manually:
 ## Contributing Pipeline Improvements
 
 1. **Fork & clone** this repo
-2. **Edit files** directly (agents, commands, skills, hooks, output-styles, scripts)
-3. **Test locally** — run `claude --plugin-dir .` and use `/production-master` on a real ticket
+2. **Edit files** in the right layer (`core/` for shared behavior, adapter dirs for integration points)
+3. **Test locally** on the surface you changed (`adapter-claude/`, `adapter-cursor/`, or `adapter-cloud/`)
 4. **Open a PR** with what you changed and why
 
 ### What You Can Improve
 
-- **Agents** (`agents/`) — Improve agent prompts, add validation steps, tune quality gates
-- **Commands** (`commands/`) — Add new commands or improve existing flows
-- **Skills** (`skills/`) — Update MCP tool documentation as APIs change
-- **Hooks** (`hooks/`) — Add validation or notification hooks
-- **Output styles** (`output-styles/`) — Improve report formatting
+- **Core agents** (`core/agents/`) — Improve prompts, validation steps, and quality gates
+- **Core skills** (`core/skills/`) — Update MCP/tool guidance as APIs change
+- **Core output styles** (`core/output-styles/`) — Improve report formatting
+- **Claude integration** (`adapter-claude/commands/`, `adapter-claude/hooks/`, `adapter-claude/scripts/`)
+- **Cursor integration** (`adapter-cursor/`)
+- **Cloud integration** (`adapter-cloud/`)
 - **Domain configs** (`Domain/`) — Add or update team-specific configurations
 
 ## Guidelines
 
 - **Don't hardcode company-specific values** in pipeline files — use `domain.json` for anything repo-specific
 - **Keep agents focused** — each agent has one job. Don't add analysis to data-collection agents
-- **Test with real tickets** — the best way to validate changes
+- **Test on affected surfaces** — the best way to validate behavior and adapter parity
 - **Update MEMORY.md** — if you learn something from an investigation, capture it
 - **Preserve data isolation** — data agents must never see each other's outputs
-- **Follow model tiering** — all subagents use Sonnet
+- **Follow model tiering** — use lightweight models for structured tasks, stronger models for reasoning-heavy tasks

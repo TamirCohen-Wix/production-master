@@ -9,6 +9,8 @@ PARALLEL_DATA_FETCH → HYPOTHESIS_GENERATION (includes verification) →
   └── DECLINED → [re-gather data] → HYPOTHESIS_GENERATION (loop, max 5)
 ```
 
+The flow is shared across all product surfaces (Claude, Cursor, Cloud). Surface adapters can change entrypoint UX, but evidence, hypothesis, verification, and reporting stages remain aligned.
+
 When agent teams are enabled (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`), HYPOTHESIS_GENERATION uses parallel competing hypotheses + skeptic cross-examination. Otherwise, sequential hypothesis → verifier loop.
 
 Current state is tracked in `findings-summary.md`.

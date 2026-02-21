@@ -1,6 +1,8 @@
 # Agents
 
-Production Master uses 12 specialized agents, each with a single focused role. Agents are launched as subagents via the `Task` tool. Model assignment is tiered: reasoning-heavy agents run on **sonnet**, while structured/template-driven agents run on **haiku**. See [Model Tiering](architecture.md#model-tiering) for details.
+Production Master uses 12 specialized agents, each with a single focused role. This agent model is shared across Claude, Cursor, and Cloud surfaces through the common core runtime.
+
+Agents are launched as subagents via the `Task` tool. Model assignment is tiered: reasoning-heavy agents run on **sonnet**, while structured/template-driven agents run on **haiku**. See [Model Tiering](architecture.md#model-tiering) for details.
 
 ---
 

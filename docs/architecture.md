@@ -2,7 +2,12 @@
 
 > **Experimental** — This plugin is in beta. Architecture and agent behavior may change.
 
-Production Master is a multi-agent pipeline that autonomously investigates production bugs. It classifies user intent, routes to specialized agents, and executes investigations with hypothesis loops.
+Production Master is a multi-surface investigation platform with a shared core engine. It autonomously investigates production bugs, routes intent to specialized agents, and executes hypothesis loops.
+
+Surfaces:
+- Claude Code (`adapter-claude/`)
+- Cursor (`adapter-cursor/`)
+- Cloud pipeline (`adapter-cloud/`)
 
 ## Pipeline Design
 
