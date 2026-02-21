@@ -23,13 +23,11 @@ spec:
       {{- end }}
       containers:
         - name: worker
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.workerRepository | default .Values.image.repository }}-worker:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           envFrom:
             - configMapRef:
                 name: {{ include "production-master.fullname" . }}-config
-            - secretRef:
-                name: {{ include "production-master.fullname" . }}-secret
-          command: ["node", "dist/workers/agent-worker.js"]
+          command: ["node", "dist/workers/worker.js"]
           resources:
             {{- toYaml .Values.resources.worker | nindent 12 }}
