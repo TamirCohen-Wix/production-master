@@ -1,0 +1,66 @@
+{
+  "mcpServers": {
+    "octocode": {
+      "command": "npx",
+      "args": ["-y", "@mcp-s/mcp"],
+      "env": {
+        "BASE_URL": "https://mcp-s.wewix.net",
+        "USER_ACCESS_KEY": "${PRODUCTION_MASTER_ACCESS_KEY}",
+        "MCP": "octocode"
+      }
+    },
+    "Slack": {
+      "type": "http",
+      "url": "https://mcp-s.wewix.net/mcp?mcp=slack",
+      "headers": {
+        "x-user-access-key": "${PRODUCTION_MASTER_ACCESS_KEY}"
+      }
+    },
+    "jira": {
+      "type": "http",
+      "url": "https://mcp-s.wewix.net/mcp?mcp=jira",
+      "headers": {
+        "x-user-access-key": "${PRODUCTION_MASTER_ACCESS_KEY}"
+      }
+    },
+    "grafana-datasource": {
+      "type": "http",
+      "url": "https://mcp-s.wewix.net/mcp?mcp=grafana-datasource",
+      "headers": {
+        "x-user-access-key": "${PRODUCTION_MASTER_ACCESS_KEY}"
+      }
+    },
+    "FT-release": {
+      "type": "http",
+      "url": "https://mcp-s.wewix.net/mcp?mcp=gradual-feature-release",
+      "headers": {
+        "x-user-access-key": "${PRODUCTION_MASTER_ACCESS_KEY}"
+      }
+    },
+    "github": {
+      "type": "http",
+      "url": "https://mcp-s.wewix.net/mcp?mcp=github",
+      "headers": {
+        "x-user-access-key": "${PRODUCTION_MASTER_ACCESS_KEY}"
+      }
+    },
+    "context-7": {
+      "type": "http",
+      "url": "https://mcp-s.wewix.net/mcp?mcp=context7",
+      "headers": {
+        "x-user-access-key": "${PRODUCTION_MASTER_ACCESS_KEY}"
+      }
+    },
+    "grafana-mcp": {
+      "type": "http",
+      "url": "https://mcp-s.wewix.net/mcp?mcp=grafana-mcp",
+      "headers": {
+        "x-user-access-key": "${PRODUCTION_MASTER_ACCESS_KEY}"
+      }
+    },
+    "fire-console": {
+      "type": "http",
+      "url": "https://mcp-s.wewix.net/mcp?mcp=fire-console"
+    }
+  }
+}
