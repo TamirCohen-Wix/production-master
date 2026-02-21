@@ -7,8 +7,10 @@
 [![Version](https://img.shields.io/badge/version-1.0.3--beta-blue)](https://github.com/TamirCohen-Wix/production-master/releases/tag/v1.0.3-beta)
 [![CI](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml/badge.svg)](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml)
 [![Author](https://img.shields.io/badge/author-Tamir%20Cohen-green)](https://wix.slack.com/team/U09H3AHE3C7)
+[![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://github.com/anthropics/claude-code/blob/main/plugins/README.md)
+[![Cursor Adapter Plugin](https://img.shields.io/badge/Cursor-Plugin-6f42c1)](adapter-cursor/README.md)
 
-Autonomous production investigation **platform** with a shared core engine and three surfaces: Claude Code plugin, Cursor IDE plugin, and Cloud REST API.
+Autonomous production investigation **platform** with a shared core engine and three surfaces: Claude Code plugin, Cursor IDE plugin, and Cloud REST API. The two primary interactive plugin adapters are `adapter-claude/` and `adapter-cursor/`.
 
 > [!WARNING]
 > **Beta.** For the Claude Code surface, try it **per-session first** before installing persistently. Use **`local` scope** (the default) to limit blast radius.
@@ -18,10 +20,10 @@ Autonomous production investigation **platform** with a shared core engine and t
 
 ## Quick Start
 
-Pick your surface and follow the setup guide:
+Pick your plugin surface and follow the setup guide:
 
-- If you use Claude Code, start with the [Claude adapter setup guide](adapter-claude/README.md).
-- If you use Cursor, follow the [Cursor adapter setup guide](adapter-cursor/README.md).
+- If you use Claude Code, start with the [Claude adapter plugin setup guide](adapter-claude/README.md).
+- If you use Cursor, follow the [Cursor adapter plugin setup guide](adapter-cursor/README.md).
 - If you deploy the service, use the [Cloud adapter deployment guide](adapter-cloud/README.md).
 
 After setup, run your first investigation from Claude Code:
@@ -31,6 +33,12 @@ After setup, run your first investigation from Claude Code:
 ```
 
 For troubleshooting and operational recovery steps, see the [troubleshooting guide](docs/troubleshooting.md).
+
+## Adapter Plugins At A Glance
+
+- `adapter-claude/`: Claude Code plugin commands, hooks, install/validation scripts, and plugin lifecycle behavior.
+- `adapter-cursor/`: Cursor plugin rules, commands, agents, hooks, and IDE-native workflow configuration.
+- `adapter-cloud/`: Cloud adapter for REST API, workers, and deployment automation.
 
 ## Platform Architecture
 
@@ -93,8 +101,7 @@ production-master/
 ### Claude Code
 
 ```bash
-gh repo clone TamirCohen-Wix/production-master
-cd production-master
+gh repo clone TamirCohen-Wix/production-master && cd production-master
 bash adapter-claude/scripts/install.sh
 ```
 
