@@ -15,7 +15,7 @@ Extracted from `commands/production-master.md` orchestration rules and agent lau
 5. **Autonomous decisions** -- The orchestrator decides what to investigate next. Do not ask the user mid-investigation.
 6. **Fresh start** -- Never read from previous `debug-*` directories. Each run creates a new directory under `.claude/debug/` (or `./debug/` outside a repo).
 7. **True parallelism** -- Launch independent agents in the SAME message using multiple Task calls.
-8. **Model tiering** -- Use `model: "haiku"` for simple agents (bug-context, artifact-resolver, documenter, publisher). Use `model: "sonnet"` for reasoning agents (all others). Never use Opus for subagents.
+8. **Model tiering** -- Use `model: "haiku"` for simple agents (bug-context, service-resolver, documenter, publisher). Use `model: "sonnet"` for reasoning agents (all others). Never use Opus for subagents.
 9. **Fast-fail** -- If an MCP tool or agent fails, report it immediately. Do not retry silently or fabricate data.
 10. **Explicit state** -- `findings-summary.md` is the persistent state file. Update it after every step with what's proven, what's missing, and what to do next.
 11. **Citation required** -- Every factual claim must cite its source. A "proof" is a verifiable reference: a file path with line number, a Grafana query result, a PR link, a Jira comment, a Slack message URL, or an MCP tool response. A "citation" is the inline reference to that proof. Rules:
@@ -37,8 +37,8 @@ The orchestrator launches subagents via the `Task` tool with `subagent_type: "ge
 
 | Tier | Model | Agents |
 |------|-------|--------|
-| **Haiku** (simple tasks) | `model: "haiku"` | bug-context, artifact-resolver, documenter, publisher |
-| **Sonnet** (reasoning tasks) | `model: "sonnet"` | grafana-analyzer, codebase-semantics, production-analyzer, slack-analyzer, hypotheses, verifier, skeptic, fix-list |
+| **Haiku** (simple tasks) | `model: "haiku"` | bug-context, service-resolver, documenter, publisher |
+| **Sonnet** (reasoning tasks) | `model: "sonnet"` | log-analyzer, codebase-semantics, change-analyzer, comms-analyzer, hypotheses, verifier, skeptic, fix-list |
 | **Opus** | Never used for subagents | The orchestrator itself runs on whatever model the user's session uses |
 
 ---
@@ -66,10 +66,10 @@ Every agent that uses MCP tools MUST receive the corresponding skill file in its
 
 | Agent | Capability | Skill File(s) |
 |-------|-----------|---------------|
-| grafana-analyzer | log-system | `skills/grafana-datasource/SKILL.md` |
+| log-analyzer | log-system | `skills/grafana-datasource/SKILL.md` |
 | codebase-semantics | code-search | `skills/octocode/SKILL.md` |
-| slack-analyzer | team-communications | `skills/slack/SKILL.md` |
-| production-analyzer | version-control, feature-flags | `skills/github/SKILL.md` + `skills/ft-release/SKILL.md` |
+| comms-analyzer | team-communications | `skills/slack/SKILL.md` |
+| change-analyzer | version-control, feature-flags | `skills/github/SKILL.md` + `skills/ft-release/SKILL.md` |
 | fix-list | feature-flags | `skills/ft-release/SKILL.md` |
 | publisher | ticket-system, team-communications | `skills/jira/SKILL.md` + `skills/slack/SKILL.md` |
 | hypotheses / verifier | domain-objects | `skills/fire-console/SKILL.md` (on-demand domain queries) |
@@ -100,10 +100,10 @@ FIRE_CONSOLE_SKILL = read("skills/fire-console/SKILL.md")
 | Agent | Receives | Does NOT receive |
 |-------|----------|-----------------|
 | bug-context | JIRA_DATA, USER_INPUT | (nothing else) |
-| grafana-analyzer | BUG_CONTEXT, ENRICHED_CONTEXT, GRAFANA_SKILL | Other agent reports |
+| log-analyzer | BUG_CONTEXT, ENRICHED_CONTEXT, GRAFANA_SKILL | Other agent reports |
 | codebase-semantics | BUG_CONTEXT, ENRICHED_CONTEXT, GRAFANA_REPORT, OCTOCODE_SKILL | Slack, Production reports |
-| production-analyzer | BUG_CONTEXT, ENRICHED_CONTEXT, CODEBASE_SEMANTICS, GRAFANA_REPORT, GITHUB_SKILL, FT_RELEASE_SKILL | Slack report |
-| slack-analyzer | BUG_CONTEXT, ENRICHED_CONTEXT, CODEBASE_SEMANTICS, SLACK_SKILL | Production, Grafana reports |
+| change-analyzer | BUG_CONTEXT, ENRICHED_CONTEXT, CODEBASE_SEMANTICS, GRAFANA_REPORT, GITHUB_SKILL, FT_RELEASE_SKILL | Slack report |
+| comms-analyzer | BUG_CONTEXT, ENRICHED_CONTEXT, CODEBASE_SEMANTICS, SLACK_SKILL | Production, Grafana reports |
 | hypotheses | ALL reports, FINDINGS_SUMMARY, FIRE_CONSOLE_SKILL | (receives everything) |
 | verifier / skeptic | ALL reports, FINDINGS_SUMMARY, FIRE_CONSOLE_SKILL | (receives everything) |
 | fix-list | BUG_CONTEXT, ENRICHED_CONTEXT, VERIFIER_REPORT, HYPOTHESIS, CODEBASE_SEMANTICS, ACCESS_LOG_REPORT, FT_RELEASE_SKILL | Raw Grafana/Slack data |

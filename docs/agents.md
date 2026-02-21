@@ -27,11 +27,11 @@ Each agent receives skill files that document the MCP tools it needs. The capabi
 
 ---
 
-## artifact-resolver
+## service-resolver
 
 **Model:** haiku
 
-**Role:** Validates service names against Grafana to find correct artifact IDs.
+**Role:** Validates and resolves service identifiers before data collection.
 
 **Inputs:** Bug context report, service names to validate.
 
@@ -46,7 +46,7 @@ Each agent receives skill files that document the MCP tools it needs. The capabi
 
 ---
 
-## grafana-analyzer
+## log-analyzer
 
 **Model:** sonnet
 
@@ -90,7 +90,7 @@ Each agent receives skill files that document the MCP tools it needs. The capabi
 
 ---
 
-## production-analyzer
+## change-analyzer
 
 **Model:** sonnet
 
@@ -112,11 +112,11 @@ Each agent receives skill files that document the MCP tools it needs. The capabi
 
 ---
 
-## slack-analyzer
+## comms-analyzer
 
 **Model:** sonnet
 
-**Role:** Searches Slack for discussions related to the incident.
+**Role:** Searches team communications for discussions related to the incident.
 
 **Inputs:** Bug context, codebase semantics report (for service names and keywords), skill reference.
 

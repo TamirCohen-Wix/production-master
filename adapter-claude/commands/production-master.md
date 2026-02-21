@@ -63,7 +63,7 @@ Sub-commands (also available standalone):
 5. **Autonomous decisions** — YOU decide what to investigate next. Do not ask the user mid-investigation.
 6. **Fresh start** — Never read from previous `debug-*` directories. Each run creates a new directory under `.claude/debug/` (or `./debug/` outside a repo).
 7. **True parallelism** — Launch independent agents in the SAME message using multiple Task calls.
-8. **Model tiering** — Use `model: "haiku"` for simple agents (bug-context, artifact-resolver, documenter, publisher). Use `model: "sonnet"` for reasoning agents (all others). Never use Opus for subagents.
+8. **Model tiering** — Use `model: "haiku"` for simple agents (bug-context, service-resolver, documenter, publisher). Use `model: "sonnet"` for reasoning agents (all others). Never use Opus for subagents.
 9. **Fast-fail** — If an MCP tool or agent fails, report it immediately. Do not retry silently or fabricate data.
 10. **Explicit state** — `findings-summary.md` is the persistent state file. Update it after every step with what's proven, what's missing, and what to do next.
 11. **Citation required** — Every factual claim must cite its source. A "proof" is a verifiable reference: a file path with line number, a Grafana query result, a PR link, a Jira comment, a Slack message URL, or an MCP tool response. A "citation" is the inline reference to that proof. Rules:
@@ -238,7 +238,7 @@ Create: `{DEBUG_ROOT}/debug-{TASK_SLUG}-{timestamp}/` and store as `OUTPUT_DIR`.
 
 **Initialize agent invocation counters** (track per-agent re-invocations):
 ```
-AGENT_COUNTERS = {bug-context: 0, grafana-analyzer: 0, codebase-semantics: 0, codebase-semantics-prs: 0, production-analyzer: 0, slack-analyzer: 0, fire-console: 0, hypotheses: 0, verifier: 0, skeptic: 0, fix-list: 0, documenter: 0, publisher: 0}
+AGENT_COUNTERS = {bug-context: 0, log-analyzer: 0, codebase-semantics: 0, codebase-semantics-prs: 0, change-analyzer: 0, comms-analyzer: 0, fire-console: 0, hypotheses: 0, verifier: 0, skeptic: 0, fix-list: 0, documenter: 0, publisher: 0}
 ```
 Increment the relevant counter BEFORE each agent launch. The counter value becomes the `V{N}` suffix in the output filename.
 
@@ -248,8 +248,8 @@ Increment the relevant counter BEFORE each agent launch. The counter value becom
 {OUTPUT_DIR}/{agent-name}/{agent-name}-trace-V{N}.md    — input + action trace (human only)
 ```
 Examples:
-- `{OUTPUT_DIR}/grafana-analyzer/grafana-analyzer-output-V1.md`
-- `{OUTPUT_DIR}/grafana-analyzer/grafana-analyzer-trace-V1.md`
+- `{OUTPUT_DIR}/log-analyzer/log-analyzer-output-V1.md`
+- `{OUTPUT_DIR}/log-analyzer/log-analyzer-trace-V1.md`
 - `{OUTPUT_DIR}/hypotheses/hypotheses-output-V2.md` (second iteration)
 - `{OUTPUT_DIR}/hypotheses/hypotheses-trace-V2.md`
 
@@ -495,7 +495,7 @@ query_app_logs(
    - LIKE search: `SELECT DISTINCT artifact_id FROM app_logs WHERE $__timeFilter(timestamp) AND artifact_id LIKE '%<service-name>%' LIMIT 10`
 3. Update bug-context report's Artifact Validation table with results.
 4. Remove non-existent artifacts from the list passed to Grafana agent.
-5. **If multiple ambiguous artifacts found:** Launch the artifact-resolver agent (`core/agents/artifact-resolver.md`) with model: sonnet for deeper validation. Otherwise, the inline checks above are sufficient.
+5. **If multiple ambiguous artifacts found:** Launch the service-resolver agent (`core/agents/service-resolver.md`) with model: sonnet for deeper validation. Otherwise, the inline checks above are sufficient.
 
 **Status update:** "Artifact IDs validated. Querying Grafana logs..."
 
@@ -508,18 +508,18 @@ Print: `=== Phase 2/9: Grafana Log Analysis ===`
 **State:** `LOG_ANALYSIS`
 Write status: `echo "Phase 2/9: Grafana Logs" > /tmp/.production-master-status`
 
-Read the agent prompt from `core/agents/grafana-analyzer.md`.
+Read the agent prompt from `core/agents/log-analyzer.md`.
 
-Increment `AGENT_COUNTERS[grafana-analyzer]`. Launch **one** Task (model: sonnet):
+Increment `AGENT_COUNTERS[log-analyzer]`. Launch **one** Task (model: sonnet):
 ```
 Task: subagent_type="general-purpose", model="sonnet"
-Prompt: [full content of grafana-analyzer.md agent prompt]
+Prompt: [full content of log-analyzer.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
   + ENRICHED_CONTEXT: [full content from Step 1.3, or "No enrichment data — Fire Console skipped"]
   + GRAFANA_SKILL_REFERENCE: [full content of GRAFANA_SKILL]
   + TIMEZONE_NOTE: "All timestamps in BUG_CONTEXT_REPORT are already converted to UTC. Use them directly for Grafana queries. Do NOT re-convert."
-  + OUTPUT_FILE: {OUTPUT_DIR}/grafana-analyzer/grafana-analyzer-output-V{N}.md
-  + TRACE_FILE: {OUTPUT_DIR}/grafana-analyzer/grafana-analyzer-trace-V{N}.md
+  + OUTPUT_FILE: {OUTPUT_DIR}/log-analyzer/log-analyzer-output-V{N}.md
+  + TRACE_FILE: {OUTPUT_DIR}/log-analyzer/log-analyzer-trace-V{N}.md
 
   CRITICAL INSTRUCTION: For EVERY error found, you MUST run a follow-up query to inspect the `data` column payload:
   SELECT timestamp, request_id, message, data FROM app_logs WHERE $__timeFilter(timestamp) AND artifact_id = '<ARTIFACT>' AND level = 'ERROR' AND message LIKE '%<error_message_pattern>%' ORDER BY timestamp DESC LIMIT 10
@@ -573,7 +573,7 @@ Write `{OUTPUT_DIR}/findings-summary.md`:
 | Step | Agent | Model | Status | Key Output |
 |------|-------|-------|--------|------------|
 | 1 | bug-context | sonnet | done | [services, time window] |
-| 2 | grafana-analyzer | sonnet | done | [error count, boundaries] |
+| 2 | log-analyzer | sonnet | done | [error count, boundaries] |
 ```
 
 **Status update:** "Grafana errors gathered. Tracing error propagation in codebase..."
@@ -655,26 +655,26 @@ Print: `=== Phase 4/9: Parallel Data Fetch (Production, Slack, PRs, Fire Console
 **State:** `PARALLEL_DATA_FETCH`
 Write status: `echo "Phase 4/9: Parallel Data Fetch" > /tmp/.production-master-status`
 
-Read agent prompts from `core/agents/production-analyzer.md`, `core/agents/slack-analyzer.md`, and `core/agents/codebase-semantics.md`.
+Read agent prompts from `core/agents/change-analyzer.md`, `core/agents/comms-analyzer.md`, and `core/agents/codebase-semantics.md`.
 
 **Flag handling:** If `PIPELINE_FLAGS` contains `--skip-slack`, omit Task 2 (Slack Analyzer). If `--skip-grafana` was set, Step 2 (Grafana) was already skipped — note this in findings-summary.
 
 Launch **up to FOUR Tasks in the SAME message** (true parallel execution, all sonnet):
 
-Increment counters for `production-analyzer`, `slack-analyzer`, `codebase-semantics-prs`, and `fire-console`.
+Increment counters for `change-analyzer`, `comms-analyzer`, `codebase-semantics-prs`, and `fire-console`.
 
 **Task 1 — Production Analyzer:**
 ```
 Task: subagent_type="general-purpose", model="sonnet"
-Prompt: [full content of production-analyzer.md agent prompt]
+Prompt: [full content of change-analyzer.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
   + ENRICHED_CONTEXT: [full content from Step 1.3, or "No enrichment data"]
   + CODEBASE_SEMANTICS_REPORT: [full content]
   + GRAFANA_REPORT: [full content — for error context only]
   + GITHUB_SKILL_REFERENCE: [full content of GITHUB_SKILL]
   + FT_RELEASE_SKILL_REFERENCE: [full content of FT_RELEASE_SKILL]
-  + OUTPUT_FILE: {OUTPUT_DIR}/production-analyzer/production-analyzer-output-V{N}.md
-  + TRACE_FILE: {OUTPUT_DIR}/production-analyzer/production-analyzer-trace-V{N}.md
+  + OUTPUT_FILE: {OUTPUT_DIR}/change-analyzer/change-analyzer-output-V{N}.md
+  + TRACE_FILE: {OUTPUT_DIR}/change-analyzer/change-analyzer-trace-V{N}.md
 
   Use services and time frame from codebase-semantics.
   Follow skill references for exact tool parameters.
@@ -687,13 +687,13 @@ Prompt: [full content of production-analyzer.md agent prompt]
 **Task 2 — Slack Analyzer:**
 ```
 Task: subagent_type="general-purpose", model="sonnet"
-Prompt: [full content of slack-analyzer.md agent prompt]
+Prompt: [full content of comms-analyzer.md agent prompt]
   + BUG_CONTEXT_REPORT: [full content]
   + ENRICHED_CONTEXT: [full content from Step 1.3, or "No enrichment data"]
   + CODEBASE_SEMANTICS_REPORT: [full content — for service names and keywords]
   + SLACK_SKILL_REFERENCE: [full content of SLACK_SKILL]
-  + OUTPUT_FILE: {OUTPUT_DIR}/slack-analyzer/slack-analyzer-output-V{N}.md
-  + TRACE_FILE: {OUTPUT_DIR}/slack-analyzer/slack-analyzer-trace-V{N}.md
+  + OUTPUT_FILE: {OUTPUT_DIR}/comms-analyzer/comms-analyzer-output-V{N}.md
+  + TRACE_FILE: {OUTPUT_DIR}/comms-analyzer/comms-analyzer-trace-V{N}.md
 
   Follow SLACK_SKILL_REFERENCE for exact search parameters and thread handling.
   REPORT RAW DATA ONLY — no root cause attribution.
@@ -1331,8 +1331,8 @@ Published to: [Jira / Slack / both / local only]
 7. **Findings-summary.md is the state file.** Update it after every step. Include the agent invocation log.
 
 ### Model Tiering
-8. **Haiku for simple agents** (`model: "haiku"`): bug-context, artifact-resolver, documenter, publisher. These do parsing, formatting, or simple MCP calls.
-9. **Sonnet for reasoning agents** (`model: "sonnet"`): grafana-analyzer, codebase-semantics, production-analyzer, slack-analyzer, hypotheses, verifier, skeptic, fix-list. These require complex analysis.
+8. **Haiku for simple agents** (`model: "haiku"`): bug-context, service-resolver, documenter, publisher. These do parsing, formatting, or simple MCP calls.
+9. **Sonnet for reasoning agents** (`model: "sonnet"`): log-analyzer, codebase-semantics, change-analyzer, comms-analyzer, hypotheses, verifier, skeptic, fix-list. These require complex analysis.
 10. **Never use Opus for subagents.** The orchestrator itself runs on whatever model the user's session uses.
 
 ### Parallelism Rules
@@ -1442,4 +1442,4 @@ Published to: [Jira / Slack / both / local only]
     - Prefer broader queries over many narrow ones (e.g., `SELECT ... LIMIT 100` instead of 10 queries with `LIMIT 10`)
 41. **Prompt size matters.** Large prompts slow down agent startup. For re-invoked agents, pass only the NEW data they need + a summary of what's already proven, not all previous reports again.
 42. **Step 0.3 MCP check optimization.** Run ALL 7 ToolSearch calls in a single message, then ALL 7 health checks in the next message. Don't interleave ToolSearch with health checks.
-43. **Avoid unnecessary agent re-launches.** If the verifier's "Next Tasks" only requires a single Grafana query, run it inline instead of re-launching the full grafana-analyzer agent.
+43. **Avoid unnecessary agent re-launches.** If the verifier's "Next Tasks" only requires a single Grafana query, run it inline instead of re-launching the full log-analyzer agent.

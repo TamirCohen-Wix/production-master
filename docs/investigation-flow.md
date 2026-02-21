@@ -40,8 +40,8 @@ flowchart TD
     CODEBASE --> PARALLEL["Step 4: Parallel Data Fetch"]
 
     subgraph PARALLEL_BOX ["Parallel Execution"]
-        PROD["Production Analyzer"]
-        SLACK["Slack Analyzer"]
+        PROD["Change Analyzer"]
+        SLACK["Comms Analyzer"]
         CODE_PRS["Codebase PRs"]
         FC["Fire Console Deep Enrichment"]
     end
@@ -127,16 +127,16 @@ Each full investigation creates a timestamped output directory. Agent subdirecto
 ├── bug-context/                     ← Created by bug-context agent
 │   ├── bug-context-output-V1.md
 │   └── bug-context-trace-V1.md      ← Action log (human debugging only)
-├── grafana-analyzer/                ← Created by grafana-analyzer agent
-│   ├── grafana-analyzer-output-V1.md
-│   └── grafana-analyzer-output-V2.md ← Re-run after Declined
+├── log-analyzer/                    ← Created by log-analyzer agent
+│   ├── log-analyzer-output-V1.md
+│   └── log-analyzer-output-V2.md    ← Re-run after Declined
 ├── codebase-semantics/              ← Created by codebase-semantics agent
 │   ├── codebase-semantics-output-V1.md
 │   └── codebase-semantics-prs-output-V1.md
-├── production-analyzer/             ← Only exists if production-analyzer ran
-│   └── production-analyzer-output-V1.md
-├── slack-analyzer/                  ← Only exists if slack-analyzer ran
-│   └── slack-analyzer-output-V1.md
+├── change-analyzer/                 ← Only exists if change-analyzer ran
+│   └── change-analyzer-output-V1.md
+├── comms-analyzer/                  ← Only exists if comms-analyzer ran
+│   └── comms-analyzer-output-V1.md
 ...
 ```
 

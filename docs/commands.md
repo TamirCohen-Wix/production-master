@@ -30,10 +30,10 @@ When running a full investigation (Jira ticket or bug description):
 
 1. **Step 0:** Classify intent, load domain config, create output directory, verify 7 MCP servers
 2. **Step 1:** Parse Jira ticket (bug-context agent), enrich via Fire Console, validate artifact IDs
-3. **Step 2:** Query Grafana logs (grafana-analyzer agent)
+3. **Step 2:** Query production logs (log-analyzer agent)
 4. **Step 2.5:** Discover local code clone
 5. **Step 3:** Map error propagation (codebase-semantics agent)
-6. **Step 4:** Parallel data fetch — production-analyzer, slack-analyzer, codebase PRs, Fire Console (4 agents in parallel)
+6. **Step 4:** Parallel data fetch — change-analyzer, comms-analyzer, codebase PRs, Fire Console (4 agents in parallel)
 7. **Step 4.5:** Recovery window analysis (if resolution time known)
 8. **Step 5:** Hypothesis generation & verification (sequential or agent team mode)
 9. **Step 6:** Decision — Confirmed → fix plan, Declined → loop (max 5 iterations)

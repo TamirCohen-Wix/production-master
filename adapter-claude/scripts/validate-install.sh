@@ -126,7 +126,7 @@ if [ -n "$INSTALL_PATH" ] && [ -d "$INSTALL_PATH" ]; then
 
   # Check agents
   info "Agents:"
-  EXPECTED_AGENTS=(artifact-resolver.md bug-context.md codebase-semantics.md documenter.md fix-list.md grafana-analyzer.md hypotheses.md production-analyzer.md publisher.md skeptic.md slack-analyzer.md verifier.md)
+  EXPECTED_AGENTS=(bug-context.md change-analyzer.md codebase-semantics.md comms-analyzer.md documenter.md fix-list.md hypotheses.md log-analyzer.md publisher.md service-resolver.md skeptic.md verifier.md)
   for agent in "${EXPECTED_AGENTS[@]}"; do
     if [ -f "$INSTALL_PATH/agents/$agent" ]; then
       ok "  $agent"
