@@ -1,0 +1,251 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "log-system",
+  "description": "Interface schema for production log querying, metrics, and request tracing",
+  "type": "object",
+  "properties": {
+    "operations": {
+      "type": "object",
+      "properties": {
+        "query_logs": {
+          "description": "Query application logs with filters and time range",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["query", "from_time", "to_time"],
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "description": "Log query in provider-specific syntax (SQL, LogQL, etc.)"
+                },
+                "from_time": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Start of time range (ISO 8601)"
+                },
+                "to_time": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "End of time range (ISO 8601)"
+                },
+                "service_id": {
+                  "type": "string",
+                  "description": "Service/artifact identifier to scope logs"
+                },
+                "level": {
+                  "type": "string",
+                  "enum": ["DEBUG", "INFO", "WARN", "ERROR"],
+                  "description": "Minimum log level filter"
+                },
+                "limit": {
+                  "type": "integer",
+                  "description": "Maximum number of log entries to return"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "entries": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "timestamp": { "type": "string", "format": "date-time" },
+                      "level": { "type": "string" },
+                      "message": { "type": "string" },
+                      "service_id": { "type": "string" },
+                      "request_id": { "type": "string" },
+                      "metadata": { "type": "object" }
+                    }
+                  }
+                },
+                "total": { "type": "integer" }
+              }
+            }
+          }
+        },
+        "query_metrics": {
+          "description": "Query time-series metrics (CPU, memory, request rates, latency)",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["expression"],
+              "properties": {
+                "expression": {
+                  "type": "string",
+                  "description": "Metric query expression (PromQL, etc.)"
+                },
+                "from_time": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Start of time range"
+                },
+                "to_time": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "End of time range"
+                },
+                "step": {
+                  "type": "string",
+                  "description": "Query resolution step (e.g., 5m, 1h)"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "series": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "labels": { "type": "object" },
+                      "datapoints": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "timestamp": { "type": "string", "format": "date-time" },
+                            "value": { "type": "number" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "get_error_details": {
+          "description": "Get detailed information about a specific error occurrence",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["service_id", "from_time", "to_time"],
+              "properties": {
+                "service_id": {
+                  "type": "string",
+                  "description": "Service/artifact identifier"
+                },
+                "error_class": {
+                  "type": "string",
+                  "description": "Filter by exception class name"
+                },
+                "from_time": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "to_time": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "limit": {
+                  "type": "integer",
+                  "description": "Maximum number of error entries"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "errors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "timestamp": { "type": "string", "format": "date-time" },
+                      "error_class": { "type": "string" },
+                      "error_code": { "type": "string" },
+                      "message": { "type": "string" },
+                      "stack_trace": { "type": "string" },
+                      "request_id": { "type": "string" }
+                    }
+                  }
+                },
+                "total": { "type": "integer" }
+              }
+            }
+          }
+        },
+        "trace_request": {
+          "description": "Trace a single request across all services by request ID",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["request_id", "from_time", "to_time"],
+              "properties": {
+                "request_id": {
+                  "type": "string",
+                  "description": "Request correlation ID to trace"
+                },
+                "from_time": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "to_time": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "spans": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "timestamp": { "type": "string", "format": "date-time" },
+                      "service_id": { "type": "string" },
+                      "level": { "type": "string" },
+                      "message": { "type": "string" },
+                      "caller": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "list_services": {
+          "description": "List available services/datasources for log querying",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "type_filter": {
+                  "type": "string",
+                  "description": "Optional filter by datasource type"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "services": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string" },
+                      "name": { "type": "string" },
+                      "type": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

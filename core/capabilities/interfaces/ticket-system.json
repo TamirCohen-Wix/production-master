@@ -1,0 +1,161 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ticket-system",
+  "description": "Interface schema for issue tracking and ticket management",
+  "type": "object",
+  "properties": {
+    "operations": {
+      "type": "object",
+      "properties": {
+        "get_ticket": {
+          "description": "Retrieve a single ticket by its identifier",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["ticket_id"],
+              "properties": {
+                "ticket_id": {
+                  "type": "string",
+                  "description": "Unique ticket identifier (e.g., SCHED-45895)"
+                },
+                "fields": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Optional list of fields to return"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "ticket_id": { "type": "string" },
+                "summary": { "type": "string" },
+                "description": { "type": "string" },
+                "status": { "type": "string" },
+                "priority": { "type": "string" },
+                "assignee": { "type": "string" },
+                "reporter": { "type": "string" },
+                "created": { "type": "string", "format": "date-time" },
+                "updated": { "type": "string", "format": "date-time" },
+                "comments": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "author": { "type": "string" },
+                      "body": { "type": "string" },
+                      "created": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "search_tickets": {
+          "description": "Search for tickets matching query criteria",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["query"],
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "description": "Search query string (provider-specific syntax)"
+                },
+                "project": {
+                  "type": "string",
+                  "description": "Project key to scope the search"
+                },
+                "max_results": {
+                  "type": "integer",
+                  "description": "Maximum number of results to return"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "tickets": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "ticket_id": { "type": "string" },
+                      "summary": { "type": "string" },
+                      "status": { "type": "string" },
+                      "priority": { "type": "string" },
+                      "assignee": { "type": "string" }
+                    }
+                  }
+                },
+                "total": { "type": "integer" }
+              }
+            }
+          }
+        },
+        "add_comment": {
+          "description": "Add a comment to an existing ticket",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["ticket_id", "comment"],
+              "properties": {
+                "ticket_id": {
+                  "type": "string",
+                  "description": "Ticket to comment on"
+                },
+                "comment": {
+                  "type": "string",
+                  "description": "Comment body text"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "comment_id": { "type": "string" },
+                "created": { "type": "string", "format": "date-time" }
+              }
+            }
+          }
+        },
+        "update_status": {
+          "description": "Transition a ticket to a new status",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["ticket_id", "status"],
+              "properties": {
+                "ticket_id": {
+                  "type": "string",
+                  "description": "Ticket to update"
+                },
+                "status": {
+                  "type": "string",
+                  "description": "Target status name or ID"
+                },
+                "comment": {
+                  "type": "string",
+                  "description": "Optional comment to add with the transition"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "ticket_id": { "type": "string" },
+                "previous_status": { "type": "string" },
+                "new_status": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

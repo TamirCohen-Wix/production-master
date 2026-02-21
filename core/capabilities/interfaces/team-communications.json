@@ -1,0 +1,159 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "team-communications",
+  "description": "Interface schema for team messaging, channel search, and thread discussions",
+  "type": "object",
+  "properties": {
+    "operations": {
+      "type": "object",
+      "properties": {
+        "search_messages": {
+          "description": "Search messages across channels by keyword and filters",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["query"],
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "description": "Search keywords"
+                },
+                "channel": {
+                  "type": "string",
+                  "description": "Channel name to scope the search"
+                },
+                "from_user": {
+                  "type": "string",
+                  "description": "Filter by message author"
+                },
+                "after": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "Messages after this date (YYYY-MM-DD)"
+                },
+                "before": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "Messages before this date (YYYY-MM-DD)"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "messages": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "channel_id": { "type": "string" },
+                      "channel_name": { "type": "string" },
+                      "author": { "type": "string" },
+                      "text": { "type": "string" },
+                      "timestamp": { "type": "string" },
+                      "thread_id": { "type": "string" }
+                    }
+                  }
+                },
+                "total": { "type": "integer" }
+              }
+            }
+          }
+        },
+        "get_thread": {
+          "description": "Retrieve all replies in a message thread",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["channel_id", "thread_id"],
+              "properties": {
+                "channel_id": {
+                  "type": "string",
+                  "description": "Channel containing the thread"
+                },
+                "thread_id": {
+                  "type": "string",
+                  "description": "Thread identifier (root message timestamp)"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "messages": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "author": { "type": "string" },
+                      "text": { "type": "string" },
+                      "timestamp": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "post_message": {
+          "description": "Post a message to a channel",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["channel_id", "text"],
+              "properties": {
+                "channel_id": {
+                  "type": "string",
+                  "description": "Target channel ID"
+                },
+                "text": {
+                  "type": "string",
+                  "description": "Message text content"
+                },
+                "thread_id": {
+                  "type": "string",
+                  "description": "Optional thread ID to reply to"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "message_id": { "type": "string" },
+                "timestamp": { "type": "string" }
+              }
+            }
+          }
+        },
+        "find_channel": {
+          "description": "Find a channel by name and return its ID",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["channel_name"],
+              "properties": {
+                "channel_name": {
+                  "type": "string",
+                  "description": "Channel name to look up"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "channel_id": { "type": "string" },
+                "channel_name": { "type": "string" },
+                "is_private": { "type": "boolean" },
+                "member_count": { "type": "integer" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,8 @@
 ---
 description: "Grafana MCP — Skill Reference"
 user-invocable: false
+capability: log-system
+provider: grafana-mcp
 ---
 
 # Grafana MCP — Skill Reference

@@ -1,6 +1,8 @@
 ---
 description: "Context7 — MCP Skill Reference"
 user-invocable: false
+capability: documentation
+provider: context7
 ---
 
 # Context7 — MCP Skill Reference

@@ -1,6 +1,8 @@
 ---
 description: "GitHub — MCP Skill Reference"
 user-invocable: false
+capability: version-control
+provider: github
 ---
 
 # GitHub — MCP Skill Reference

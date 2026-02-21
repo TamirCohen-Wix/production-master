@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "feature-flags",
+  "description": "Interface schema for feature toggle management and rollout control",
+  "type": "object",
+  "properties": {
+    "operations": {
+      "type": "object",
+      "properties": {
+        "get_flag": {
+          "description": "Get full details of a specific feature flag",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["flag_id"],
+              "properties": {
+                "flag_id": {
+                  "type": "string",
+                  "description": "Feature flag identifier"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "flag_id": { "type": "string" },
+                "name": { "type": "string" },
+                "description": { "type": "string" },
+                "status": { "type": "string" },
+                "strategy": { "type": "string" },
+                "rollout_percentage": { "type": "number" },
+                "ownership_tag": { "type": "string" },
+                "created": { "type": "string", "format": "date-time" },
+                "updated": { "type": "string", "format": "date-time" }
+              }
+            }
+          }
+        },
+        "list_flags": {
+          "description": "Search and list feature flags by name, status, or ownership",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "search_text": {
+                  "type": "string",
+                  "description": "Search term for flag name or description"
+                },
+                "status": {
+                  "type": "string",
+                  "description": "Filter by flag status"
+                },
+                "ownership_tag": {
+                  "type": "string",
+                  "description": "Filter by ownership tag"
+                },
+                "limit": {
+                  "type": "integer",
+                  "description": "Maximum number of results"
+                },
+                "offset": {
+                  "type": "integer",
+                  "description": "Pagination offset"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "flags": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "flag_id": { "type": "string" },
+                      "name": { "type": "string" },
+                      "status": { "type": "string" },
+                      "ownership_tag": { "type": "string" }
+                    }
+                  }
+                },
+                "total": { "type": "integer" }
+              }
+            }
+          }
+        },
+        "get_rollout_history": {
+          "description": "Get the release/rollout history for a feature flag",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["flag_id"],
+              "properties": {
+                "flag_id": {
+                  "type": "string",
+                  "description": "Feature flag identifier"
+                },
+                "limit": {
+                  "type": "integer",
+                  "description": "Maximum number of releases to return"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "releases": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "release_id": { "type": "string" },
+                      "flag_id": { "type": "string" },
+                      "strategy": { "type": "string" },
+                      "percentage": { "type": "number" },
+                      "created_by": { "type": "string" },
+                      "created": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

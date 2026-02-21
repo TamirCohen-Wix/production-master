@@ -1,0 +1,104 @@
+# Capability Registry — maps abstract capabilities to concrete providers
+# Each capability defines what the system needs; providers fulfill it.
+
+capabilities:
+  ticket-system:
+    description: "Issue tracking and ticket management for bugs, tasks, and incidents"
+    provider: jira
+    alternatives:
+      - linear
+      - github-issues
+    required_operations:
+      - get_ticket
+      - search_tickets
+      - add_comment
+      - update_status
+
+  log-system:
+    description: "Production log querying, metrics, error analysis, and request tracing"
+    provider: grafana-datasource
+    alternatives:
+      - datadog
+      - splunk
+    required_operations:
+      - query_logs
+      - query_metrics
+      - get_error_details
+      - trace_request
+      - list_services
+
+  code-search:
+    description: "Cross-repository code search, file retrieval, and symbol navigation"
+    provider: octocode
+    alternatives:
+      - sourcegraph
+      - github-code-search
+    required_operations:
+      - search_code
+      - get_file
+      - search_symbols
+
+  team-communications:
+    description: "Team messaging, channel search, and thread-based discussions"
+    provider: slack
+    alternatives:
+      - teams
+      - discord
+    required_operations:
+      - search_messages
+      - get_thread
+      - post_message
+      - find_channel
+
+  version-control:
+    description: "Git hosting with commit history, pull requests, diffs, and branch management"
+    provider: github
+    alternatives:
+      - gitlab
+      - bitbucket
+    required_operations:
+      - list_commits
+      - list_prs
+      - get_diff
+      - get_pr_details
+
+  feature-flags:
+    description: "Feature toggle management, rollout control, and release strategies"
+    provider: ft-release
+    alternatives:
+      - launchdarkly
+      - split
+    required_operations:
+      - get_flag
+      - list_flags
+      - get_rollout_history
+
+  domain-objects:
+    description: "Direct access to production domain entities via gRPC/RPC service invocation"
+    provider: fire-console
+    alternatives:
+      - admin-api
+    required_operations:
+      - query_domain
+      - list_domain_types
+
+  documentation:
+    description: "Library and framework documentation lookup and search"
+    provider: context7
+    alternatives:
+      - confluence
+      - notion
+    required_operations:
+      - search_docs
+      - get_doc_content
+
+  service-registry:
+    description: "Service discovery, metadata lookup, and dependency mapping"
+    provider: grafana-datasource
+    alternatives:
+      - consul
+      - kubernetes
+    required_operations:
+      - resolve_service
+      - list_services
+      - get_service_metadata

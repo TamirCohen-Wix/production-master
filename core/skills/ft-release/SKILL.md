@@ -1,6 +1,8 @@
 ---
 description: "Feature Toggle (FT-release) — MCP Skill Reference"
 user-invocable: false
+capability: feature-flags
+provider: ft-release
 ---
 
 # Feature Toggle (FT-release) — MCP Skill Reference

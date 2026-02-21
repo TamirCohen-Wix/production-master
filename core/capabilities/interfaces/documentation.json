@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "documentation",
+  "description": "Interface schema for library and framework documentation lookup",
+  "type": "object",
+  "properties": {
+    "operations": {
+      "type": "object",
+      "properties": {
+        "search_docs": {
+          "description": "Search documentation for a library or framework",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["query"],
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "description": "Search query describing what documentation to find"
+                },
+                "library": {
+                  "type": "string",
+                  "description": "Library name to search documentation for"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "results": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "library_id": { "type": "string" },
+                      "library_name": { "type": "string" },
+                      "description": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "get_doc_content": {
+          "description": "Retrieve documentation content for a specific library topic",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["library_id", "query"],
+              "properties": {
+                "library_id": {
+                  "type": "string",
+                  "description": "Library identifier from search_docs"
+                },
+                "query": {
+                  "type": "string",
+                  "description": "Specific topic or question to look up"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "content": {
+                  "type": "string",
+                  "description": "Documentation content/excerpt"
+                },
+                "library": { "type": "string" },
+                "topic": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

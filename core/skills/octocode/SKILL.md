@@ -1,6 +1,8 @@
 ---
 description: "Octocode — MCP Skill Reference"
 user-invocable: false
+capability: code-search
+provider: octocode
 ---
 
 # Octocode — MCP Skill Reference
