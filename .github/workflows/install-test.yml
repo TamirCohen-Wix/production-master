@@ -96,7 +96,7 @@ jobs:
             fi
           done
 
-          for agent in artifact-resolver.md bug-context.md codebase-semantics.md documenter.md fix-list.md grafana-analyzer.md hypotheses.md production-analyzer.md publisher.md skeptic.md slack-analyzer.md verifier.md; do
+          for agent in artifact-resolver.md bug-context.md codebase-semantics.md documenter.md fix-list.md grafana-analyzer.md hypotheses.md meta-improver.md production-analyzer.md publisher.md skeptic.md slack-analyzer.md verifier.md; do
             if [ ! -f "$CACHE_DIR/core/agents/$agent" ]; then
               echo "FAIL: core/agents/$agent missing"
               ERRORS=$((ERRORS + 1))

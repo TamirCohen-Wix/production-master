@@ -63,7 +63,7 @@ metaRouter.get('/recommendations', queryRateLimit, async (req, res) => {
 // --- GET /recommendations/:id — single recommendation ---
 metaRouter.get('/recommendations/:id', queryRateLimit, async (req, res) => {
   try {
-    const recommendation = await RecommendationModel.getById(req.params.id);
+    const recommendation = await RecommendationModel.getById(req.params.id as string);
 
     if (!recommendation) {
       res.status(404).json({ error: 'Recommendation not found' });

@@ -55,7 +55,7 @@ feedbackRouter.post(
       }
 
       const feedback = await FeedbackModel.create({
-        investigation_id: investigationId,
+        investigation_id: investigationId as string,
         rating: req.body.rating,
         corrected_root_cause: req.body.corrected_root_cause,
         submitted_by: req.body.submitted_by,
@@ -94,7 +94,7 @@ feedbackRouter.get('/:id/feedback', queryRateLimit, async (req, res) => {
       return;
     }
 
-    const feedback = await FeedbackModel.getByInvestigation(investigationId);
+    const feedback = await FeedbackModel.getByInvestigation(investigationId as string);
     res.json({ data: feedback });
   } catch (err) {
     log.error('Failed to fetch feedback', {
