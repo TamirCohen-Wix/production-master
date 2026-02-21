@@ -2,7 +2,16 @@
  * Tool Handler — routes Anthropic tool_use blocks to the appropriate MCP
  * server via the MCP registry and returns results in the format expected
  * by the Anthropic messages API.
+ *
+ * Each tool call is wrapped in an OpenTelemetry span so it appears as a
+ * child of the parent agent span in traces.
  */
+
+import type { Context as OtelContext } from '@opentelemetry/api';
+import {
+  startToolCallSpan,
+  recordSpanError,
+} from '../observability/tracing.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -62,6 +71,16 @@ export interface ToolResultBlock {
   is_error?: boolean;
 }
 
+/** Options for tool execution with optional tracing context. */
+export interface ToolHandlerOptions {
+  /** Parent trace context (agent span) for creating child tool spans */
+  traceCtx?: OtelContext;
+  /** Investigation ID for span attributes */
+  investigationId?: string;
+  /** Domain name for span attributes */
+  domain?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -70,10 +89,12 @@ export interface ToolResultBlock {
  * Handle a single tool_use block by routing it to the correct MCP server.
  *
  * Returns a `tool_result` block ready to be appended to the conversation.
+ * When tracing options are provided, wraps the call in a child span.
  */
 export async function handleToolUse(
   toolCall: ToolUseBlock,
   mcpRegistry: McpRegistry,
+  options?: ToolHandlerOptions,
 ): Promise<ToolResultBlock> {
   const server = mcpRegistry.resolveServer(toolCall.name);
 
@@ -87,6 +108,16 @@ export async function handleToolUse(
       is_error: true,
     };
   }
+
+  // Start a tool-call span if trace context is available
+  const spanInfo = options?.traceCtx
+    ? startToolCallSpan(options.traceCtx, {
+        investigation_id: options.investigationId ?? 'unknown',
+        tool_name: toolCall.name,
+        server_name: server.name,
+        domain: options.domain,
+      })
+    : undefined;
 
   try {
     const result = await server.callTool(toolCall.name, toolCall.input);
@@ -102,6 +133,12 @@ export async function handleToolUse(
       .filter(Boolean)
       .join('\n');
 
+    if (spanInfo) {
+      spanInfo.span.setAttribute('pm.tool_result_length', text.length);
+      spanInfo.span.setAttribute('pm.is_error', result.isError ?? false);
+      spanInfo.span.end();
+    }
+
     return {
       type: 'tool_result',
       tool_use_id: toolCall.id,
@@ -109,6 +146,11 @@ export async function handleToolUse(
       is_error: result.isError ?? false,
     };
   } catch (err) {
+    if (spanInfo) {
+      recordSpanError(spanInfo.span, err);
+      spanInfo.span.end();
+    }
+
     const message = err instanceof Error ? err.message : String(err);
     return {
       type: 'tool_result',
@@ -126,6 +168,7 @@ export async function handleToolUse(
 export async function handleToolUseBatch(
   toolCalls: ToolUseBlock[],
   mcpRegistry: McpRegistry,
+  options?: ToolHandlerOptions,
 ): Promise<ToolResultBlock[]> {
-  return Promise.all(toolCalls.map((tc) => handleToolUse(tc, mcpRegistry)));
+  return Promise.all(toolCalls.map((tc) => handleToolUse(tc, mcpRegistry, options)));
 }

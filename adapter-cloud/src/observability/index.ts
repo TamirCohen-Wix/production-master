@@ -9,7 +9,26 @@
  * ```
  */
 
-export { initTracing, getTracer } from './tracing.js';
+export {
+  initTracing,
+  shutdownTracing,
+  getTracer,
+  startInvestigationSpan,
+  startAgentSpan,
+  startToolCallSpan,
+  startHypothesisSpan,
+  recordSpanError,
+  injectTraceContext,
+  extractTraceContext,
+  getActiveTraceId,
+} from './tracing.js';
+export type {
+  InvestigationSpanAttributes,
+  AgentSpanAttributes,
+  ToolCallSpanAttributes,
+  HypothesisSpanAttributes,
+  TraceCarrier,
+} from './tracing.js';
 export {
   initMetrics,
   getMetricsEndpoint,
