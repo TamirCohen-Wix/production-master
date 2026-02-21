@@ -31,8 +31,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ include "production-master.fullname" . }}-worker
-  minReplicas: {{ .Values.hpa.minReplicas }}
-  maxReplicas: {{ .Values.hpa.maxReplicas }}
+  minReplicas: {{ .Values.hpa.worker.minReplicas | default 1 }}
+  maxReplicas: {{ .Values.hpa.worker.maxReplicas | default 10 }}
   metrics:
     - type: Resource
       resource:
@@ -40,4 +40,24 @@ spec:
         target:
           type: Utilization
           averageUtilization: {{ .Values.hpa.targetCPUUtilizationPercentage }}
+    - type: Pods
+      pods:
+        metric:
+          name: pm_queue_depth
+        target:
+          type: AverageValue
+          averageValue: "3"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 120
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
 {{- end }}

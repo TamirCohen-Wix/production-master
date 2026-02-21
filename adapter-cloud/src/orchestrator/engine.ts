@@ -266,25 +266,93 @@ async function deliverReport(
 
   // Send callback if URL provided
   if (callbackUrl) {
+    // Fetch verdict and confidence from the report we just persisted
+    const reportRow = await query<{ verdict: string; confidence: number }>(
+      'SELECT verdict, confidence FROM investigation_reports WHERE investigation_id = $1 LIMIT 1',
+      [investigationId],
+    );
+    const verdict = reportRow.rows[0]?.verdict ?? 'see_report';
+    const confidence = reportRow.rows[0]?.confidence ?? 0.0;
+
+    // Fetch ticket_id from the investigation record
+    const invRow = await query<{ ticket_id: string }>(
+      'SELECT ticket_id FROM investigations WHERE id = $1',
+      [investigationId],
+    );
+    const ticketId = invRow.rows[0]?.ticket_id ?? 'unknown';
+
+    await deliverCallback(callbackUrl, {
+      investigation_id: investigationId,
+      ticket_id: ticketId,
+      status: 'completed',
+      verdict,
+      confidence,
+      report_url: `/api/v1/investigations/${investigationId}/report`,
+    });
+  }
+}
+
+/**
+ * Deliver a callback webhook with retry (3 attempts, exponential backoff).
+ */
+async function deliverCallback(
+  callbackUrl: string,
+  payload: {
+    investigation_id: string;
+    ticket_id: string;
+    status: string;
+    verdict: string;
+    confidence: number;
+    report_url: string;
+  },
+): Promise<void> {
+  const MAX_RETRIES = 3;
+  const BASE_DELAY_MS = 1_000;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      await fetch(callbackUrl, {
+      const response = await fetch(callbackUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          investigation_id: investigationId,
-          status: 'completed',
-          report_url: `/api/v1/investigations/${investigationId}/report`,
-        }),
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(10_000),
       });
-      log.info('Callback delivered', { investigation_id: investigationId, callback_url: callbackUrl });
-    } catch (err) {
-      log.error('Callback delivery failed', {
-        investigation_id: investigationId,
+
+      if (response.ok) {
+        log.info('Callback delivered', {
+          investigation_id: payload.investigation_id,
+          callback_url: callbackUrl,
+          attempt,
+        });
+        return;
+      }
+
+      log.warn('Callback returned non-OK status', {
+        investigation_id: payload.investigation_id,
         callback_url: callbackUrl,
+        status: response.status,
+        attempt,
+      });
+    } catch (err) {
+      log.warn('Callback attempt failed', {
+        investigation_id: payload.investigation_id,
+        callback_url: callbackUrl,
+        attempt,
         error: err instanceof Error ? err.message : String(err),
       });
     }
+
+    if (attempt < MAX_RETRIES) {
+      const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
   }
+
+  log.error('Callback delivery failed after all retries', {
+    investigation_id: payload.investigation_id,
+    callback_url: callbackUrl,
+    max_retries: MAX_RETRIES,
+  });
 }
 
 // ---------------------------------------------------------------------------

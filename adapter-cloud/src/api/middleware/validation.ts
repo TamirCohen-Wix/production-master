@@ -46,6 +46,13 @@ export const queryChangesSchema = z.object({
   limit: z.number().int().min(1).max(500).optional().default(50),
 });
 
+/** POST /api/v1/investigate/batch */
+export const investigateBatchSchema = z.object({
+  ticket_ids: z.array(z.string().min(1)).min(1, 'At least one ticket_id is required').max(20, 'Maximum 20 tickets per batch'),
+  domain: z.string().optional(),
+  callback_url: z.string().url('callback_url must be a valid URL').optional(),
+});
+
 /** Domain config body */
 export const domainConfigSchema = z.object({
   name: z.string().min(1, 'name is required'),
@@ -63,6 +70,7 @@ export type InvestigateBody = z.infer<typeof investigateSchema>;
 export type QueryLogsBody = z.infer<typeof queryLogsSchema>;
 export type QuerySlackBody = z.infer<typeof querySlackSchema>;
 export type QueryChangesBody = z.infer<typeof queryChangesSchema>;
+export type InvestigateBatchBody = z.infer<typeof investigateBatchSchema>;
 export type DomainConfigBody = z.infer<typeof domainConfigSchema>;
 
 // ---------------------------------------------------------------------------
