@@ -312,10 +312,15 @@ async function start(): Promise<void> {
   } // end if (STANDALONE_SERVER !== 'false')
 }
 
-start().catch((err) => {
-  log.error('Server startup failed', {
-    error: err instanceof Error ? err.message : String(err),
+// Only auto-start when running as a standalone server process.
+// When imported by the Wix Serverless entry point (src/index.ts),
+// the runtime manages lifecycle — start() must not run as a side effect.
+if (process.env.STANDALONE_SERVER !== 'false') {
+  start().catch((err) => {
+    log.error('Server startup failed', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    process.exit(1);
   });
-  process.exit(1);
-});
+}
 
