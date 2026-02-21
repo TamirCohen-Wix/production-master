@@ -1,0 +1,100 @@
+name: CI Core
+
+on:
+  push:
+    paths: ['core/**']
+  pull_request:
+    paths: ['core/**']
+
+jobs:
+  validate-agents:
+    name: Validate agents
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run validate-agents.sh
+        run: |
+          chmod +x core/tests/validate-agents.sh
+          core/tests/validate-agents.sh
+
+  validate-skills:
+    name: Validate skills
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run validate-skills.sh
+        run: |
+          chmod +x core/tests/validate-skills.sh
+          core/tests/validate-skills.sh
+
+  validate-orchestrator:
+    name: Validate orchestrator
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run validate-orchestrator.sh
+        run: |
+          chmod +x core/tests/validate-orchestrator.sh
+          core/tests/validate-orchestrator.sh
+
+  validate-schema:
+    name: Validate schema
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run validate-schema.sh
+        run: |
+          chmod +x core/tests/validate-schema.sh
+          core/tests/validate-schema.sh
+
+  validate-mcp:
+    name: Validate MCP servers config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify mcp-servers.json is valid JSON
+        run: |
+          echo "Checking core/mcp-servers.json..."
+          test -f core/mcp-servers.json || { echo "FAIL: core/mcp-servers.json missing"; exit 1; }
+          jq . core/mcp-servers.json > /dev/null || { echo "FAIL: core/mcp-servers.json is not valid JSON"; exit 1; }
+          echo "OK: core/mcp-servers.json is valid JSON"
+
+      - name: Verify exactly 9 MCP servers
+        run: |
+          SERVER_COUNT=$(jq '.mcpServers | keys | length' core/mcp-servers.json)
+          echo "MCP servers: $SERVER_COUNT"
+          [ "$SERVER_COUNT" -eq 9 ] || { echo "FAIL: expected 9 servers, found $SERVER_COUNT"; exit 1; }
+          echo "OK: exactly 9 MCP servers configured"
+
+      - name: Verify no real secrets
+        run: |
+          if grep -qE '"[a-f0-9]{32,}"' core/mcp-servers.json; then
+            echo "FAIL: core/mcp-servers.json appears to contain real access keys"
+            exit 1
+          fi
+          echo "OK: no secrets detected in core/mcp-servers.json"
+
+  validate-output-styles:
+    name: Validate output styles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify investigation-report.md exists and is non-empty
+        run: |
+          FILE="core/output-styles/investigation-report.md"
+          test -f "$FILE" || { echo "FAIL: $FILE missing"; exit 1; }
+          test -s "$FILE" || { echo "FAIL: $FILE is empty"; exit 1; }
+          echo "OK: $FILE exists and is non-empty"
+
+      - name: Verify publisher-format.md exists and is non-empty
+        run: |
+          FILE="core/output-styles/publisher-format.md"
+          test -f "$FILE" || { echo "FAIL: $FILE missing"; exit 1; }
+          test -s "$FILE" || { echo "FAIL: $FILE is empty"; exit 1; }
+          echo "OK: $FILE exists and is non-empty"
