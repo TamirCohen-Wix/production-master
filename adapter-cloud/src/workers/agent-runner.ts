@@ -2,9 +2,13 @@
  * Agent Runner — drives the agentic loop for a single agent using the
  * Anthropic messages API.  Handles tool_use round-trips, token tracking,
  * and output persistence.
+ *
+ * Accepts an optional trace context so that tool-call spans are nested
+ * under the parent agent span in distributed traces.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import type { Context as OtelContext } from '@opentelemetry/api';
 import { buildPrompt, readAgentDefinition } from './prompt-builder.js';
 import { handleToolUseBatch, type McpRegistry, type ToolUseBlock, type ToolResultBlock } from './tool-handler.js';
 import { resolveModel, type ModelAlias } from '../config/model-registry.js';
@@ -30,6 +34,12 @@ export interface AgentRunOptions {
   onRecord?: (record: AgentRunRecord) => Promise<void>;
   /** Maximum tokens for model response per turn */
   maxTokens?: number;
+  /** Parent trace context for creating child tool-call spans */
+  traceCtx?: OtelContext;
+  /** Investigation ID for span attributes */
+  investigationId?: string;
+  /** Domain name for span attributes */
+  domain?: string;
 }
 
 export interface AgentOutput {
@@ -116,6 +126,15 @@ export async function runAgent(
   let stopReason: StopReason = 'end_turn';
   let finalContent = '';
 
+  // Build tool handler options for trace propagation
+  const toolHandlerOptions = options.traceCtx
+    ? {
+        traceCtx: options.traceCtx,
+        investigationId: options.investigationId,
+        domain: options.domain,
+      }
+    : undefined;
+
   // Agentic loop
   while (iterations < maxIterations) {
     iterations++;
@@ -160,8 +179,8 @@ export async function runAgent(
       break;
     }
 
-    // Execute tool calls and add results
-    const toolResults = await handleToolUseBatch(toolUseParts, options.mcpRegistry);
+    // Execute tool calls and add results (with optional tracing)
+    const toolResults = await handleToolUseBatch(toolUseParts, options.mcpRegistry, toolHandlerOptions);
     const userContent: (ToolResultBlock | Anthropic.TextBlockParam)[] = toolResults.map((r) => ({
       type: 'tool_result' as const,
       tool_use_id: r.tool_use_id,

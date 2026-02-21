@@ -10,7 +10,7 @@ import { Queue } from 'bullmq';
 import { query } from '../../storage/db.js';
 import { investigationRateLimit } from '../middleware/rate-limit.js';
 import { validateBody, investigateSchema, type InvestigateBody } from '../middleware/validation.js';
-import { createLogger } from '../../observability/index.js';
+import { createLogger, injectTraceContext } from '../../observability/index.js';
 import { pmInvestigationTotal } from '../../observability/index.js';
 
 // ---------------------------------------------------------------------------
@@ -68,16 +68,20 @@ investigateRouter.post(
       const investigationId = insertResult.rows[0].id;
 
       // --- Enqueue to BullMQ ---
+      // Inject the current trace context so the worker can continue the
+      // same distributed trace that started with the API request.
+      const jobData = injectTraceContext({
+        investigation_id: investigationId,
+        ticket_id: body.ticket_id,
+        domain: body.domain,
+        mode: body.mode,
+        callback_url: body.callback_url,
+        requested_by: identity,
+      });
+
       await investigationQueue.add(
         'investigate',
-        {
-          investigation_id: investigationId,
-          ticket_id: body.ticket_id,
-          domain: body.domain,
-          mode: body.mode,
-          callback_url: body.callback_url,
-          requested_by: identity,
-        },
+        jobData,
         {
           jobId: investigationId,
           attempts: 3,

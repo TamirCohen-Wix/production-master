@@ -8,7 +8,7 @@
  */
 
 import express from 'express';
-import { initTracing, initMetrics, getMetricsEndpoint, createLogger } from '../observability/index.js';
+import { initTracing, shutdownTracing, initMetrics, getMetricsEndpoint, createLogger } from '../observability/index.js';
 import { McpRegistry } from '../mcp/registry.js';
 import type { McpRegistry as McpRegistryInterface, McpServer, McpToolInfo, McpToolResult } from '../workers/tool-handler.js';
 import { closePool } from '../storage/db.js';
@@ -245,6 +245,16 @@ async function start(): Promise<void> {
       log.info('Database pool closed');
     } catch (err) {
       log.error('Error closing database pool', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+
+    try {
+      // Flush pending spans and shut down the OpenTelemetry SDK
+      await shutdownTracing();
+      log.info('Tracing shut down');
+    } catch (err) {
+      log.error('Error shutting down tracing', {
         error: err instanceof Error ? err.message : String(err),
       });
     }
