@@ -1,0 +1,107 @@
+name: Install Smoke (Docker)
+
+on:
+  push:
+    paths:
+      - 'adapter-claude/**'
+      - 'adapter-cursor/**'
+      - 'core/**'
+      - '.github/workflows/install-smoke-docker.yml'
+  pull_request:
+    paths:
+      - 'adapter-claude/**'
+      - 'adapter-cursor/**'
+      - 'core/**'
+      - '.github/workflows/install-smoke-docker.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: install-smoke-docker-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  claude-cli-smoke:
+    name: Claude CLI smoke in Docker
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Claude install/runtime smoke in container
+        run: |
+          docker run --rm \
+            -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+            -v "$PWD":/repo \
+            -w /repo \
+            node:22-bookworm \
+            bash -lc '
+              set -euo pipefail
+              apt-get update && apt-get install -y jq >/dev/null
+
+              npm install -g @anthropic-ai/claude-code
+              claude --version
+
+              # Always run structure/install script validation.
+              bash -n adapter-claude/scripts/install.sh
+              bash adapter-claude/tests/validate-install.sh
+
+              # Runtime plugin check requires auth.
+              if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+                OUTPUT=$(CLAUDECODE= claude --plugin-dir . -p "list all slash commands" --output-format json 2>&1 || true)
+                echo "$OUTPUT" | jq "." >/dev/null 2>&1 || true
+                echo "$OUTPUT" | grep -q "production-master" || {
+                  echo "FAIL: Claude runtime smoke did not expose production-master commands"
+                  exit 1
+                }
+                echo "OK: Claude runtime command surface smoke passed"
+              else
+                echo "WARN: ANTHROPIC_API_KEY not configured; skipped authenticated Claude runtime check"
+              fi
+            '
+
+  cursor-cli-smoke:
+    name: Cursor CLI smoke in Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Cursor install/runtime smoke in container
+        run: |
+          CURSOR_CLI_NPM_PACKAGE=""
+          CURSOR_CLI_BIN=""
+          if [ -f ".github/cursor-cli-smoke.env" ]; then
+            # shellcheck disable=SC1091
+            source .github/cursor-cli-smoke.env
+          fi
+
+          docker run --rm \
+            -e CURSOR_CLI_NPM_PACKAGE="$CURSOR_CLI_NPM_PACKAGE" \
+            -e CURSOR_CLI_BIN="$CURSOR_CLI_BIN" \
+            -v "$PWD":/repo \
+            -w /repo \
+            node:22-bookworm \
+            bash -lc '
+              set -euo pipefail
+              apt-get update && apt-get install -y jq >/dev/null
+
+              # Baseline adapter surface checks (independent of CLI package availability).
+              test -f adapter-cursor/.cursor-plugin/plugin.json
+              jq empty adapter-cursor/.cursor-plugin/plugin.json
+              test -f adapter-cursor/.mcp.json
+              jq empty adapter-cursor/.mcp.json
+
+              if [ -z "${CURSOR_CLI_NPM_PACKAGE:-}" ]; then
+                echo "WARN: CURSOR_CLI_NPM_PACKAGE repo variable not set; skipping runtime Cursor CLI checks"
+                exit 0
+              fi
+
+              npm install -g "$CURSOR_CLI_NPM_PACKAGE"
+              BIN="${CURSOR_CLI_BIN:-cursor}"
+              "$BIN" --version
+              "$BIN" --help >/dev/null 2>&1 || {
+                echo "FAIL: Cursor CLI installed but help command failed"
+                exit 1
+              }
+              echo "OK: Cursor CLI install/runtime smoke passed"
+            '
