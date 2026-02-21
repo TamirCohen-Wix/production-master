@@ -22,6 +22,7 @@ import { batchRouter, closeBatchQueue } from './routes/batch.js';
 import { investigationsRouter } from './routes/investigations.js';
 import { queriesRouter, setQueryRegistry } from './routes/queries.js';
 import { domainsRouter } from './routes/domains.js';
+import { onboardingRouter } from './routes/onboarding.js';
 import { similarRouter } from './routes/similar.js';
 import { healthRouter, setHealthRegistry } from './routes/health.js';
 
@@ -136,6 +137,7 @@ app.use('/api/v1/investigations', investigationsRouter);
 app.use('/api/v1/investigations', similarRouter);
 app.use('/api/v1/query', queriesRouter);
 app.use('/api/v1/domains', domainsRouter);
+app.use('/api/v1/onboard', onboardingRouter);
 app.use('/api/v1/health-check', healthCheckRouter);
 
 // ---------------------------------------------------------------------------
