@@ -9,15 +9,21 @@ SKILLS_DIR="$(cd "$SCRIPT_DIR/../skills" && pwd)"
 
 # Vendor-specific skill directories
 EXPECTED_VENDOR_SKILLS=(
+  db-core
   context7
+  devex
+  docs-schema
   fire-console
   ft-release
   github
   grafana-datasource
   grafana-mcp
   jira
+  kb-retrieval
   octocode
+  root-cause
   slack
+  trino
 )
 
 # Abstract capability skill directories

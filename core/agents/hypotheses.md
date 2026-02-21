@@ -1,6 +1,6 @@
 ---
 name: hypotheses
-description: Senior debugging strategist that produces exactly one hypothesis per invocation. Can query Grafana, Octocode, GitHub, and feature toggles for evidence.
+description: Senior debugging strategist that produces exactly one hypothesis per invocation. Can query logs/code/changes plus KB, schema, RCA, and data systems for evidence.
 model: sonnet
 tools: Read, Write, Bash, ToolSearch
 mcpServers: mcp-s, octocode
@@ -9,6 +9,11 @@ skills:
   - octocode
   - ft-release
   - github
+  - kb-retrieval
+  - docs-schema
+  - db-core
+  - trino
+  - root-cause
 maxTurns: 25
 ---
 
@@ -38,6 +43,11 @@ When invoked as a teammate in an agent team, you are given a specific theory to 
 - Octocode: `ToolSearch("+octocode githubSearchCode")`, `ToolSearch("+octocode githubGetFileContent")`
 - Feature toggles: `ToolSearch("+gradual-feature-release search-feature-toggles")`
 - GitHub: `ToolSearch("+github list_commits")`, `ToolSearch("+github list_pull_requests")`
+- Knowledge base: `ToolSearch("+kb-retrieval retrieve_relevant_documents_from_kb")`
+- Internal schema/docs: `ToolSearch("+docs-schema search_docs")`
+- Database ops: `ToolSearch("+db-core get_schema_analysis")`
+- Warehouse checks: `ToolSearch("+trino execute_trino_sql_query")`
+- Async RCA: `ToolSearch("+root-cause start_root_cause_analysis")`
 
 ## Hard Rules
 
@@ -61,6 +71,7 @@ When invoked as a teammate in an agent team, you are given a specific theory to 
 - `OUTPUT_FILE` — e.g., `{OUTPUT_DIR}/hypotheses/hypotheses-output-V1.md`
 - `TRACE_FILE` — Path to write your trace log (see Trace File section below)
 - `THEORY` — (Mode 2 only) The specific theory you're assigned to test
+- Optional skill references: `KB_RETRIEVAL_SKILL_REFERENCE`, `DOCS_SCHEMA_SKILL_REFERENCE`, `DB_CORE_SKILL_REFERENCE`, `TRINO_SKILL_REFERENCE`, `ROOT_CAUSE_SKILL_REFERENCE`
 
 ## Required Sections (ALL mandatory)
 

@@ -7,11 +7,25 @@ provider: abstract
 
 # Log System — Capability Skill Reference
 
-Abstract capability contract for production log querying, metrics, error analysis, and request tracing. This skill file defines the normalized tool interface — the actual MCP server translates to the active provider (Grafana, Datadog, Splunk, etc.).
+Abstract capability contract for production log querying, metrics, error analysis, and request tracing.
+
+This skill defines normalized operations. Concrete providers (for example `grafana-datasource`) map their query formats and APIs to this interface.
 
 ---
 
-## Tools
+## Tool Decision Matrix
+
+| Need | Operation |
+|------|-----------|
+| Pull raw log lines around an incident | `query_logs` |
+| Validate spikes/trends | `query_metrics` |
+| Inspect specific error signatures | `get_error_details` |
+| Follow one request across services | `trace_request` |
+| Discover candidate services/datasources | `list_services` |
+
+---
+
+## Operations
 
 ### query_logs
 
@@ -91,3 +105,30 @@ List available services/datasources for log querying.
 | `type_filter` | string | No | Optional filter by datasource type |
 
 **Returns:** `{ services: [{ id, name, type }] }`
+
+---
+
+## Standard Investigation Workflow
+
+1. Discover available scope with `list_services`.
+2. Run `query_logs` in the initial incident window.
+3. If errors are found, enrich with `get_error_details`.
+4. Use `trace_request` for request-level propagation.
+5. Correlate with `query_metrics` to validate scale and timing.
+
+---
+
+## Guardrails
+
+- Always use explicit `from_time` and `to_time`.
+- Keep filters narrow first, then broaden progressively.
+- Preserve request IDs and service IDs in outputs for downstream agents.
+- Separate data collection from interpretation.
+
+---
+
+## Common Failure Modes
+
+- Querying too broad a time window initially.
+- Dropping request IDs from report outputs.
+- Treating a metrics spike as proof without matching log evidence.

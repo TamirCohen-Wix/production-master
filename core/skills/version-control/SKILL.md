@@ -7,11 +7,24 @@ provider: abstract
 
 # Version Control — Capability Skill Reference
 
-Abstract capability contract for git hosting with commit history, pull requests, diffs, and branch management. This skill file defines the normalized tool interface — the actual MCP server translates to the active provider (GitHub, GitLab, Bitbucket, etc.).
+Abstract capability contract for git hosting with commit history, pull requests, diffs, and branch management.
+
+This skill defines normalized operations. Concrete providers (for example `github`) map tool names and payload shapes to this interface.
 
 ---
 
-## Tools
+## Tool Decision Matrix
+
+| Need | Operation |
+|------|-----------|
+| Identify code changes by time/branch | `list_commits` |
+| See candidate PRs around incident | `list_prs` |
+| Understand exact code delta | `get_diff` |
+| Inspect one PR in depth | `get_pr_details` |
+
+---
+
+## Operations
 
 ### list_commits
 
@@ -76,3 +89,29 @@ Get full details of a specific pull request.
 | `pr_number` | integer | Yes | Pull request number |
 
 **Returns:** `{ number, title, body, state, author, created, merged, merge_commit, files_changed, additions, deletions }`
+
+---
+
+## Investigation Workflow
+
+1. Collect incident window and affected repos.
+2. Use `list_commits` and `list_prs` to build change timeline.
+3. Use `get_pr_details` for top candidates.
+4. Use `get_diff` to validate whether code touched the failing path.
+
+---
+
+## Guardrails
+
+- Correlation is not causation. Require code-path relevance, not only timing.
+- Include timezone normalization for all timeline analysis.
+- Track both merged and deployed context where possible.
+- Capture authorship/ownership for follow-up actions.
+
+---
+
+## Common Failure Modes
+
+- Looking only at latest commits instead of incident window.
+- Ignoring transitive repos/services in the flow.
+- Treating PR title as proof without diff inspection.

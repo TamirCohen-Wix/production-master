@@ -3,9 +3,10 @@ name: codebase-semantics
 description: Code archaeologist that maps code flows, error propagation, and service boundaries using Octocode and local repo analysis.
 model: sonnet
 tools: Read, Write, Grep, Glob, Bash, ToolSearch
-mcpServers: octocode
+mcpServers: octocode, mcp-s
 skills:
   - octocode
+  - docs-schema
 maxTurns: 20
 ---
 
@@ -51,12 +52,15 @@ You will receive `OCTOCODE_SKILL_REFERENCE` — the full content of `skills/octo
 
 If the skill reference is not provided in your prompt, state this explicitly and use the rules below as fallback.
 
+You may also receive `DOCS_SCHEMA_SKILL_REFERENCE` — use it for internal contract/FQDN/schema validation before inferring behavior from implementation alone.
+
 ## Inputs
 
 - `BUG_CONTEXT_REPORT` — Parsed ticket with services, time window, identifiers
 - `GRAFANA_REPORT` — The errors found in logs (when available)
 - `CODEBASE_SEMANTICS_REPORT` — Your own previous output (when available, for PR analysis tasks)
 - `OCTOCODE_SKILL_REFERENCE` — Full skill file for octocode tools
+- `DOCS_SCHEMA_SKILL_REFERENCE` — Full skill file for docs-schema tools
 - `TASK` — **Specific instructions from the orchestrator.** This tells you WHAT to do. Follow it exactly.
 - `OUTPUT_FILE` — Path to write your report
 - `TRACE_FILE` — Path to write your trace log (see Trace File section below)
@@ -67,6 +71,9 @@ If the skill reference is not provided in your prompt, state this explicitly and
 ```
 githubViewRepoStructure(repo: "{GITHUB_ORG}/{REPO_NAME}")  # e.g., "wix-private/scheduler"
 ```
+
+### 1.5 Validate internal contracts (when available)
+If `DOCS_SCHEMA_SKILL_REFERENCE` is provided, run internal docs/schema lookup first to confirm service/FQDN/schema assumptions.
 
 ### 2. For EACH service in the flow — proto-first discovery
 ```

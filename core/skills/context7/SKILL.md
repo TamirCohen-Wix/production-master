@@ -9,7 +9,18 @@ provider: context7
 
 Server name: `context-7`
 
-This server provides access to up-to-date library documentation. It has **2 tools**. Use it when you need to look up API docs, framework features, or library-specific patterns.
+This server provides access to up-to-date library documentation. It has **2 tools**.
+
+Use it for external library/framework behavior. For internal contract/schema questions, prefer `docs-schema`.
+
+---
+
+## Tool Decision Matrix
+
+| Need | Tool |
+|------|------|
+| Identify exact library in Context7 catalog | `resolve-library-id` |
+| Ask targeted question about that library | `query-docs` |
 
 ---
 
@@ -39,7 +50,7 @@ Returns relevant documentation excerpts.
 
 ---
 
-## Workflow
+## Standard Workflow
 
 Always follow this two-step process:
 
@@ -52,6 +63,23 @@ Always follow this two-step process:
    ```
    query-docs(libraryId: "<id-from-step-1>", query: "connection pool configuration")
    ```
+
+---
+
+## Guardrails
+
+- Always resolve the library first; do not guess IDs.
+- Keep queries specific (feature, API, config key, version behavior).
+- Validate docs findings against real code usage patterns before concluding.
+- Record library version assumptions when relevant.
+
+---
+
+## Common Failure Modes
+
+- Querying docs without resolving correct library identity.
+- Asking broad questions that return noisy excerpts.
+- Applying docs from one framework version to another.
 
 ---
 

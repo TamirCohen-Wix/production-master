@@ -55,6 +55,12 @@ Before loading skill files, the orchestrator resolves abstract capability names 
 | team-communications | `skills/team-comms/SKILL.md` | `skills/slack/SKILL.md` |
 | version-control | `skills/version-control/SKILL.md` | `skills/github/SKILL.md` |
 | feature-flags | `skills/feature-flags/SKILL.md` | `skills/ft-release/SKILL.md` |
+| knowledge-base | n/a (vendor-first) | `skills/kb-retrieval/SKILL.md` |
+| internal-docs-schema | n/a (vendor-first) | `skills/docs-schema/SKILL.md` |
+| devex-intelligence | n/a (vendor-first) | `skills/devex/SKILL.md` |
+| db-ops | n/a (vendor-first) | `skills/db-core/SKILL.md` |
+| data-warehouse | n/a (vendor-first) | `skills/trino/SKILL.md` |
+| root-cause-orchestration | n/a (vendor-first) | `skills/root-cause/SKILL.md` |
 
 By default, vendor skill files are loaded (current behavior). When capability routing is active (future), abstract skill files are loaded instead. The variable names remain the same either way.
 
@@ -67,12 +73,12 @@ Every agent that uses MCP tools MUST receive the corresponding skill file in its
 | Agent | Capability | Skill File(s) |
 |-------|-----------|---------------|
 | log-analyzer | log-system | `skills/grafana-datasource/SKILL.md` |
-| codebase-semantics | code-search | `skills/octocode/SKILL.md` |
+| codebase-semantics | code-search, internal-docs-schema | `skills/octocode/SKILL.md` + `skills/docs-schema/SKILL.md` |
 | comms-analyzer | team-communications | `skills/slack/SKILL.md` |
-| change-analyzer | version-control, feature-flags | `skills/github/SKILL.md` + `skills/ft-release/SKILL.md` |
+| change-analyzer | version-control, feature-flags, devex-intelligence | `skills/github/SKILL.md` + `skills/ft-release/SKILL.md` + `skills/devex/SKILL.md` |
 | fix-list | feature-flags | `skills/ft-release/SKILL.md` |
 | publisher | ticket-system, team-communications | `skills/jira/SKILL.md` + `skills/slack/SKILL.md` |
-| hypotheses / verifier | domain-objects | `skills/fire-console/SKILL.md` (on-demand domain queries) |
+| hypotheses / verifier | domain-objects, knowledge-base, db-ops, data-warehouse, root-cause-orchestration | `skills/fire-console/SKILL.md` + `skills/kb-retrieval/SKILL.md` + `skills/db-core/SKILL.md` + `skills/trino/SKILL.md` + `skills/root-cause/SKILL.md` |
 | fire-console enrichment | domain-objects | `skills/fire-console/SKILL.md` |
 
 **Load ALL skill files once at Step 0.5** -- don't re-read them for every agent launch:
@@ -83,6 +89,12 @@ SLACK_SKILL        = read("skills/slack/SKILL.md")
 GITHUB_SKILL       = read("skills/github/SKILL.md")
 FT_RELEASE_SKILL   = read("skills/ft-release/SKILL.md")
 FIRE_CONSOLE_SKILL = read("skills/fire-console/SKILL.md")
+KB_RETRIEVAL_SKILL = read("skills/kb-retrieval/SKILL.md")
+DOCS_SCHEMA_SKILL  = read("skills/docs-schema/SKILL.md")
+DEVEX_SKILL        = read("skills/devex/SKILL.md")
+DB_CORE_SKILL      = read("skills/db-core/SKILL.md")
+TRINO_SKILL        = read("skills/trino/SKILL.md")
+ROOT_CAUSE_SKILL   = read("skills/root-cause/SKILL.md")
 ```
 
 ---
@@ -101,11 +113,11 @@ FIRE_CONSOLE_SKILL = read("skills/fire-console/SKILL.md")
 |-------|----------|-----------------|
 | bug-context | JIRA_DATA, USER_INPUT | (nothing else) |
 | log-analyzer | BUG_CONTEXT, ENRICHED_CONTEXT, GRAFANA_SKILL | Other agent reports |
-| codebase-semantics | BUG_CONTEXT, ENRICHED_CONTEXT, GRAFANA_REPORT, OCTOCODE_SKILL | Slack, Production reports |
-| change-analyzer | BUG_CONTEXT, ENRICHED_CONTEXT, CODEBASE_SEMANTICS, GRAFANA_REPORT, GITHUB_SKILL, FT_RELEASE_SKILL | Slack report |
+| codebase-semantics | BUG_CONTEXT, ENRICHED_CONTEXT, GRAFANA_REPORT, OCTOCODE_SKILL, DOCS_SCHEMA_SKILL | Slack, Production reports |
+| change-analyzer | BUG_CONTEXT, ENRICHED_CONTEXT, CODEBASE_SEMANTICS, GRAFANA_REPORT, GITHUB_SKILL, FT_RELEASE_SKILL, DEVEX_SKILL | Slack report |
 | comms-analyzer | BUG_CONTEXT, ENRICHED_CONTEXT, CODEBASE_SEMANTICS, SLACK_SKILL | Production, Grafana reports |
-| hypotheses | ALL reports, FINDINGS_SUMMARY, FIRE_CONSOLE_SKILL | (receives everything) |
-| verifier / skeptic | ALL reports, FINDINGS_SUMMARY, FIRE_CONSOLE_SKILL | (receives everything) |
+| hypotheses | ALL reports, FINDINGS_SUMMARY, FIRE_CONSOLE_SKILL, KB_RETRIEVAL_SKILL, DB_CORE_SKILL, TRINO_SKILL, ROOT_CAUSE_SKILL | (receives everything) |
+| verifier / skeptic | ALL reports, FINDINGS_SUMMARY, FIRE_CONSOLE_SKILL, KB_RETRIEVAL_SKILL, DB_CORE_SKILL, TRINO_SKILL, ROOT_CAUSE_SKILL | (receives everything) |
 | fix-list | BUG_CONTEXT, ENRICHED_CONTEXT, VERIFIER_REPORT, HYPOTHESIS, CODEBASE_SEMANTICS, ACCESS_LOG_REPORT, FT_RELEASE_SKILL | Raw Grafana/Slack data |
 | documenter | ALL reports, FIX_PLAN | (receives everything) |
 | publisher | REPORT, BUG_CONTEXT, VERIFIER_REPORT | Raw agent outputs |

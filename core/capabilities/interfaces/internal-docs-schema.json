@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "internal-docs-schema",
+  "description": "Interface schema for internal docs, FQDN, service, and schema lookup",
+  "type": "object",
+  "properties": {
+    "operations": {
+      "type": "object",
+      "properties": {
+        "search_docs": {
+          "description": "Search internal documentation",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["query"],
+              "properties": {
+                "query": { "type": "string" }
+              }
+            }
+          }
+        },
+        "lookup_fqdn": {
+          "description": "Resolve an FQDN to service metadata",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["fqdn"],
+              "properties": {
+                "fqdn": { "type": "string" }
+              }
+            }
+          }
+        },
+        "get_schema": {
+          "description": "Retrieve schema/contract information for a service endpoint",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "service": { "type": "string" },
+                "endpoint": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

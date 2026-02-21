@@ -7,11 +7,24 @@ provider: abstract
 
 # Team Communications — Capability Skill Reference
 
-Abstract capability contract for team messaging, channel search, and thread-based discussions. This skill file defines the normalized tool interface — the actual MCP server translates to the active provider (Slack, Teams, Discord, etc.).
+Abstract capability contract for team messaging, channel search, and thread-based discussions.
+
+This skill defines normalized operations. Concrete providers (for example `slack`) map real tool names to these operations.
 
 ---
 
-## Tools
+## Tool Decision Matrix
+
+| Need | Operation |
+|------|-----------|
+| Find historical discussion by keywords | `search_messages` |
+| Read complete context on one thread | `get_thread` |
+| Publish update to team/channel | `post_message` |
+| Resolve channel identity for posting/search | `find_channel` |
+
+---
+
+## Operations
 
 ### search_messages
 
@@ -69,3 +82,29 @@ Find a channel by name and return its ID.
 | `channel_name` | string | Yes | Channel name to look up |
 
 **Returns:** `{ channel_id, channel_name, is_private, member_count }`
+
+---
+
+## Recommended Workflow
+
+1. Start with `search_messages` using incident keywords, IDs, and service names.
+2. For each high-signal hit, fetch full context with `get_thread`.
+3. Resolve channel targets with `find_channel` before posting.
+4. Use `post_message` for concise, evidence-linked updates.
+
+---
+
+## Guardrails
+
+- Do not rely on a single message; always inspect thread context.
+- Keep identifiers exact when searching (request ID, ticket ID, service name).
+- Separate signal (facts) from opinions in comms summaries.
+- Post updates in the correct incident channel/thread to preserve continuity.
+
+---
+
+## Common Failure Modes
+
+- Reporting conclusions based on one isolated message.
+- Missing critical follow-up replies in long threads.
+- Posting to wrong channel due to unresolved channel ID.
