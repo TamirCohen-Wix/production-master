@@ -23,6 +23,9 @@ import { queriesRouter, setQueryRegistry } from './routes/queries.js';
 import { domainsRouter } from './routes/domains.js';
 import { healthRouter, setHealthRegistry } from './routes/health.js';
 
+// Webhooks
+import { pagerdutyWebhookRouter, closePagerdutyQueue } from './webhooks/pagerduty.js';
+
 // Orchestrator
 import { startEngine, stopEngine } from '../orchestrator/engine.js';
 
@@ -115,6 +118,9 @@ app.use('/api/v1/investigations', investigationsRouter);
 app.use('/api/v1/query', queriesRouter);
 app.use('/api/v1/domains', domainsRouter);
 
+// Webhook routes (authenticated — API key or JWT required)
+app.use('/api/v1/webhooks/pagerduty', pagerdutyWebhookRouter);
+
 // ---------------------------------------------------------------------------
 // Startup
 // ---------------------------------------------------------------------------
@@ -179,11 +185,12 @@ async function start(): Promise<void> {
     }
 
     try {
-      // Close BullMQ queue
+      // Close BullMQ queues
       await closeInvestigateQueue();
-      log.info('Investigation queue closed');
+      await closePagerdutyQueue();
+      log.info('Investigation queues closed');
     } catch (err) {
-      log.error('Error closing investigation queue', {
+      log.error('Error closing investigation queues', {
         error: err instanceof Error ? err.message : String(err),
       });
     }
