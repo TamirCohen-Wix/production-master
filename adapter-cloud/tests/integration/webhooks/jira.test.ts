@@ -76,7 +76,7 @@ function issueCreatedPayload(issueKey = 'PROD-1234') {
       key: issueKey,
       fields: {
         summary: 'Service xyz returning 500s in production',
-        issuetype: { name: 'Bug' },
+        issuetype: { name: 'CC Bug' },
         priority: { name: 'High' },
         project: { key: issueKey.split('-')[0] },
       },
@@ -101,6 +101,7 @@ function domainConfigRow() {
           },
         ],
         default: {
+          // Keep exact group string used in existing Jira taxonomy.
           group: 'Bookeepers',
           assignee_email: 'triage@wix.com',
         },
@@ -208,7 +209,7 @@ describe('POST /api/v1/webhooks/jira', () => {
     });
 
     // Verify metric was incremented
-    expect(mockInc).toHaveBeenCalledWith({ domain: 'unknown', status: 'queued', trigger_source: 'jira_webhook' });
+    expect(mockInc).toHaveBeenCalledWith({ domain: 'bookings-scheduler', status: 'queued', trigger_source: 'jira_webhook' });
     expect(mockAutoAssignJiraIssue).toHaveBeenCalledTimes(1);
   });
 

@@ -99,6 +99,8 @@ Use this block when you want automatic Group + assignee routing for new Jira CC 
 
 Recommended: always set a `default` group + assignee to guarantee deterministic routing.
 
+Note: if your Jira Group value has legacy spelling (for example `Bookeepers`), keep the exact value configured in Jira.
+
 ### `CLAUDE.md`
 
 Human-readable context that gets loaded into agent prompts. Describes the repo's services, artifact ID patterns, key architectural patterns, and common investigation shortcuts. This is what helps agents understand your codebase without reading every file.

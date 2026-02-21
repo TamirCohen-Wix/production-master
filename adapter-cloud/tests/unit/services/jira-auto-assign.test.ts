@@ -81,6 +81,7 @@ function assignmentConfig(): JiraAssignmentConfig {
       },
     ],
     default: {
+      // Keep exact group string used in existing Jira taxonomy.
       group: 'Bookeepers',
       assignee_email: 'triage@wix.com',
     },
@@ -187,6 +188,37 @@ describe('autoAssignJiraIssue', () => {
     });
 
     expect(result.status).toBe('failed');
+  });
+
+  it('continues with group-only assignment when get_user lookup fails', async () => {
+    const client = new FakeJiraClient();
+    client.callToolMock.mockImplementation(
+      async (toolName: string, args: Record<string, unknown>): Promise<FakeToolResult> => {
+        if (toolName.endsWith('list_fields')) {
+          return { content: [{ type: 'text', text: JSON.stringify([{ id: 'customfield_10126', name: 'Group' }]) }] };
+        }
+        if (toolName.endsWith('get_user')) {
+          throw new Error('lookup failed');
+        }
+        return { content: [{ type: 'text', text: JSON.stringify({ ok: true, args }) }] };
+      },
+    );
+    const registry = makeRegistry(client);
+
+    const result = await autoAssignJiraIssue(registry, {
+      issueKey: 'PROD-5B',
+      issueType: 'CC Bug',
+      summary: 'payment issue',
+      assignment: assignmentConfig(),
+    });
+
+    expect(result.status).toBe('assigned');
+    expect(result.assigneeAccountId).toBeUndefined();
+
+    const updateCall = client.callToolMock.mock.calls.find((call) => call[0].endsWith('update-issue'));
+    const updateArgs = updateCall?.[1] as Record<string, unknown>;
+    expect(updateArgs.assignee).toBeUndefined();
+    expect(updateArgs.customFields).toMatchObject({ customfield_10126: 'Pulse' });
   });
 
   it('caches Group field discovery between calls', async () => {
