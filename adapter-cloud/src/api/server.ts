@@ -24,6 +24,8 @@ import { domainsRouter } from './routes/domains.js';
 import { healthRouter, setHealthRegistry } from './routes/health.js';
 
 // Webhooks
+import { jiraWebhookRouter, closeJiraWebhookQueue } from './webhooks/jira.js';
+import { slackWebhookRouter, closeSlackQueue } from './webhooks/slack.js';
 import { pagerdutyWebhookRouter, closePagerdutyQueue } from './webhooks/pagerduty.js';
 
 // Orchestrator
@@ -102,6 +104,7 @@ const app = express();
 
 // Body parsing
 app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 // Health routes are unauthenticated
 app.use('/', healthRouter);
@@ -109,7 +112,12 @@ app.use('/', healthRouter);
 // Prometheus metrics endpoint (unauthenticated for scraper access)
 app.get('/metrics', getMetricsEndpoint);
 
-// All /api/v1 routes require authentication
+// Webhook routes — authenticated via their own signature verification, not API keys
+app.use('/api/v1/webhooks/jira', jiraWebhookRouter);
+app.use('/api/v1/webhooks/slack', slackWebhookRouter);
+app.use('/api/v1/webhooks/pagerduty', pagerdutyWebhookRouter);
+
+// All other /api/v1 routes require authentication
 app.use('/api/v1', authMiddleware);
 
 // Mount API routes
@@ -117,9 +125,6 @@ app.use('/api/v1/investigate', investigateRouter);
 app.use('/api/v1/investigations', investigationsRouter);
 app.use('/api/v1/query', queriesRouter);
 app.use('/api/v1/domains', domainsRouter);
-
-// Webhook routes (authenticated — API key or JWT required)
-app.use('/api/v1/webhooks/pagerduty', pagerdutyWebhookRouter);
 
 // ---------------------------------------------------------------------------
 // Startup
@@ -187,6 +192,8 @@ async function start(): Promise<void> {
     try {
       // Close BullMQ queues
       await closeInvestigateQueue();
+      await closeJiraWebhookQueue();
+      await closeSlackQueue();
       await closePagerdutyQueue();
       log.info('Investigation queues closed');
     } catch (err) {

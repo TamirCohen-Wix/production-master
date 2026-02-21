@@ -1,0 +1,108 @@
+# Prometheus AlertManager rules for production-master.
+# Uses the 12 pm_* metrics defined in src/observability/metrics.ts.
+
+groups:
+  - name: production-master
+    rules:
+      # -----------------------------------------------------------------------
+      # HighInvestigationFailureRate
+      # Fires when the INCONCLUSIVE verdict rate exceeds 30 % over 1 hour.
+      # -----------------------------------------------------------------------
+      - alert: HighInvestigationFailureRate
+        expr: |
+          (
+            sum(rate(pm_investigation_verdict{verdict="INCONCLUSIVE"}[1h]))
+            /
+            sum(rate(pm_investigation_verdict[1h]))
+          ) > 0.3
+        for: 1h
+        labels:
+          severity: warning
+          team: production-master
+        annotations:
+          summary: "High INCONCLUSIVE verdict rate ({{ $value | humanizePercentage }})"
+          description: >-
+            More than 30 % of investigations resolved as INCONCLUSIVE over the
+            last hour. Current rate: {{ $value | humanizePercentage }}.
+          runbook_url: "https://wiki.internal/runbooks/production-master#high-inconclusive"
+
+      # -----------------------------------------------------------------------
+      # LongInvestigation
+      # Fires when the p95 investigation duration exceeds 1200 s (20 min).
+      # -----------------------------------------------------------------------
+      - alert: LongInvestigation
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(pm_investigation_duration_seconds_bucket[10m])) by (le)
+          ) > 1200
+        for: 5m
+        labels:
+          severity: warning
+          team: production-master
+        annotations:
+          summary: "Investigation p95 duration exceeds 20 min ({{ $value | humanizeDuration }})"
+          description: >-
+            The 95th-percentile investigation duration is {{ $value | humanizeDuration }},
+            exceeding the 20-minute threshold.
+          runbook_url: "https://wiki.internal/runbooks/production-master#long-investigation"
+
+      # -----------------------------------------------------------------------
+      # MCPServerDown
+      # Fires when an MCP server's error rate exceeds 50 % for 5 minutes.
+      # -----------------------------------------------------------------------
+      - alert: MCPServerDown
+        expr: |
+          (
+            sum(rate(pm_mcp_call_errors_total[5m])) by (server)
+            /
+            (
+              sum(rate(pm_mcp_call_duration_seconds_count[5m])) by (server)
+              + sum(rate(pm_mcp_call_errors_total[5m])) by (server)
+            )
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: critical
+          team: production-master
+        annotations:
+          summary: "MCP server {{ $labels.server }} error rate > 50 %"
+          description: >-
+            MCP server {{ $labels.server }} has an error ratio of
+            {{ $value | humanizePercentage }} over the last 5 minutes.
+          runbook_url: "https://wiki.internal/runbooks/production-master#mcp-server-down"
+
+      # -----------------------------------------------------------------------
+      # HighTokenUsage
+      # Fires when the LLM spend rate exceeds $10 / hour.
+      # -----------------------------------------------------------------------
+      - alert: HighTokenUsage
+        expr: |
+          sum(rate(pm_llm_cost_dollars[5m])) * 3600 > 10
+        for: 10m
+        labels:
+          severity: warning
+          team: production-master
+        annotations:
+          summary: "LLM cost rate exceeds $10/hour (${{ $value | humanize }}/hr)"
+          description: >-
+            Projected hourly LLM spend is ${{ $value | humanize }}, exceeding
+            the $10/hour budget threshold.
+          runbook_url: "https://wiki.internal/runbooks/production-master#high-token-usage"
+
+      # -----------------------------------------------------------------------
+      # QueueBacklog
+      # Fires when the investigation queue depth stays above 20 for 10 minutes.
+      # -----------------------------------------------------------------------
+      - alert: QueueBacklog
+        expr: |
+          sum(pm_queue_depth) > 20
+        for: 10m
+        labels:
+          severity: warning
+          team: production-master
+        annotations:
+          summary: "Investigation queue backlog ({{ $value }} items)"
+          description: >-
+            The investigation queue has had more than 20 pending items for over
+            10 minutes. Current depth: {{ $value }}.
+          runbook_url: "https://wiki.internal/runbooks/production-master#queue-backlog"
