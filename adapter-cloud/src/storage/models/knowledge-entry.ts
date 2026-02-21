@@ -141,7 +141,7 @@ export async function verify(id: string): Promise<KnowledgeEntry | null> {
 export async function exportByService(service: string): Promise<KnowledgeEntry[]> {
   const { rows } = await query<KnowledgeEntry>(
     `SELECT * FROM knowledge_entries
-     WHERE service = $1 AND confidence != 'archived'
+     WHERE service = $1 AND confidence = 'active'
      ORDER BY category, created_at DESC`,
     [service],
   );

@@ -90,9 +90,9 @@ knowledgeRouter.get('/:id', queryRateLimit, async (req, res) => {
 });
 
 // --- POST /:id/verify — mark entry as verified ---
-knowledgeRouter.post('/:id/verify', async (req, res) => {
+knowledgeRouter.post('/:id/verify', queryRateLimit, async (req, res) => {
   try {
-    const entry = await KnowledgeEntryModel.verify(req.params.id);
+    const entry = await KnowledgeEntryModel.verify(req.params.id as string);
 
     if (!entry) {
       res.status(404).json({ error: 'Knowledge entry not found' });
@@ -110,9 +110,9 @@ knowledgeRouter.post('/:id/verify', async (req, res) => {
 });
 
 // --- POST /:id/archive — archive an entry ---
-knowledgeRouter.post('/:id/archive', async (req, res) => {
+knowledgeRouter.post('/:id/archive', queryRateLimit, async (req, res) => {
   try {
-    const entry = await KnowledgeEntryModel.archive(req.params.id);
+    const entry = await KnowledgeEntryModel.archive(req.params.id as string);
 
     if (!entry) {
       res.status(404).json({ error: 'Knowledge entry not found' });

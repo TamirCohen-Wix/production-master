@@ -53,6 +53,13 @@ export async function applyRecommendation(
     target: recommendation.target,
   });
 
+  // Mark recommendation as applied first — acts as a concurrency guard.
+  // markApplied() only succeeds if status is still 'approved'.
+  const applied = await RecommendationModel.markApplied(recommendation.id);
+  if (!applied) {
+    throw new Error(`Recommendation ${recommendation.id} could not be marked as applied (status may have changed)`);
+  }
+
   const entry = await KnowledgeEntryModel.create({
     service: recommendation.target,
     category,
@@ -67,9 +74,6 @@ export async function applyRecommendation(
     source: 'agent',
     source_recommendation_id: recommendation.id,
   });
-
-  // Mark recommendation as applied
-  await RecommendationModel.markApplied(recommendation.id);
 
   log.info('Knowledge entry created from recommendation', {
     knowledge_id: entry.id,

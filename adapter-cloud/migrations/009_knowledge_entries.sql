@@ -19,3 +19,5 @@ CREATE TABLE IF NOT EXISTS knowledge_entries (
 
 CREATE INDEX idx_knowledge_entries_service ON knowledge_entries(service);
 CREATE INDEX idx_knowledge_entries_confidence ON knowledge_entries(confidence);
+CREATE UNIQUE INDEX idx_knowledge_entries_source_rec_unique
+  ON knowledge_entries(source_recommendation_id) WHERE source_recommendation_id IS NOT NULL;

@@ -114,12 +114,11 @@ export async function runFeedbackCorroboration(): Promise<KnowledgeEntryModel.Kn
     const service = group.domain;
 
     // 4. Dedup: check if a knowledge entry with this title + service already exists
-    const existing = await KnowledgeEntryModel.list(
-      { service },
-      1,
-      0,
+    const { rows: existingRows } = await query(
+      'SELECT 1 FROM knowledge_entries WHERE service = $1 AND title = $2 LIMIT 1',
+      [service, title],
     );
-    const duplicate = existing.data.find((e) => e.title === title);
+    const duplicate = existingRows.length > 0;
 
     if (duplicate) {
       log.debug('Skipping duplicate knowledge entry', { title, service });
