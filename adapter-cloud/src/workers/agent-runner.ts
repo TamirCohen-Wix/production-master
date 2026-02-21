@@ -131,13 +131,13 @@ export async function runAgent(
   let finalContent = '';
 
   // Build tool handler options for trace propagation
-  const toolHandlerOptions = options.traceCtx
-    ? {
-        traceCtx: options.traceCtx,
-        investigationId: options.investigationId,
-        domain: options.domain,
-      }
-    : undefined;
+  const toolHandlerOptions = {
+    traceCtx: options.traceCtx,
+    investigationId: options.investigationId,
+    domain: options.domain,
+    agentName,
+    phase: agentName,
+  };
 
   // Agentic loop
   while (iterations < maxIterations) {
