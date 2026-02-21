@@ -22,6 +22,11 @@ redis:
   host: staging-redis.wixpress.com
   port: "6379"
 
+migrations:
+  enabled: true
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+
 secrets:
   databaseUrl: "postgresql://production_master@staging-postgres.wixpress.com:5432/production_master_staging?sslmode=require"
   redisUrl: "redis://staging-redis.wixpress.com:6379"

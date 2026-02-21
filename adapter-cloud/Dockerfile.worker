@@ -6,7 +6,10 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY .npmrc package*.json ./
+COPY .npmrc package*.json package-lock.json ./
+# Override .npmrc to use the public registry (no Wix VPN dependency)
+RUN echo "registry=https://registry.npmjs.org/" > .npmrc
+RUN sed -i 's|https://npm.dev.wixpress.com/api/npm/npm-repos/|https://registry.npmjs.org/|g' package-lock.json
 RUN npm ci
 
 COPY src/ ./src/
@@ -18,7 +21,9 @@ FROM node:22-alpine AS deps
 
 WORKDIR /app
 
-COPY .npmrc package*.json ./
+COPY .npmrc package*.json package-lock.json ./
+RUN echo "registry=https://registry.npmjs.org/" > .npmrc
+RUN sed -i 's|https://npm.dev.wixpress.com/api/npm/npm-repos/|https://registry.npmjs.org/|g' package-lock.json
 RUN npm ci --omit=dev
 
 # Stage 3: Run
@@ -30,5 +35,7 @@ ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 COPY --from=builder /app/dist ./dist
 COPY --from=deps /app/node_modules ./node_modules
+COPY scripts/ ./scripts/
+COPY migrations/ ./migrations/
 
 CMD ["node", "dist/workers/worker.js"]

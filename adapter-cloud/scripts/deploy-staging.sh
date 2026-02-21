@@ -36,29 +36,27 @@ echo ""
 # ---------------------------------------------------------------------------
 # Step 1 — Build Docker image
 # ---------------------------------------------------------------------------
-echo ">>> Step 1/6: Building Docker image..."
+echo ">>> Step 1/5: Building Docker image..."
 docker build -t "${IMAGE_LOCAL}" "${ROOT_DIR}"
 echo "    Built ${IMAGE_LOCAL}"
 
 # ---------------------------------------------------------------------------
 # Step 2 — Tag and push to container registry
 # ---------------------------------------------------------------------------
-echo ">>> Step 2/6: Tagging and pushing to registry..."
+echo ">>> Step 2/5: Tagging and pushing to registry..."
 docker tag "${IMAGE_LOCAL}" "${IMAGE_REMOTE}"
 docker push "${IMAGE_REMOTE}"
 echo "    Pushed ${IMAGE_REMOTE}"
 
 # ---------------------------------------------------------------------------
-# Step 3 — Run database migrations
+# Step 3 — Migrations (automatic via Helm pre-upgrade hook)
 # ---------------------------------------------------------------------------
-echo ">>> Step 3/6: Running database migrations..."
-"${SCRIPT_DIR}/run-migrations.sh"
-echo "    Migrations complete."
+echo ">>> Step 3/5: Migrations run automatically as a Helm pre-upgrade hook Job."
 
 # ---------------------------------------------------------------------------
-# Step 4 — Helm upgrade / install
+# Step 4 — Helm upgrade / install (triggers migration Job first)
 # ---------------------------------------------------------------------------
-echo ">>> Step 4/6: Deploying via Helm..."
+echo ">>> Step 4/5: Deploying via Helm..."
 helm upgrade --install "${RELEASE_NAME}" "${ROOT_DIR}/helm/" \
   -f "${HELM_VALUES}" \
   -n "${NAMESPACE}" \
@@ -70,18 +68,14 @@ helm upgrade --install "${RELEASE_NAME}" "${ROOT_DIR}/helm/" \
 echo "    Helm release '${RELEASE_NAME}' deployed to namespace '${NAMESPACE}'."
 
 # ---------------------------------------------------------------------------
-# Step 5 — Wait for rollout
+# Step 5 — Print status and health check
 # ---------------------------------------------------------------------------
-echo ">>> Step 5/6: Waiting for rollout to complete..."
+echo ">>> Step 5/5: Deployment status"
 kubectl rollout status "deployment/${DEPLOYMENT_NAME}" \
   -n "${NAMESPACE}" \
   --timeout="${ROLLOUT_TIMEOUT}"
 echo "    Rollout complete."
 
-# ---------------------------------------------------------------------------
-# Step 6 — Print status and health check
-# ---------------------------------------------------------------------------
-echo ">>> Step 6/6: Deployment status"
 kubectl get pods -n "${NAMESPACE}" -l "app.kubernetes.io/name=${RELEASE_NAME}"
 echo ""
 

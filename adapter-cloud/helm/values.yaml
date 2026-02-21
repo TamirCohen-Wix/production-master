@@ -80,6 +80,11 @@ redis:
   host: redis
   port: "6379"
 
+migrations:
+  enabled: true
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+
 secrets:
   databaseUrl: ""
   redisUrl: ""
