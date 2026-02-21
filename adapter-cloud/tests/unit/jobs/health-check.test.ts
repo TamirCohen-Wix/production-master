@@ -33,8 +33,10 @@ vi.mock('../../../src/observability/index.js', () => ({
 }));
 
 // Mock prom-client metrics to avoid registration conflicts
-const mockGaugeSet = vi.fn();
-const mockCounterInc = vi.fn();
+const { mockGaugeSet, mockCounterInc } = vi.hoisted(() => ({
+  mockGaugeSet: vi.fn(),
+  mockCounterInc: vi.fn(),
+}));
 
 vi.mock('prom-client', () => ({
   Gauge: vi.fn().mockImplementation(() => ({

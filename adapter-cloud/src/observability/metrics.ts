@@ -1,8 +1,15 @@
 /**
  * Prometheus metrics for production-master cloud pipeline.
  *
- * Exposes 12 domain-specific metrics via prom-client and a
+ * Exposes domain-specific metrics via prom-client and a
  * metrics HTTP handler for scraping.
+ *
+ * Metrics are grouped into:
+ *   - Investigation lifecycle (totals, duration, verdicts, hypothesis iterations)
+ *   - Agent execution (invocations, duration, tokens)
+ *   - MCP tool calls (totals, duration, errors)
+ *   - Cost tracking (tokens by model, LLM spend)
+ *   - Infrastructure gauges (queue depth, worker utilization)
  */
 
 import {
@@ -20,11 +27,11 @@ const register = new Registry();
 // Investigation lifecycle
 // ---------------------------------------------------------------------------
 
-/** Total investigations started, labelled by trigger source. */
+/** Total investigations started, labelled by domain, status, and trigger source. */
 export const pmInvestigationTotal = new Counter({
   name: 'pm_investigation_total',
   help: 'Total number of investigations started',
-  labelNames: ['trigger'] as const,
+  labelNames: ['domain', 'status', 'trigger_source'] as const,
   registers: [register],
 });
 
@@ -32,7 +39,7 @@ export const pmInvestigationTotal = new Counter({
 export const pmInvestigationDurationSeconds = new Histogram({
   name: 'pm_investigation_duration_seconds',
   help: 'Duration of an investigation in seconds',
-  labelNames: ['status'] as const,
+  labelNames: ['domain', 'status'] as const,
   buckets: [5, 15, 30, 60, 120, 300, 600],
   registers: [register],
 });
@@ -45,11 +52,37 @@ export const pmInvestigationVerdict = new Counter({
   registers: [register],
 });
 
+/** Number of hypothesis iterations per investigation. */
+export const pmInvestigationHypothesisIterations = new Histogram({
+  name: 'pm_investigation_hypothesis_iterations',
+  help: 'Number of hypothesis iterations per investigation',
+  labelNames: ['domain'] as const,
+  buckets: [1, 2, 3, 5, 8, 13],
+  registers: [register],
+});
+
 // ---------------------------------------------------------------------------
 // Agent execution
 // ---------------------------------------------------------------------------
 
-/** Per-agent execution time. */
+/** Total agent invocations, labelled by agent name and domain. */
+export const pmAgentInvocationTotal = new Counter({
+  name: 'pm_agent_invocation_total',
+  help: 'Total number of agent invocations',
+  labelNames: ['agent_name', 'domain'] as const,
+  registers: [register],
+});
+
+/** Per-agent invocation duration. */
+export const pmAgentInvocationDurationSeconds = new Histogram({
+  name: 'pm_agent_invocation_duration_seconds',
+  help: 'Duration of agent invocations in seconds',
+  labelNames: ['agent_name'] as const,
+  buckets: [1, 5, 10, 30, 60, 120],
+  registers: [register],
+});
+
+/** Per-agent execution time (legacy, kept for backward compatibility). */
 export const pmAgentDurationSeconds = new Histogram({
   name: 'pm_agent_duration_seconds',
   help: 'Duration of agent execution in seconds',
@@ -70,16 +103,33 @@ export const pmAgentTokensTotal = new Counter({
 // MCP calls
 // ---------------------------------------------------------------------------
 
+/** Total MCP tool calls, labelled by server, tool, and status. */
+export const pmMcpToolCallTotal = new Counter({
+  name: 'pm_mcp_tool_call_total',
+  help: 'Total MCP tool calls',
+  labelNames: ['server', 'tool', 'status'] as const,
+  registers: [register],
+});
+
 /** Duration of individual MCP tool calls. */
+export const pmMcpToolCallDurationSeconds = new Histogram({
+  name: 'pm_mcp_tool_call_duration_seconds',
+  help: 'Duration of MCP tool calls in seconds',
+  labelNames: ['server'] as const,
+  buckets: [0.1, 0.5, 1, 2, 5, 10, 30],
+  registers: [register],
+});
+
+/** Duration of individual MCP tool calls (legacy, kept for backward compatibility). */
 export const pmMcpCallDurationSeconds = new Histogram({
   name: 'pm_mcp_call_duration_seconds',
-  help: 'Duration of MCP tool calls in seconds',
+  help: 'Duration of MCP tool calls in seconds (legacy)',
   labelNames: ['server', 'tool'] as const,
   buckets: [0.1, 0.5, 1, 2, 5, 10, 30],
   registers: [register],
 });
 
-/** MCP call errors. */
+/** MCP call errors (legacy, kept for backward compatibility). */
 export const pmMcpCallErrorsTotal = new Counter({
   name: 'pm_mcp_call_errors_total',
   help: 'Total MCP call errors',
@@ -88,13 +138,13 @@ export const pmMcpCallErrorsTotal = new Counter({
 });
 
 // ---------------------------------------------------------------------------
-// Hypothesis loop
+// Hypothesis loop (legacy metrics — kept for backward compatibility)
 // ---------------------------------------------------------------------------
 
-/** Number of hypothesis iterations per investigation. */
+/** Number of hypothesis iterations per investigation (legacy). */
 export const pmHypothesisIterations = new Histogram({
   name: 'pm_hypothesis_iterations',
-  help: 'Number of hypothesis iterations per investigation',
+  help: 'Number of hypothesis iterations per investigation (legacy)',
   buckets: [1, 2, 3, 5, 8, 13],
   registers: [register],
 });
@@ -111,10 +161,26 @@ export const pmHypothesisConfidence = new Histogram({
 // Cost tracking
 // ---------------------------------------------------------------------------
 
-/** Cumulative LLM spend in USD. */
+/** Total LLM tokens consumed, labelled by model and type (input/output). */
+export const pmLlmTokensTotal = new Counter({
+  name: 'pm_llm_tokens_total',
+  help: 'Total LLM tokens consumed',
+  labelNames: ['model', 'type'] as const,
+  registers: [register],
+});
+
+/** Cumulative LLM spend in USD, labelled by model and domain. */
+export const pmLlmCostDollarsTotal = new Counter({
+  name: 'pm_llm_cost_dollars_total',
+  help: 'Cumulative LLM cost in US dollars',
+  labelNames: ['model', 'domain'] as const,
+  registers: [register],
+});
+
+/** Cumulative LLM spend in USD (legacy, kept for backward compatibility). */
 export const pmLlmCostDollars = new Counter({
   name: 'pm_llm_cost_dollars',
-  help: 'Cumulative LLM cost in US dollars',
+  help: 'Cumulative LLM cost in US dollars (legacy)',
   labelNames: ['model'] as const,
   registers: [register],
 });

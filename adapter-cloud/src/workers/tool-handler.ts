@@ -82,6 +82,17 @@ export interface ToolHandlerOptions {
 }
 
 // ---------------------------------------------------------------------------
+// Metrics
+// ---------------------------------------------------------------------------
+
+import {
+  pmMcpToolCallTotal,
+  pmMcpToolCallDurationSeconds,
+  pmMcpCallDurationSeconds,
+  pmMcpCallErrorsTotal,
+} from '../observability/index.js';
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -99,6 +110,7 @@ export async function handleToolUse(
   const server = mcpRegistry.resolveServer(toolCall.name);
 
   if (!server) {
+    pmMcpToolCallTotal.inc({ server: 'unknown', tool: toolCall.name, status: 'error' });
     return {
       type: 'tool_result',
       tool_use_id: toolCall.id,
@@ -108,6 +120,8 @@ export async function handleToolUse(
       is_error: true,
     };
   }
+
+  const startTime = performance.now();
 
   // Start a tool-call span if trace context is available
   const spanInfo = options?.traceCtx
@@ -121,6 +135,19 @@ export async function handleToolUse(
 
   try {
     const result = await server.callTool(toolCall.name, toolCall.input);
+    const durationSec = (performance.now() - startTime) / 1000;
+
+    const status = result.isError ? 'error' : 'success';
+
+    // New metrics
+    pmMcpToolCallTotal.inc({ server: server.name, tool: toolCall.name, status });
+    pmMcpToolCallDurationSeconds.observe({ server: server.name }, durationSec);
+
+    // Legacy metrics
+    pmMcpCallDurationSeconds.observe({ server: server.name, tool: toolCall.name }, durationSec);
+    if (result.isError) {
+      pmMcpCallErrorsTotal.inc({ server: server.name, tool: toolCall.name, error_type: 'tool_error' });
+    }
 
     // Flatten content into a single text string for the model
     const text = result.content
@@ -146,12 +173,22 @@ export async function handleToolUse(
       is_error: result.isError ?? false,
     };
   } catch (err) {
+    const durationSec = (performance.now() - startTime) / 1000;
+
     if (spanInfo) {
       recordSpanError(spanInfo.span, err);
       spanInfo.span.end();
     }
 
     const message = err instanceof Error ? err.message : String(err);
+
+    // New metrics
+    pmMcpToolCallTotal.inc({ server: server.name, tool: toolCall.name, status: 'error' });
+    pmMcpToolCallDurationSeconds.observe({ server: server.name }, durationSec);
+
+    // Legacy metrics
+    pmMcpCallErrorsTotal.inc({ server: server.name, tool: toolCall.name, error_type: 'exception' });
+
     return {
       type: 'tool_result',
       tool_use_id: toolCall.id,

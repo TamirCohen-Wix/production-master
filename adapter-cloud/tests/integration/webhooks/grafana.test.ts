@@ -197,7 +197,7 @@ describe('POST /api/v1/webhooks/grafana-alert', () => {
     });
 
     // Verify metric was incremented
-    expect(mockInc).toHaveBeenCalledWith({ trigger: 'grafana_alert' });
+    expect(mockInc).toHaveBeenCalledWith({ domain: 'unknown', status: 'queued', trigger_source: 'grafana_alert' });
   });
 
   // -------------------------------------------------------------------------

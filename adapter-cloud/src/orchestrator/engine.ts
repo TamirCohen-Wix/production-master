@@ -31,6 +31,7 @@ import {
   getActiveTraceId,
   pmInvestigationDurationSeconds,
   pmInvestigationVerdict,
+  pmInvestigationHypothesisIterations,
   pmQueueDepth,
 } from '../observability/index.js';
 import type { TraceCarrier } from '../observability/index.js';
@@ -246,11 +247,13 @@ async function executeInvestigation(
       ['completed', investigationId],
     );
 
+    const domainLabel = job.domain ?? 'unknown';
+
     investigationSpan.setAttribute('pm.status', 'completed');
     investigationSpan.setAttribute('pm.duration_seconds', durationSec);
     investigationSpan.end();
 
-    pmInvestigationDurationSeconds.observe({ status: 'completed' }, durationSec);
+    pmInvestigationDurationSeconds.observe({ domain: domainLabel, status: 'completed' }, durationSec);
     pmInvestigationVerdict.inc({ verdict: 'completed' });
 
     log.info('Investigation completed', {
@@ -260,6 +263,7 @@ async function executeInvestigation(
     });
   } catch (err) {
     const durationSec = (Date.now() - startTime) / 1000;
+    const domainLabel = job.domain ?? 'unknown';
 
     await query(
       "UPDATE investigations SET status = 'failed', error = $1, updated_at = NOW() WHERE id = $2",
@@ -270,7 +274,7 @@ async function executeInvestigation(
     investigationSpan.setAttribute('pm.status', 'failed');
     investigationSpan.end();
 
-    pmInvestigationDurationSeconds.observe({ status: 'failed' }, durationSec);
+    pmInvestigationDurationSeconds.observe({ domain: domainLabel, status: 'failed' }, durationSec);
     pmInvestigationVerdict.inc({ verdict: 'failed' });
 
     log.error('Investigation failed', {

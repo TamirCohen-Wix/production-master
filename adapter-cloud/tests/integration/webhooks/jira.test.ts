@@ -165,7 +165,7 @@ describe('POST /api/v1/webhooks/jira', () => {
     });
 
     // Verify metric was incremented
-    expect(mockInc).toHaveBeenCalledWith({ trigger: 'jira_webhook' });
+    expect(mockInc).toHaveBeenCalledWith({ domain: 'unknown', status: 'queued', trigger_source: 'jira_webhook' });
   });
 
   // -------------------------------------------------------------------------

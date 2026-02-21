@@ -184,7 +184,7 @@ describe('POST /api/v1/webhooks/pagerduty', () => {
     });
 
     // Verify metric was incremented
-    expect(mockInc).toHaveBeenCalledWith({ trigger: 'pagerduty' });
+    expect(mockInc).toHaveBeenCalledWith({ domain: 'unknown', status: 'queued', trigger_source: 'pagerduty' });
   });
 
   // -------------------------------------------------------------------------

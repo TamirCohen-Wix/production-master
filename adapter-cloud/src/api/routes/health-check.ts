@@ -189,7 +189,7 @@ healthCheckRouter.post('/', async (req, res) => {
               },
             );
 
-            pmInvestigationTotal.inc({ trigger: 'health_check' });
+            pmInvestigationTotal.inc({ domain: 'unknown', status: 'queued', trigger_source: 'health_check' });
             triggeredCount++;
 
             log.info('Health check triggered investigation', {

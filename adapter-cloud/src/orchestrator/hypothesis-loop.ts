@@ -22,6 +22,7 @@ import {
   recordSpanError,
   pmHypothesisIterations,
   pmHypothesisConfidence,
+  pmInvestigationHypothesisIterations,
 } from '../observability/index.js';
 
 // ---------------------------------------------------------------------------
@@ -55,7 +56,7 @@ export interface HypothesisLoopOptions {
   maxIterations?: number;
   /** Parent trace context for creating child spans */
   traceCtx?: OtelContext;
-  /** Domain name for span attributes */
+  /** Domain for metric labelling / span attributes */
   domain?: string;
 }
 
@@ -137,6 +138,7 @@ export async function runHypothesisLoop(options: HypothesisLoopOptions): Promise
     traceCtx,
     domain,
   } = options;
+  const domainLabel = domain ?? 'unknown';
 
   log.info('Starting hypothesis loop', {
     investigation_id: investigationId,
@@ -209,6 +211,10 @@ export async function runHypothesisLoop(options: HypothesisLoopOptions): Promise
         confidence: verified.confidence,
       });
 
+      pmHypothesisIterations.observe(iteration);
+      pmHypothesisConfidence.observe(verified.confidence);
+      pmInvestigationHypothesisIterations.observe({ domain: domainLabel }, iteration);
+
       // Track best hypothesis
       if (!bestHypothesis || verified.confidence > bestHypothesis.confidence) {
         bestHypothesis = verified;
@@ -273,6 +279,7 @@ export async function runHypothesisLoop(options: HypothesisLoopOptions): Promise
 
   pmHypothesisIterations.observe(maxIterations);
   pmHypothesisConfidence.observe(accepted.confidence);
+  pmInvestigationHypothesisIterations.observe({ domain: domainLabel }, maxIterations);
 
   return {
     accepted_hypothesis: accepted,

@@ -215,7 +215,7 @@ jiraWebhookRouter.post('/', async (req, res) => {
     );
 
     // --- Metrics ---
-    pmInvestigationTotal.inc({ trigger: 'jira_webhook' });
+    pmInvestigationTotal.inc({ domain: 'unknown', status: 'queued', trigger_source: 'jira_webhook' });
 
     log.info('Jira webhook processed — investigation queued', {
       investigation_id: investigationId,

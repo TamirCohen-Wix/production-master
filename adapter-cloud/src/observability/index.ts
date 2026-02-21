@@ -33,16 +33,29 @@ export {
   initMetrics,
   getMetricsEndpoint,
   register,
+  // Investigation lifecycle
   pmInvestigationTotal,
   pmInvestigationDurationSeconds,
   pmInvestigationVerdict,
+  pmInvestigationHypothesisIterations,
+  // Agent execution
+  pmAgentInvocationTotal,
+  pmAgentInvocationDurationSeconds,
   pmAgentDurationSeconds,
   pmAgentTokensTotal,
+  // MCP calls
+  pmMcpToolCallTotal,
+  pmMcpToolCallDurationSeconds,
   pmMcpCallDurationSeconds,
   pmMcpCallErrorsTotal,
+  // Hypothesis loop (legacy)
   pmHypothesisIterations,
   pmHypothesisConfidence,
+  // Cost tracking
+  pmLlmTokensTotal,
+  pmLlmCostDollarsTotal,
   pmLlmCostDollars,
+  // Infrastructure
   pmQueueDepth,
   pmWorkerUtilization,
 } from './metrics.js';

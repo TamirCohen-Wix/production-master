@@ -12,7 +12,12 @@ import {
   startAgentSpan,
   recordSpanError,
   pmAgentDurationSeconds,
+  pmAgentInvocationTotal,
+  pmAgentInvocationDurationSeconds,
   pmAgentTokensTotal,
+  pmLlmTokensTotal,
+  pmLlmCostDollarsTotal,
+  pmLlmCostDollars,
 } from '../observability/index.js';
 
 // ---------------------------------------------------------------------------
@@ -32,7 +37,7 @@ export interface DispatchOptions {
   mode?: string;
   /** Parent trace context for creating child spans */
   traceCtx?: OtelContext;
-  /** Domain name for span attributes */
+  /** Domain for metric labelling / span attributes */
   domain?: string;
 }
 
@@ -57,6 +62,7 @@ const log = createLogger('orchestrator:dispatcher');
  */
 export async function dispatchAgent(options: DispatchOptions): Promise<AgentOutput> {
   const { investigationId, agentName, investigationContext, mcpRegistry, traceCtx, domain } = options;
+  const domainLabel = domain ?? 'unknown';
 
   // Start an agent-level tracing span (child of the investigation root span).
   // When traceCtx is undefined the span is created without a parent, which
@@ -140,7 +146,13 @@ export async function dispatchAgent(options: DispatchOptions): Promise<AgentOutp
     const durationMs = Date.now() - startTime;
     const durationSec = durationMs / 1000;
 
-    // Record metrics
+    // Record metrics — new metrics
+    pmAgentInvocationTotal.inc({ agent_name: agentName, domain: domainLabel });
+    pmAgentInvocationDurationSeconds.observe({ agent_name: agentName }, durationSec);
+    pmLlmTokensTotal.inc({ model: agentName, type: 'input' }, output.tokenUsage.inputTokens);
+    pmLlmTokensTotal.inc({ model: agentName, type: 'output' }, output.tokenUsage.outputTokens);
+
+    // Record metrics — legacy metrics (backward compatibility)
     pmAgentDurationSeconds.observe({ agent: agentName }, durationSec);
     pmAgentTokensTotal.inc({ agent: agentName, direction: 'input' }, output.tokenUsage.inputTokens);
     pmAgentTokensTotal.inc({ agent: agentName, direction: 'output' }, output.tokenUsage.outputTokens);

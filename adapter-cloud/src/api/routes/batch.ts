@@ -74,7 +74,7 @@ batchRouter.post(
         );
 
         // --- Metrics ---
-        pmInvestigationTotal.inc({ trigger: 'batch' });
+        pmInvestigationTotal.inc({ domain: 'unknown', status: 'queued', trigger_source: 'batch' });
       }
 
       log.info('Batch investigations queued', {

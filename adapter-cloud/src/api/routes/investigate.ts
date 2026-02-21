@@ -90,7 +90,11 @@ investigateRouter.post(
       );
 
       // --- Metrics ---
-      pmInvestigationTotal.inc({ trigger: 'api' });
+      pmInvestigationTotal.inc({
+        domain: body.domain ?? 'unknown',
+        status: 'queued',
+        trigger_source: 'api',
+      });
 
       log.info('Investigation queued', {
         investigation_id: investigationId,
