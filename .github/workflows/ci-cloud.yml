@@ -10,6 +10,9 @@ on:
       - 'adapter-cloud/**'
       - 'core/**'
 
+env:
+  NODE_OPTIONS: '--max-old-space-size=4096'
+
 jobs:
   lint-and-typecheck:
     name: Lint & Typecheck
