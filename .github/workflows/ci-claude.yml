@@ -38,7 +38,7 @@ jobs:
 
       - name: Check required commands
         run: |
-          EXPECTED="production-master.md grafana-query.md slack-search.md production-changes.md resolve-artifact.md fire-console.md update-context.md production-master-report.md git-update-agents.md"
+          EXPECTED="production-master.md grafana-query.md slack-search.md production-changes.md resolve-artifact.md fire-console.md update-context.md production-master-report.md production-master-feedback.md git-update-agents.md"
           MISSING=0
           for cmd in $EXPECTED; do
             if [ ! -f "adapter-claude/commands/$cmd" ]; then

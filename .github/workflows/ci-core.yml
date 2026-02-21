@@ -92,6 +92,17 @@ jobs:
           test -s "$FILE" || { echo "FAIL: $FILE is empty"; exit 1; }
           echo "OK: $FILE exists and is non-empty"
 
+  validate-capabilities:
+    name: Validate capability registry and knowledge assets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run validate-capabilities.sh
+        run: |
+          chmod +x core/tests/validate-capabilities.sh
+          core/tests/validate-capabilities.sh
+
       - name: Verify publisher-format.md exists and is non-empty
         run: |
           FILE="core/output-styles/publisher-format.md"

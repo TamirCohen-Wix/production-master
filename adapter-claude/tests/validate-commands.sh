@@ -10,6 +10,7 @@ EXPECTED_FILES=(
   grafana-query.md
   production-changes.md
   production-master-report.md
+  production-master-feedback.md
   production-master.md
   resolve-artifact.md
   slack-search.md

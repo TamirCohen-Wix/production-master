@@ -1,0 +1,25 @@
+service: auth-service
+known_issues:
+  - id: ki-auth-001
+    title: Cache warmup memory spike
+    pattern:
+      metric: "container_memory_usage_bytes{service='auth-service'}"
+      condition: "> 80% of limit within 5 minutes of deployment"
+    resolution: Expected warmup behavior. Memory should stabilize within 10 minutes.
+    confidence: high
+    source: human-verified
+    last_verified: 2026-02-21
+    references:
+      - https://github.com/TamirCohen-Wix/production-master/issues/93
+
+  - id: ki-auth-002
+    title: Token refresh storm during certificate rotation
+    pattern:
+      log: token_refresh_failed
+      condition: "> 100 occurrences in 1 minute"
+    resolution: Restart token-refresh workers after certificate rotation stabilizes.
+    confidence: medium
+    source: agent-generated
+    last_verified: 2026-02-21
+    references:
+      - https://github.com/TamirCohen-Wix/production-master/issues/93

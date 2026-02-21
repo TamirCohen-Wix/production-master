@@ -1,0 +1,23 @@
+services:
+  api-gateway:
+    repo: org/api-gateway
+    dependencies:
+      - service: auth-service
+        type: synchronous
+        protocol: gRPC
+      - service: payments-service
+        type: synchronous
+        protocol: HTTP
+      - service: notification-service
+        type: asynchronous
+        protocol: Kafka
+
+  auth-service:
+    repo: org/auth-service
+    dependencies:
+      - service: user-db
+        type: synchronous
+        protocol: PostgreSQL
+      - service: redis-cache
+        type: synchronous
+        protocol: Redis

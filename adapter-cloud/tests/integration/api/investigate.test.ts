@@ -16,11 +16,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mocks — vi.hoisted() ensures variables are available to hoisted vi.mock()
 // ---------------------------------------------------------------------------
 
-const { mockAdd, mockQueueClose, mockQuery, mockInc } = vi.hoisted(() => ({
+const { mockAdd, mockQueueClose, mockQuery, mockInc, mockGetReport } = vi.hoisted(() => ({
   mockAdd: vi.fn().mockResolvedValue({ id: 'job-1' }),
   mockQueueClose: vi.fn().mockResolvedValue(undefined),
   mockQuery: vi.fn(),
   mockInc: vi.fn(),
+  mockGetReport: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock('bullmq', () => ({
@@ -32,6 +33,10 @@ vi.mock('bullmq', () => ({
 
 vi.mock('../../../src/storage/db.js', () => ({
   query: (...args: unknown[]) => mockQuery(...args),
+}));
+
+vi.mock('../../../src/storage/object-store.js', () => ({
+  getReport: (...args: unknown[]) => mockGetReport(...args),
 }));
 
 vi.mock('../../../src/observability/index.js', () => ({
@@ -388,5 +393,26 @@ describe('GET /api/v1/investigations/:id/report', () => {
 
     expect(res.status).toBe(500);
     expect(res.body.error).toBe('Internal server error');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/investigations/:id/bundle
+// ---------------------------------------------------------------------------
+
+describe('GET /api/v1/investigations/:id/bundle', () => {
+  const app = buildApp();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should return 404 when investigation does not exist', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    const res = await request(app, 'GET', '/api/v1/investigations/inv-missing/bundle');
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Investigation not found');
   });
 });

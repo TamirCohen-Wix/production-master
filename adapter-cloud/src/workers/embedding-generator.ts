@@ -25,7 +25,7 @@ const EMBEDDING_MODEL = 'text-embedding-3-small';
 /**
  * Call the OpenAI embeddings API to generate a vector for the given text.
  */
-async function fetchEmbedding(text: string): Promise<number[]> {
+export async function getEmbeddingForText(text: string): Promise<number[]> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY environment variable is not set');
@@ -81,7 +81,7 @@ export async function generateAndStoreEmbedding(
 ): Promise<void> {
   log.info('Generating embedding for investigation', { investigationId });
 
-  const embedding = await fetchEmbedding(summary);
+  const embedding = await getEmbeddingForText(summary);
 
   // pgvector expects the vector as a string literal: '[0.1,0.2,...]'
   const vectorLiteral = `[${embedding.join(',')}]`;

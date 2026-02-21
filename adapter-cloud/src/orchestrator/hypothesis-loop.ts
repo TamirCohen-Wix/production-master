@@ -16,6 +16,7 @@ import { dispatchAgent, type DispatchOptions } from './dispatcher.js';
 import type { AgentOutput } from '../workers/agent-runner.js';
 import type { McpRegistry } from '../workers/tool-handler.js';
 import { query } from '../storage/db.js';
+import { findSimilarIncidentsFromText } from '../workers/incident-retrieval.js';
 import {
   createLogger,
   startHypothesisSpan,
@@ -148,6 +149,19 @@ export async function runHypothesisLoop(options: HypothesisLoopOptions): Promise
 
   const allHypotheses: Hypothesis[] = [];
   let bestHypothesis: Hypothesis | undefined;
+  let effectiveGatherContext = gatherContext;
+
+  // Inject similar-incident context to ground hypothesis generation.
+  const similarIncidents = await findSimilarIncidentsFromText(gatherContext, 3);
+  if (similarIncidents.length > 0) {
+    const similarBlock = similarIncidents
+      .map(
+        (item, idx) =>
+          `${idx + 1}. ${item.ticket_id} (similarity=${item.similarity_score.toFixed(3)})\n${item.summary}`,
+      )
+      .join('\n\n');
+    effectiveGatherContext = `${gatherContext}\n\nSimilar historical incidents:\n${similarBlock}`;
+  }
 
   for (let iteration = 1; iteration <= maxIterations; iteration++) {
     const hypothesisId = `${investigationId}:h${iteration}`;
@@ -171,7 +185,7 @@ export async function runHypothesisLoop(options: HypothesisLoopOptions): Promise
       const dispatchOpts: DispatchOptions = {
         investigationId,
         agentName: 'hypotheses',
-        investigationContext: `${gatherContext}${previousContext}`,
+        investigationContext: `${effectiveGatherContext}${previousContext}`,
         mcpRegistry,
         traceCtx: spanInfo?.ctx ?? traceCtx,
         domain,
@@ -189,8 +203,8 @@ export async function runHypothesisLoop(options: HypothesisLoopOptions): Promise
       // --- Phase: Verify hypothesis ---
       const verifyOutput = await dispatchAgent({
         investigationId,
-        agentName: 'verification',
-        investigationContext: `Hypothesis to verify:\n${JSON.stringify(hypothesis)}\n\nGathered evidence:\n${gatherContext}`,
+        agentName: 'verifier',
+        investigationContext: `Hypothesis to verify:\n${JSON.stringify(hypothesis)}\n\nGathered evidence:\n${effectiveGatherContext}`,
         mcpRegistry,
         traceCtx: spanInfo?.ctx ?? traceCtx,
         domain,

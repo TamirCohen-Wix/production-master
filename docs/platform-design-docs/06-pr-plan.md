@@ -10,6 +10,8 @@
 ---
 
 > This document breaks the implementation plan into concrete, reviewable pull requests. Each PR has a checklist of deliverables, clear dependencies, and parallelism annotations. PRs are grouped by phase and ordered by dependency — not by calendar date.
+>
+> **Status note (2026-02-21):** Several early-phase items are already implemented in-repo even where checkboxes below are still unchecked. Validate status against current filesystem/CI state before opening follow-up PRs.
 
 ---
 

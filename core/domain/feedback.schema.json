@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Production Master Feedback",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["rating"],
+  "properties": {
+    "rating": {
+      "type": "string",
+      "enum": ["accurate", "partially_accurate", "inaccurate"]
+    },
+    "corrected_root_cause": {
+      "type": "string"
+    },
+    "submitted_by": {
+      "type": "string",
+      "maxLength": 100
+    }
+  }
+}

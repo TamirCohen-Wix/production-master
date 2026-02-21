@@ -9,6 +9,19 @@
 
 ---
 
+## Implementation Snapshot (2026-02-21)
+
+This plan remains the strategic blueprint, but several items are already implemented in-repo:
+
+- `core/` extraction and split CI workflows are present.
+- `adapter-claude/`, `adapter-cursor/`, and `adapter-cloud/` are active.
+- Cloud feedback + meta-analysis routes/workers are implemented.
+- Incident embedding and similarity retrieval exist in cloud (`pgvector` + retrieval endpoint).
+
+Remaining gaps are primarily around end-to-end capability abstraction runtime usage, structured knowledge registry operationalization, debug bundle export parity, and checklist/doc status reconciliation.
+
+---
+
 > **This is the most important product we have ever built.** Production Master transforms how Wix engineers investigate and resolve production incidents. It is the single system that turns a 4-hour human debugging session into a 15-minute autonomous investigation with full audit trails. Every design decision, every sprint, every line of code must reflect this gravity. We are not building a "nice to have" plugin — we are building the nervous system of Wix's production reliability.
 
 ---

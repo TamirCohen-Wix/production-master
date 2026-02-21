@@ -35,6 +35,7 @@ import {
   pmQueueDepth,
 } from '../observability/index.js';
 import type { TraceCarrier } from '../observability/index.js';
+import { generateAndStoreEmbedding } from '../workers/embedding-generator.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -308,6 +309,19 @@ async function deliverReport(
       ],
     );
   });
+
+  // Generate semantic embedding for downstream retrieval and learning loops.
+  try {
+    await generateAndStoreEmbedding(
+      investigationId,
+      reportContent.slice(0, 4000),
+    );
+  } catch (err) {
+    log.warn('Failed to generate embedding after report delivery', {
+      investigation_id: investigationId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
 
   // Send callback if URL provided
   if (callbackUrl) {
