@@ -89,6 +89,27 @@ jobs:
           echo "$SCRIPTS" | xargs shellcheck --severity=error
           echo "OK: all scripts passed shellcheck"
 
+  adapter-tests:
+    name: Run adapter test suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate commands
+        run: bash adapter-claude/tests/validate-commands.sh
+
+      - name: Validate hooks
+        run: bash adapter-claude/tests/validate-hooks.sh
+
+      - name: Validate install scripts
+        run: bash adapter-claude/tests/validate-install.sh
+
+      - name: Validate plugin metadata
+        run: bash adapter-claude/tests/validate-plugin-metadata.sh
+
+      - name: Validate MCP integration
+        run: bash adapter-claude/tests/validate-mcp-integration.sh
+
   secrets-scan:
     name: Scan for secrets
     runs-on: ubuntu-latest
