@@ -38,7 +38,9 @@
     "prom-client": "^15.1.0",
     "winston": "^3.17.0",
     "yaml": "^2.7.0",
-    "zod": "^3.24.0",
+    "zod": "^3.24.0"
+  },
+  "optionalDependencies": {
     "@wix/panorama-client-node": "latest"
   },
   "devDependencies": {
