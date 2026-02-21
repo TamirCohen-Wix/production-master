@@ -8,15 +8,24 @@ This adapter connects the shared Production Master engine to Claude Code (comman
 
 Use this adapter if you want to run Production Master investigations directly from Claude Code with slash commands.
 
+## Prerequisites
+
+- Claude Code CLI installed and available as `claude`
+- GitHub CLI installed and authenticated as `gh`
+- MCP access key from <https://mcp-s-connect.wewix.net/mcp-servers>
+
 ## Quick start
 
-From the repository root:
+Run this from a terminal:
 
 ```bash
+gh repo clone TamirCohen-Wix/production-master
+cd production-master
 bash adapter-claude/scripts/install.sh
+claude
 ```
 
-Then run:
+Then run this inside Claude Code:
 
 ```text
 /production-master SCHED-45895
@@ -24,16 +33,34 @@ Then run:
 
 ## Install and setup
 
-1. Install with `bash adapter-claude/scripts/install.sh`.
-2. Choose install scope (`local`, `project`, or `user`) when prompted.
-3. Provide your MCP access key when prompted.
-4. Validate setup with `bash adapter-claude/scripts/validate-install.sh`.
+1. Clone and enter the repository:
+   ```bash
+   gh repo clone TamirCohen-Wix/production-master
+   cd production-master
+   ```
+2. Install with `bash adapter-claude/scripts/install.sh`.
+3. Choose install scope (`local`, `project`, or `user`) when prompted.
+4. Provide your MCP access key when prompted.
+5. Validate setup with `bash adapter-claude/scripts/validate-install.sh`.
 
-For a no-install trial session:
+For a no-install trial session from the same repository:
 
 ```bash
-claude --plugin-dir ./production-master
+claude --plugin-dir .
 ```
+
+If you launched from outside the repository:
+
+```bash
+claude --plugin-dir /absolute/path/to/production-master
+```
+
+## First-run checklist
+
+1. Run `/production-master --help`.
+2. Run `bash adapter-claude/scripts/validate-install.sh`.
+3. Run `/production-master SCHED-45895` (or another test ticket).
+4. Confirm outputs are written under `.claude/debug/`.
 
 ## Usage examples
 

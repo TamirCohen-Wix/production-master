@@ -133,11 +133,12 @@ bash adapter-claude/scripts/validate-install.sh        # Diagnose issues
 
 ```bash
 gh repo clone TamirCohen-Wix/production-master
-cd production-master/adapter-cursor
-# Continue with the Cursor adapter setup guide
+cd production-master
+export PRODUCTION_MASTER_ACCESS_KEY="<your-mcp-access-key>"
+cursor adapter-cursor
 ```
 
-Set `PRODUCTION_MASTER_ACCESS_KEY` and open the directory in Cursor — `.mcp.json` and plugin manifest are picked up automatically.
+Then follow the step-by-step setup in the [Cursor installation guide](adapter-cursor/README.md) to verify MCP connectivity and run your first command.
 
 ### Cloud Service
 
@@ -147,7 +148,7 @@ cp .env.example .env   # Edit with your API keys
 docker compose up -d   # API at http://localhost:3000
 ```
 
-See [`adapter-cloud/README.md`](adapter-cloud/README.md) for full deployment docs including Wix Serverless.
+For deployment details (including Wix Serverless), follow the [Cloud deployment guide](adapter-cloud/README.md).
 
 ## Usage
 

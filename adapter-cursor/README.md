@@ -8,23 +8,62 @@ Cursor IDE surface for the Production Master autonomous investigation pipeline. 
 
 Use this adapter if you want to run Production Master workflows inside Cursor with native commands, rules, and agents.
 
+## Prerequisites
+
+- Cursor IDE installed
+- GitHub CLI installed and authenticated as `gh`
+- MCP access key from <https://mcp-s-connect.wewix.net/mcp-servers>
+
 ## Quick start
 
-1. Set `PRODUCTION_MASTER_ACCESS_KEY` with your personal key from <https://mcp-s-connect.wewix.net/mcp-servers>.
-2. Open `adapter-cursor/` in Cursor.
-3. Confirm `.mcp.json` and `.cursor-plugin/plugin.json` are detected by Cursor.
-
-## Install and setup
-
-- Clone the repository:
+Run this from a terminal:
 
 ```bash
 gh repo clone TamirCohen-Wix/production-master
 cd production-master/adapter-cursor
+export PRODUCTION_MASTER_ACCESS_KEY="<your-mcp-access-key>"
+cursor .
 ```
 
-- Export your access key in your shell profile or active shell session.
-- Open the folder in Cursor and run your first command from the command palette/chat.
+Then run this in Cursor chat:
+
+```text
+production-master --help
+```
+
+## Install and setup
+
+### 1) Clone and open the adapter
+
+```bash
+gh repo clone TamirCohen-Wix/production-master
+cd production-master/adapter-cursor
+cursor .
+```
+
+### 2) Set required access key
+
+```bash
+export PRODUCTION_MASTER_ACCESS_KEY="<your-mcp-access-key>"
+```
+
+Get your key from <https://mcp-s-connect.wewix.net/mcp-servers>.
+
+### 3) Restart Cursor from the same shell
+
+Environment variables are inherited from the process that launches Cursor. If you set the key in terminal, relaunch Cursor from that terminal (or set it permanently in your shell profile).
+
+### 4) Verify setup
+
+- Confirm `adapter-cursor/.mcp.json` is present.
+- Confirm `adapter-cursor/.cursor-plugin/plugin.json` is present.
+- Open Cursor chat and run:
+
+```text
+production-master --help
+```
+
+If help output appears and MCP tools are available, setup is complete.
 
 ## Usage examples
 
@@ -65,6 +104,7 @@ The command set includes `production-master-feedback.md` to submit structured po
 
 ## Troubleshooting
 
+- If you see auth or MCP errors, verify `PRODUCTION_MASTER_ACCESS_KEY` is valid and that Cursor was launched after exporting it.
 - If commands do not appear, reload Cursor window and confirm plugin manifest paths.
 - If MCP tools fail, validate `PRODUCTION_MASTER_ACCESS_KEY` and `.mcp.json` server entries.
 - If behavior differs from Claude adapter, compare shared assets under `core/` and symlinked `skills/`.
