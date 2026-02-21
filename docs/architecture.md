@@ -95,6 +95,14 @@ flowchart LR
 
 Domain configuration is documented in [domain-configs.md](domain-configs.md), including file locations, schema fields, load order, and update flow. Keep schema-level details there as the canonical source.
 
+## Capability Abstraction
+
+The platform abstracts vendor-specific MCP tools behind capability-level interfaces. Each capability (e.g., `log-system`, `ticket-system`) defines a normalized set of operations in `core/capabilities/interfaces/`. The capability registry (`core/capabilities/registry.yaml`) maps each capability to its active provider and alternatives.
+
+Abstract skill files in `core/skills/` (e.g., `log-system/SKILL.md`) define the normalized tool contract, while vendor-specific skill files (e.g., `grafana-datasource/SKILL.md`) document the concrete MCP tools. The capability router (`core/capabilities/router.md`) resolves which skill file to load at Step 0.5.
+
+Custom MCP servers in `custom-mcps/` expose the abstract tool names and translate to upstream vendor calls. This allows swapping providers (e.g., Grafana → Datadog) without changing agent prompts.
+
 ## MCP Server Dependencies
 
 | Server | Tools | Used By |

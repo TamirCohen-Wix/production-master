@@ -13,6 +13,8 @@ capabilities:
       - search_tickets
       - add_comment
       - update_status
+    skill_file: core/skills/ticket-system/SKILL.md
+    vendor_skill: core/skills/jira/SKILL.md
 
   log-system:
     description: "Production log querying, metrics, error analysis, and request tracing"
@@ -26,6 +28,8 @@ capabilities:
       - get_error_details
       - trace_request
       - list_services
+    skill_file: core/skills/log-system/SKILL.md
+    vendor_skill: core/skills/grafana-datasource/SKILL.md
 
   code-search:
     description: "Cross-repository code search, file retrieval, and symbol navigation"
@@ -37,6 +41,8 @@ capabilities:
       - search_code
       - get_file
       - search_symbols
+    skill_file: core/skills/code-search/SKILL.md
+    vendor_skill: core/skills/octocode/SKILL.md
 
   team-communications:
     description: "Team messaging, channel search, and thread-based discussions"
@@ -49,6 +55,8 @@ capabilities:
       - get_thread
       - post_message
       - find_channel
+    skill_file: core/skills/team-comms/SKILL.md
+    vendor_skill: core/skills/slack/SKILL.md
 
   version-control:
     description: "Git hosting with commit history, pull requests, diffs, and branch management"
@@ -61,6 +69,8 @@ capabilities:
       - list_prs
       - get_diff
       - get_pr_details
+    skill_file: core/skills/version-control/SKILL.md
+    vendor_skill: core/skills/github/SKILL.md
 
   feature-flags:
     description: "Feature toggle management, rollout control, and release strategies"
@@ -72,6 +82,8 @@ capabilities:
       - get_flag
       - list_flags
       - get_rollout_history
+    skill_file: core/skills/feature-flags/SKILL.md
+    vendor_skill: core/skills/ft-release/SKILL.md
 
   domain-objects:
     description: "Direct access to production domain entities via gRPC/RPC service invocation"

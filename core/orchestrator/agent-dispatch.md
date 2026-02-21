@@ -43,20 +43,37 @@ The orchestrator launches subagents via the `Task` tool with `subagent_type: "ge
 
 ---
 
+## Capability Resolution
+
+Before loading skill files, the orchestrator resolves abstract capability names to concrete provider skill files. See `core/capabilities/router.md` for the full resolution flow.
+
+| Capability | Abstract Skill | Vendor Skill (default) |
+|------------|---------------|----------------------|
+| log-system | `skills/log-system/SKILL.md` | `skills/grafana-datasource/SKILL.md` |
+| ticket-system | `skills/ticket-system/SKILL.md` | `skills/jira/SKILL.md` |
+| code-search | `skills/code-search/SKILL.md` | `skills/octocode/SKILL.md` |
+| team-communications | `skills/team-comms/SKILL.md` | `skills/slack/SKILL.md` |
+| version-control | `skills/version-control/SKILL.md` | `skills/github/SKILL.md` |
+| feature-flags | `skills/feature-flags/SKILL.md` | `skills/ft-release/SKILL.md` |
+
+By default, vendor skill files are loaded (current behavior). When capability routing is active (future), abstract skill files are loaded instead. The variable names remain the same either way.
+
+---
+
 ## Skill File Distribution
 
 Every agent that uses MCP tools MUST receive the corresponding skill file in its prompt as `<SERVER>_SKILL_REFERENCE`.
 
-| Agent | Skill File(s) |
-|-------|---------------|
-| grafana-analyzer | `skills/grafana-datasource/SKILL.md` |
-| codebase-semantics | `skills/octocode/SKILL.md` |
-| slack-analyzer | `skills/slack/SKILL.md` |
-| production-analyzer | `skills/github/SKILL.md` + `skills/ft-release/SKILL.md` |
-| fix-list | `skills/ft-release/SKILL.md` |
-| publisher | `skills/jira/SKILL.md` + `skills/slack/SKILL.md` |
-| hypotheses / verifier | `skills/fire-console/SKILL.md` (on-demand domain queries) |
-| fire-console enrichment | `skills/fire-console/SKILL.md` |
+| Agent | Capability | Skill File(s) |
+|-------|-----------|---------------|
+| grafana-analyzer | log-system | `skills/grafana-datasource/SKILL.md` |
+| codebase-semantics | code-search | `skills/octocode/SKILL.md` |
+| slack-analyzer | team-communications | `skills/slack/SKILL.md` |
+| production-analyzer | version-control, feature-flags | `skills/github/SKILL.md` + `skills/ft-release/SKILL.md` |
+| fix-list | feature-flags | `skills/ft-release/SKILL.md` |
+| publisher | ticket-system, team-communications | `skills/jira/SKILL.md` + `skills/slack/SKILL.md` |
+| hypotheses / verifier | domain-objects | `skills/fire-console/SKILL.md` (on-demand domain queries) |
+| fire-console enrichment | domain-objects | `skills/fire-console/SKILL.md` |
 
 **Load ALL skill files once at Step 0.5** -- don't re-read them for every agent launch:
 ```
