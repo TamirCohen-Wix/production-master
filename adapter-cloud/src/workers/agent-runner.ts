@@ -12,6 +12,10 @@ import type { Context as OtelContext } from '@opentelemetry/api';
 import { buildPrompt, readAgentDefinition } from './prompt-builder.js';
 import { handleToolUseBatch, type McpRegistry, type ToolUseBlock, type ToolResultBlock } from './tool-handler.js';
 import { resolveModel, type ModelAlias } from '../config/model-registry.js';
+import { createLogger } from '../observability/logging.js';
+import { shutdownGuard } from '../lifecycle/shutdown-guard.js';
+
+const log = createLogger('workers:agent-runner');
 
 // ---------------------------------------------------------------------------
 // Types
@@ -137,6 +141,16 @@ export async function runAgent(
 
   // Agentic loop
   while (iterations < maxIterations) {
+    // Bail out between iterations if the container is shutting down
+    if (shutdownGuard.isShuttingDown) {
+      log.warn('Shutdown in progress — stopping agent loop early', {
+        agent: agentName,
+        iterations,
+      });
+      stopReason = 'error';
+      break;
+    }
+
     iterations++;
 
     const response = await client.messages.create({

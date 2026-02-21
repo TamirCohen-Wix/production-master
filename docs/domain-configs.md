@@ -34,6 +34,27 @@ The core config file. Every field maps directly to a pipeline variable:
   "github_org": "wix-private",
   "github_repo": "wix-private/scheduler",
   "jira_project": "SCHED",
+  "jira_assignment": {
+    "enabled": true,
+    "cc_bug_issue_types": ["CC Bug"],
+    "group_field_name": "Group",
+    "rules": [
+      {
+        "match_keywords_any": ["payment", "refund", "chargeback"],
+        "group": "Pulse",
+        "assignee_email": "pulse-bookings-triage@wix.com"
+      },
+      {
+        "match_keywords_any": ["mobile", "android", "ios"],
+        "group": "Mobile",
+        "assignee_email": "bookings-mobile-triage@wix.com"
+      }
+    ],
+    "default": {
+      "group": "Bookeepers",
+      "assignee_email": "bookings-triage@wix.com"
+    }
+  },
   "artifact_prefix": "com.wixpress.bookings",
   "primary_services": [
     {"name": "bookings-service", "artifact_id": "com.wixpress.bookings.bookings-service"},
@@ -58,11 +79,25 @@ The core config file. Every field maps directly to a pipeline variable:
 |-------|---------|---------|
 | `primary_services` | grafana-analyzer, artifact-resolver | Maps short names to full Grafana artifact IDs |
 | `jira_project` | bug-context, publisher | Fetches and comments on tickets |
+| `jira_assignment` | cloud Jira webhook | Optional auto-routing for CC Bug tickets (Group + assignee + fallback) |
 | `slack_channels` | slack-analyzer, publisher | Searches and posts to team channels |
 | `artifact_prefix` | grafana-analyzer | Expands short service names (e.g., `bookings-service` → `com.wixpress.bookings.bookings-service`) |
 | `toggle_prefix` | production-analyzer, fix-list | Searches feature toggles scoped to the team |
 | `github_org` / `github_repo` | codebase-semantics, production-analyzer | Searches code and PRs |
 | `request_id_format` | grafana-query | Extracts timestamps from request IDs for time-range queries |
+
+### `jira_assignment` (optional)
+
+Use this block when you want automatic Group + assignee routing for new Jira CC Bug tickets in cloud webhook mode.
+
+- `enabled`: turns auto-assignment on/off per domain.
+- `cc_bug_issue_types`: issue types eligible for assignment (default behavior expects `CC Bug`).
+- `group_field_name`: Jira field display name used to discover the custom field key at runtime.
+- `group_field_key`: optional fallback custom field key when discovery fails.
+- `rules`: ordered matching rules (first match wins).
+- `default`: required fallback routing when no rule matches.
+
+Recommended: always set a `default` group + assignee to guarantee deterministic routing.
 
 ### `CLAUDE.md`
 

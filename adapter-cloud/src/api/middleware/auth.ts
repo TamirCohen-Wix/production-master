@@ -8,6 +8,7 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { getJwtSecret as getJwtSecretConfig } from '../../config/wix-config.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -41,7 +42,8 @@ function loadApiKeys(): Set<string> {
 }
 
 function getJwtSecret(): string | undefined {
-  return process.env.JWT_SECRET;
+  const secret = getJwtSecretConfig();
+  return secret || undefined;
 }
 
 // ---------------------------------------------------------------------------

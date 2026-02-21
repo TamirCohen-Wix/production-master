@@ -1,4 +1,4 @@
-# Default values for production-master
+# Default values for production-master (Wix deployment)
 
 replicaCount:
   api: 2
@@ -6,13 +6,19 @@ replicaCount:
   worker: 3
 
 image:
-  repository: production-master
+  repository: docker-repo.wixpress.com/com.wixpress.b7/production-master
+  workerRepository: docker-repo.wixpress.com/com.wixpress.b7/production-master-worker
   pullPolicy: IfNotPresent
   tag: "latest"
 
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
+
+# Wix-specific annotations
+annotations:
+  wix.com/artifact-id: "production-master"
+  wix.com/group-id: "com.wixpress.b7"
 
 service:
   type: ClusterIP
@@ -52,6 +58,7 @@ env:
   NODE_ENV: production
   PORT: "3000"
   LOG_LEVEL: info
+  LOG_TO_PANORAMA: "true"
   OTEL_SERVICE_NAME: production-master
   OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
 

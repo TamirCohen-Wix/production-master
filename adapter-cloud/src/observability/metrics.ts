@@ -137,6 +137,14 @@ export const pmMcpCallErrorsTotal = new Counter({
   registers: [register],
 });
 
+/** Jira auto-assignment attempts, labeled by status and domain. */
+export const pmJiraAssignmentTotal = new Counter({
+  name: 'pm_jira_assignment_total',
+  help: 'Jira auto-assignment outcomes',
+  labelNames: ['status', 'domain'] as const,
+  registers: [register],
+});
+
 // ---------------------------------------------------------------------------
 // Hypothesis loop (legacy metrics — kept for backward compatibility)
 // ---------------------------------------------------------------------------
