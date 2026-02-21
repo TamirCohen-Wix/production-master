@@ -13,6 +13,7 @@ EXPECTED_FILES=(
   production-master-feedback.md
   production-master.md
   resolve-artifact.md
+  similar-investigations.md
   slack-search.md
   sync-cursor.md
   update-context.md
