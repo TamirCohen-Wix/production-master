@@ -6,7 +6,6 @@ This is a monorepo with shared core logic and adapter-specific layers:
 
 - **`core/`** — Adapter-agnostic: agents, skills, output-styles, orchestrator, domain config schema
 - **`adapter-claude/`** — Claude Code adapter: commands, hooks, install scripts
-- **`Domain/`** — User domain configs (per-repo)
 - **`docs/`** — User-facing documentation
 - **`design-docs/`** — Architecture & design documents
 
@@ -19,6 +18,7 @@ This is a monorepo with shared core logic and adapter-specific layers:
 | Output styles | `core/output-styles/` |
 | Orchestrator | `core/orchestrator/` |
 | Domain schema | `core/domain/` |
+| Domain examples | `core/domain/examples/` |
 | Commands (Claude) | `adapter-claude/commands/` |
 | Hooks (Claude) | `adapter-claude/hooks/` |
 | Install scripts | `adapter-claude/scripts/` |

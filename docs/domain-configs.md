@@ -4,18 +4,12 @@ Domain configs give Production Master the context it needs to investigate your r
 
 ## How It Works
 
-The `Domain/` folder is a **shared knowledge base** organized by team and repo:
+Domain config files now live in user-level, project-level, or cloud-managed locations:
 
-```
-Domain/
-└── {Division}/
-    └── {Side}/
-        └── {Repo}/
-            ├── domain.json          ← Machine-readable config
-            ├── CLAUDE.md            ← Human-readable repo context for agents
-            └── memory/
-                └── MEMORY.md        ← Patterns learned from past investigations
-```
+- `~/.claude/production-master/domains/<repo>/` (primary for Claude users)
+- `~/.cursor/production-master/domains/<repo>/` (primary for Cursor users)
+- `.claude/domain.json` or `.cursor/domain.json` (project-level fallbacks)
+- `domain_configs` table in cloud deployments
 
 When you run `/production-master`, the orchestrator loads your domain config (Step 0.1.5) and uses it throughout the pipeline — agents know which artifact IDs to query in Grafana, which Slack channels to search, what Jira project to fetch from, and how to interpret request IDs.
 
@@ -128,13 +122,13 @@ It will:
 1. Detect your repo's language, build system, and structure
 2. Ask interactive questions (Jira project, services, Slack channels, etc.)
 3. Generate all three files to `~/.claude/production-master/domains/<repo>/`
-4. Optionally open a PR to contribute them to the `Domain/` folder
+4. Optionally open a PR with a sanitized sample under `core/domain/examples/`
 
 ### Manual
 
-1. Create `Domain/<Division>/<Side>/<repo>/`
+1. Create `~/.claude/production-master/domains/<repo>/` (or `~/.cursor/production-master/domains/<repo>/`)
 2. Copy the `domain.json` template above and fill in your values
-3. Write a `CLAUDE.md` describing your services and patterns
+3. Add `CLAUDE.md` describing your services and patterns
 4. Create `memory/MEMORY.md` with a skeleton:
    ```markdown
    # Memory
@@ -145,17 +139,17 @@ It will:
    ## Codebase Patterns
    (Codebase-specific patterns will be documented here)
    ```
-5. Open a PR
+5. (Optional) contribute a sanitized sample to `core/domain/examples/`
 
 ## Where Configs Are Loaded From
 
 The orchestrator searches in this order (first match wins):
 
-1. `~/.claude/production-master/domains/<repo>/domain.json` — primary (installed locally by `/update-context`)
-2. `.claude/domain.json` — repo-local fallback (for repos that bundle their own config)
-3. `~/.claude/domain.json` — legacy global fallback
-
-The `Domain/` folder in this repo is the **canonical source** — when you PR a domain config here, other team members can install it to their local `~/.claude/production-master/domains/` path.
+1. `~/.claude/production-master/domains/<repo>/domain.json` — primary (Claude)
+2. `~/.cursor/production-master/domains/<repo>/domain.json` — primary (Cursor)
+3. `.claude/domain.json` — repo-local fallback (Claude)
+4. `.cursor/domain.json` — repo-local fallback (Cursor)
+5. `~/.claude/domain.json` — legacy global fallback
 
 ## Updating a Domain Config
 

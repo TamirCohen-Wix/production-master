@@ -42,11 +42,11 @@ production-master/
 │   └── tests/               # Adapter-specific tests
 ├── adapter-cursor/          # Cursor adapter
 ├── adapter-cloud/           # Cloud adapter/service
-├── Domain/                  # User domain configs (per-repo)
 ├── docs/                    # User-facing documentation
 ├── design-docs/             # Architecture & design documents
 ├── mcp-servers.json         # Root MCP server config
-└── cursor-models.json       # Cursor adapter model config
+├── cursor-models.json       # Cursor adapter model config
+└── core/domain/examples/    # Reference domain config samples
 ```
 
 ## Quick Start — Try Per-Session

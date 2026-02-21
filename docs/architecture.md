@@ -145,7 +145,7 @@ Each repository gets a domain directory at `~/.claude/production-master/domains/
 - **`CLAUDE.md`** — Repo-specific Claude instructions: service descriptions, debugging tips
 - **`memory/MEMORY.md`** — Accumulated investigation knowledge
 
-Domain configs are created interactively via `/update-context` and contributed back to the repo via PR into `Domain/<Division>/<Side>/<repo>/`.
+Domain configs are created interactively via `/update-context` in user-level directories. Repository contributions should use sanitized samples in `core/domain/examples/`.
 
 ### domain.json Fields
 
@@ -246,7 +246,7 @@ production-master/
 │   └── statusline.sh            ← Claude Code status bar with pipeline phase
 ├── output-styles/               ← Investigation report + publisher formatting
 ├── docs/                        ← Documentation
-├── Domain/                      ← Company/team/repo domain configs
+├── core/domain/examples/        ← Sanitized domain config samples
 └── README.md
 ```
 

@@ -228,12 +228,12 @@ If yes:
 ### 5.1 Find production-master repo
 Use `PM_ROOT` from Step 0.2.
 
-### 5.2 Determine domain path
-From `domain.json`, construct the path:
+### 5.2 Determine contribution path
+From `domain.json`, construct a sanitized sample filename:
 ```
-Domain/{division}/{side}/{repo}/
+core/domain/examples/{repo}.domain.json
 ```
-Example: `Domain/Bookings/Server/scheduler/`
+Example: `core/domain/examples/scheduler.domain.json`
 
 ### 5.3 Create branch and apply changes
 
@@ -242,21 +242,16 @@ cd $PM_ROOT
 git checkout main && git pull
 git checkout -b update-context/$(date +%Y-%m-%d)-${REPO_NAME}
 
-# Create or update domain directory
-mkdir -p Domain/{division}/{side}/{repo}/memory
-
-# Copy files from production-master domains dir
+# Copy sanitized config sample from local domain directory
 DOMAIN_SRC=~/.claude/production-master/domains/${REPO_NAME}
-cp $DOMAIN_SRC/domain.json Domain/{division}/{side}/{repo}/domain.json
-cp $DOMAIN_SRC/CLAUDE.md Domain/{division}/{side}/{repo}/CLAUDE.md
-cp $DOMAIN_SRC/memory/MEMORY.md Domain/{division}/{side}/{repo}/memory/MEMORY.md
+cp $DOMAIN_SRC/domain.json core/domain/examples/${REPO_NAME}.domain.json
 ```
 
 ### 5.4 Commit and push
 
 ```bash
-git add Domain/
-git commit -m "update-context: {action} domain config for {repo}
+git add core/domain/examples/${REPO_NAME}.domain.json
+git commit -m "update-context: {action} domain config sample for {repo}
 
 {summary of changes}
 
