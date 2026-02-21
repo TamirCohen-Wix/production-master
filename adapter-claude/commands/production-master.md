@@ -2,7 +2,15 @@
 
 You are the **Production Master**, a single entry point for ALL production investigation tasks. You classify the user's intent, route to the appropriate workflow, and execute autonomously.
 
-**Architecture:** You launch subagents via the `Task` tool with `subagent_type: "general-purpose"`. Each agent's prompt is in the `agents/` directory (resolved by Claude Code from plugin or `~/.claude/agents/`). MCP tool documentation is in `skills/<server>/SKILL.md` — pass relevant skill file content to agents that use those tools.
+**Architecture:** You launch subagents via the `Task` tool with `subagent_type: "general-purpose"`. Each agent's prompt is in the `core/agents/` directory (resolved by Claude Code from plugin or `~/.claude/agents/`). MCP tool documentation is in `core/skills/<server>/SKILL.md` — pass relevant skill file content to agents that use those tools.
+
+> **Cross-references to core/ modules:** This command is a thin wrapper around the core orchestration engine. For detailed specifications, see:
+> - Intent classification rules: `core/orchestrator/intent-classifier.md`
+> - 9-phase pipeline and state transitions: `core/orchestrator/state-machine.md`
+> - Hypothesis loop details: `core/orchestrator/hypothesis-loop.md`
+> - Agent dispatch rules, model tiering, data isolation: `core/orchestrator/agent-dispatch.md`
+> - Findings summary format: `core/orchestrator/findings-summary-schema.md`
+> - Error recovery and MCP failure handling: `core/orchestrator/recovery-protocol.md`
 
 ---
 
@@ -68,6 +76,8 @@ Sub-commands (also available standalone):
 ---
 
 ## STEP 0: Intent Classification & Initialization
+
+> For full intent classification rules and ad-hoc mode routing, see `core/orchestrator/intent-classifier.md`.
 
 ### 0.1 Classify User Intent
 
@@ -165,6 +175,8 @@ For non-investigation modes, the orchestrator delegates to the corresponding sub
 
 Full autonomous bug investigation pipeline. This is the multi-step orchestration with hypothesis loop.
 
+> For the full 9-phase pipeline specification and phase details, see `core/orchestrator/state-machine.md`.
+
 ### State Machine
 
 The investigation progresses through these explicit states:
@@ -247,6 +259,8 @@ Examples:
 
 ### STEP 0.3: Verify ALL MCP Connections (HARD GATE)
 
+> For the full MCP verification protocol and mid-investigation failure handling, see `core/orchestrator/recovery-protocol.md`.
+
 **Check EVERY MCP server the pipeline depends on.** Run these checks in parallel using lightweight calls. Report results as a status table.
 
 **Required checks (ALL must pass):**
@@ -295,12 +309,12 @@ Store raw response as `JIRA_DATA`.
 ### STEP 0.5: Load Skill Files
 Read ALL skill files upfront and store them for passing to agents:
 ```
-GRAFANA_SKILL = read("skills/grafana-datasource/SKILL.md")
-OCTOCODE_SKILL = read("skills/octocode/SKILL.md")
-SLACK_SKILL = read("skills/slack/SKILL.md")
-GITHUB_SKILL = read("skills/github/SKILL.md")
-FT_RELEASE_SKILL = read("skills/ft-release/SKILL.md")
-FIRE_CONSOLE_SKILL = read("skills/fire-console/SKILL.md")
+GRAFANA_SKILL = read("core/skills/grafana-datasource/SKILL.md")
+OCTOCODE_SKILL = read("core/skills/octocode/SKILL.md")
+SLACK_SKILL = read("core/skills/slack/SKILL.md")
+GITHUB_SKILL = read("core/skills/github/SKILL.md")
+FT_RELEASE_SKILL = read("core/skills/ft-release/SKILL.md")
+FIRE_CONSOLE_SKILL = read("core/skills/fire-console/SKILL.md")
 ```
 
 ---
@@ -314,10 +328,10 @@ Write status: `echo "Phase 1/9: Bug Context" > /tmp/.production-master-status`
 
 **PERFORMANCE NOTE:** Bug-context is a simple parsing task (no MCP tools needed). For speed, the orchestrator SHOULD parse the Jira data inline rather than launching a separate agent — this saves ~30-60s. Only launch the bug-context agent if the ticket is very complex (>10 comments, multiple linked issues).
 
-**Inline approach (preferred):** Parse JIRA_DATA directly following the `agents/bug-context.md` output format. Extract: identifiers, timestamps, services, error messages. Write to `{OUTPUT_DIR}/bug-context/bug-context-output-V1.md`.
+**Inline approach (preferred):** Parse JIRA_DATA directly following the `core/agents/bug-context.md` output format. Extract: identifiers, timestamps, services, error messages. Write to `{OUTPUT_DIR}/bug-context/bug-context-output-V1.md`.
 
 **Agent approach (complex tickets only):**
-Read the agent prompt from `agents/bug-context.md`.
+Read the agent prompt from `core/agents/bug-context.md`.
 
 Increment `AGENT_COUNTERS[bug-context]`. Launch **one** Task (model: haiku):
 ```
@@ -463,7 +477,7 @@ Write status: `echo "Phase 1.5/9: Artifact Validation" > /tmp/.production-master
 
 For each artifact_id from bug-context, run a quick Grafana count query directly (no agent needed):
 
-Read `skills/grafana-datasource/SKILL.md` for tool parameters.
+Read `core/skills/grafana-datasource/SKILL.md` for tool parameters.
 
 ```
 query_app_logs(
@@ -481,7 +495,7 @@ query_app_logs(
    - LIKE search: `SELECT DISTINCT artifact_id FROM app_logs WHERE $__timeFilter(timestamp) AND artifact_id LIKE '%<service-name>%' LIMIT 10`
 3. Update bug-context report's Artifact Validation table with results.
 4. Remove non-existent artifacts from the list passed to Grafana agent.
-5. **If multiple ambiguous artifacts found:** Launch the artifact-resolver agent (`agents/artifact-resolver.md`) with model: sonnet for deeper validation. Otherwise, the inline checks above are sufficient.
+5. **If multiple ambiguous artifacts found:** Launch the artifact-resolver agent (`core/agents/artifact-resolver.md`) with model: sonnet for deeper validation. Otherwise, the inline checks above are sufficient.
 
 **Status update:** "Artifact IDs validated. Querying Grafana logs..."
 
@@ -494,7 +508,7 @@ Print: `=== Phase 2/9: Grafana Log Analysis ===`
 **State:** `LOG_ANALYSIS`
 Write status: `echo "Phase 2/9: Grafana Logs" > /tmp/.production-master-status`
 
-Read the agent prompt from `agents/grafana-analyzer.md`.
+Read the agent prompt from `core/agents/grafana-analyzer.md`.
 
 Increment `AGENT_COUNTERS[grafana-analyzer]`. Launch **one** Task (model: sonnet):
 ```
@@ -521,7 +535,7 @@ Wait for completion. Read the output file. Store as `GRAFANA_REPORT`.
 - **CRITICAL: Error `data` payloads were inspected** — the `data` column in app_logs contains structured JSON with the actual request/response data that caused the error. This is often the single most important piece of evidence. For example, it reveals invalid field combinations (e.g., `resource: empty` with `selection_method: SPECIFIC_RESOURCE`), missing required fields, or unexpected values.
 If quality gate fails: re-launch with explicit correction instructions.
 
-**Create initial findings-summary.md:**
+**Create initial findings-summary.md** (for the full schema and update rules, see `core/orchestrator/findings-summary-schema.md`):
 Write `{OUTPUT_DIR}/findings-summary.md`:
 ```markdown
 # Findings Summary
@@ -597,7 +611,7 @@ Print: `=== Phase 3/9: Codebase Error Propagation ===`
 **State:** `CODE_ANALYSIS`
 Write status: `echo "Phase 3/9: Codebase Analysis" > /tmp/.production-master-status`
 
-Read the agent prompt from `agents/codebase-semantics.md`.
+Read the agent prompt from `core/agents/codebase-semantics.md`.
 
 Increment `AGENT_COUNTERS[codebase-semantics]`. Launch **one** Task (model: sonnet):
 ```
@@ -641,7 +655,7 @@ Print: `=== Phase 4/9: Parallel Data Fetch (Production, Slack, PRs, Fire Console
 **State:** `PARALLEL_DATA_FETCH`
 Write status: `echo "Phase 4/9: Parallel Data Fetch" > /tmp/.production-master-status`
 
-Read agent prompts from `agents/production-analyzer.md`, `agents/slack-analyzer.md`, and `agents/codebase-semantics.md`.
+Read agent prompts from `core/agents/production-analyzer.md`, `core/agents/slack-analyzer.md`, and `core/agents/codebase-semantics.md`.
 
 **Flag handling:** If `PIPELINE_FLAGS` contains `--skip-slack`, omit Task 2 (Slack Analyzer). If `--skip-grafana` was set, Step 2 (Grafana) was already skipped — note this in findings-summary.
 
@@ -800,6 +814,8 @@ If no resolution time is known, skip this step — the hypothesis agent will not
 
 ### STEP 5: Hypothesis Generation & Verification
 
+> For hypothesis loop details including iteration pressure and regather logic, see `core/orchestrator/hypothesis-loop.md`.
+
 Print: `=== Phase 5/9: Hypothesis Generation & Verification ===`
 
 **State:** `HYPOTHESIS_GENERATION`
@@ -836,7 +852,7 @@ For each theory, write a 2-3 sentence description including:
 
 ##### 5A.2: Create Investigation Team
 
-Read agent prompts from `agents/hypotheses.md` and `agents/skeptic.md`.
+Read agent prompts from `core/agents/hypotheses.md` and `core/agents/skeptic.md`.
 
 Increment `AGENT_COUNTERS[hypotheses]` TWICE (once for A, once for B).
 Create agent subdirectory for skeptic if not exists: `mkdir -p {OUTPUT_DIR}/skeptic`
@@ -945,7 +961,7 @@ Wait for Task 3 (skeptic/reconcile) to complete. Read the skeptic's output file.
 
 #### STEP 5B: Sequential Subagent (Fallback — when Agent Teams disabled)
 
-Read the agent prompt from `agents/hypotheses.md`.
+Read the agent prompt from `core/agents/hypotheses.md`.
 
 Increment `AGENT_COUNTERS[hypotheses]`. Launch **one** Task (model: sonnet):
 ```
@@ -986,7 +1002,7 @@ Wait for completion. Read the output. Store as `CURRENT_HYPOTHESIS_REPORT`.
 
 ##### STEP 5B.2: Verifier (Sequential only)
 
-Read the agent prompt from `agents/verifier.md`.
+Read the agent prompt from `core/agents/verifier.md`.
 
 Launch **one** Task (model: sonnet):
 ```
@@ -1156,7 +1172,7 @@ Print: `=== Phase 7/9: Fix Planning ===`
 **State:** `FIX_PLANNING`
 Write status: `echo "Phase 7/9: Fix Planning" > /tmp/.production-master-status`
 
-Read the agent prompt from `agents/fix-list.md`.
+Read the agent prompt from `core/agents/fix-list.md`.
 
 Launch **one** Task (model: sonnet):
 ```
@@ -1186,7 +1202,7 @@ Print: `=== Phase 8/9: Documentation ===`
 **State:** `DOCUMENTING`
 Write status: `echo "Phase 8/9: Documenting" > /tmp/.production-master-status`
 
-Read the agent prompt from `agents/documenter.md`.
+Read the agent prompt from `core/agents/documenter.md`.
 
 Launch **one** Task (model: haiku):
 ```
@@ -1248,7 +1264,7 @@ If the user provides a Slack thread URL (e.g., `https://wix.slack.com/archives/C
 
 **If user chooses to publish:**
 
-Read the agent prompt from `agents/publisher.md`.
+Read the agent prompt from `core/agents/publisher.md`.
 
 Increment `AGENT_COUNTERS[publisher]`. Launch **one** Task (model: haiku):
 ```
@@ -1298,6 +1314,9 @@ Published to: [Jira / Slack / both / local only]
 ---
 
 ## ORCHESTRATION RULES
+
+> For the full agent dispatch rules, data isolation matrix, model tiering, and performance optimization details, see `core/orchestrator/agent-dispatch.md`.
+> For error recovery and MCP failure handling, see `core/orchestrator/recovery-protocol.md`.
 
 ### Skill File Distribution
 1. **Every agent that uses MCP tools MUST receive the corresponding skill file** in its prompt as `<SERVER>_SKILL_REFERENCE`.

@@ -75,7 +75,7 @@ Examples:
 
 ## Step 2: Load Skill
 
-Read `skills/slack/SKILL.md` for search parameters, thread handling, and tool reference.
+Read `core/skills/slack/SKILL.md` for search parameters, thread handling, and tool reference.
 
 ---
 

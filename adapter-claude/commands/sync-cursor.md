@@ -58,7 +58,7 @@ mkdir -p .cursor/agents .cursor/commands .cursor/skills
 
 ## Step 4 — Regenerate .cursor/agents
 
-For each `.md` file in `agents/`:
+For each `.md` file in `core/agents/`:
 1. Copy it to `.cursor/agents/`
 2. Check `cursor-models.json` for a model override for this agent name
 3. If found and the agent file has YAML frontmatter with a `model:` line, replace it with the Cursor model
@@ -69,7 +69,7 @@ Example: if `cursor-models.json` has `"grafana-analyzer": { "model": "gpt-4o" }`
 
 ## Step 5 — Regenerate .cursor/commands
 
-For each `.md` file in `commands/`:
+For each `.md` file in `adapter-claude/commands/`:
 1. Strip YAML frontmatter (the `---` ... `---` block at the top) — Cursor commands use plain Markdown
 2. Write the result to `.cursor/commands/<name>.md`
 
@@ -94,7 +94,7 @@ Also replace model references in the production-master command:
 
 ## Step 6 — Regenerate .cursor/skills
 
-For each subdirectory in `skills/` that contains a `SKILL.md`:
+For each subdirectory in `core/skills/` that contains a `SKILL.md`:
 1. Create `.cursor/skills/<name>/`
 2. Copy `SKILL.md` into it
 3. If the SKILL.md has YAML frontmatter but no `name:` field, add `name: <skill-name>` after the opening `---`

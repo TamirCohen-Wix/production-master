@@ -84,7 +84,7 @@ Extract parameters:
 
 ## Step 2: Load Skill
 
-Read `skills/grafana-datasource/SKILL.md` for SQL templates, parameter formats, and tool reference.
+Read `core/skills/grafana-datasource/SKILL.md` for SQL templates, parameter formats, and tool reference.
 
 ---
 

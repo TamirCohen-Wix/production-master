@@ -61,7 +61,7 @@ Examples:
 
 ## Step 2: Load Skill
 
-Read `skills/grafana-datasource/SKILL.md` for query parameters.
+Read `core/skills/grafana-datasource/SKILL.md` for query parameters.
 
 ---
 
