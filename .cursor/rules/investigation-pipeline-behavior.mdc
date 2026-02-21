@@ -1,0 +1,20 @@
+---
+description: PR review, comments resolution, and verification discipline
+alwaysApply: true
+---
+
+# PR Review And Verification Discipline
+
+Human purpose: ensure PRs are not merged with unresolved feedback or missing validation evidence.
+
+## Applies When
+
+- Any active pull request in this repository.
+
+## Enforcement Guidance
+
+- Query and monitor PR checks until completion; report actual status from fresh results before any completion claim.
+- Resolve all review threads/comments before merge, including automated/Copilot review comments when present.
+- If comments require code changes, update code, re-run relevant verification, and push follow-up commits.
+- Keep the PR body and issue checklist consistent with final delivered scope.
+- Include verification evidence in PR or issue updates (CI checks, tests, important manual validations).
