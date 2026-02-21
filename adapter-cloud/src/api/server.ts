@@ -31,6 +31,7 @@ import { feedbackRouter } from './routes/feedback.js';
 import { analyticsRouter } from './routes/analytics.js';
 import { healthRouter, setHealthRegistry } from './routes/health.js';
 import { metaRouter, setMetaRegistry } from './routes/meta.js';
+import { knowledgeRouter } from './routes/knowledge.js';
 
 // Webhooks
 import { jiraWebhookRouter, closeJiraWebhookQueue, setJiraWebhookRegistry } from './webhooks/jira.js';
@@ -49,6 +50,7 @@ import { startEngine, stopEngine } from '../orchestrator/engine.js';
 import { startScheduler, stopScheduler } from '../jobs/scheduler.js';
 import { registerHealthCheckJob, setHealthCheckRegistry } from '../jobs/health-check.js';
 import { registerStaleTicketReviewJob } from '../jobs/stale-ticket-review.js';
+import { registerKnowledgeLifecycleJob } from '../jobs/knowledge-lifecycle.js';
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -159,6 +161,7 @@ export function createExpressApp(): express.Express {
   app.use('/api/v1/onboard', onboardingRouter);
   app.use('/api/v1/health-check', healthCheckRouter);
   app.use('/api/v1/meta', metaRouter);
+  app.use('/api/v1/knowledge', knowledgeRouter);
 
   return app;
 }
@@ -208,6 +211,7 @@ async function start(): Promise<void> {
     setHealthCheckRegistry(mcpRegistry);
     registerHealthCheckJob();
     registerStaleTicketReviewJob();
+    registerKnowledgeLifecycleJob();
     await startScheduler();
     log.info('Scheduled jobs started');
   } catch (err) {
