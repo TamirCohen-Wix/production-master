@@ -1,0 +1,57 @@
+# MCP Server Configuration for Cloud Pipeline
+# Each entry maps to a client managed by the McpRegistry.
+#
+# Auth values:
+#   vault://secret/production-master/mcp-access-key  — resolved at runtime via Vault
+#   none                                              — no auth header sent
+#
+# Type values:
+#   http   — StreamableHTTPClientTransport to mcp-s.wewix.net
+#   stdio  — StdioClientTransport spawning npx -y @mcp-s/mcp
+
+servers:
+  - name: octocode
+    type: stdio
+    mcpId: octocode
+    baseUrl: https://mcp-s.wewix.net
+    auth: vault://secret/production-master/mcp-access-key
+
+  - name: slack
+    type: http
+    url: https://mcp-s.wewix.net/mcp?mcp=slack
+    auth: vault://secret/production-master/mcp-access-key
+
+  - name: jira
+    type: http
+    url: https://mcp-s.wewix.net/mcp?mcp=jira
+    auth: vault://secret/production-master/mcp-access-key
+
+  - name: grafana-datasource
+    type: http
+    url: https://mcp-s.wewix.net/mcp?mcp=grafana-datasource
+    auth: vault://secret/production-master/mcp-access-key
+
+  - name: FT-release
+    type: http
+    url: https://mcp-s.wewix.net/mcp?mcp=gradual-feature-release
+    auth: vault://secret/production-master/mcp-access-key
+
+  - name: github
+    type: http
+    url: https://mcp-s.wewix.net/mcp?mcp=github
+    auth: vault://secret/production-master/mcp-access-key
+
+  - name: context-7
+    type: http
+    url: https://mcp-s.wewix.net/mcp?mcp=context7
+    auth: vault://secret/production-master/mcp-access-key
+
+  - name: grafana-mcp
+    type: http
+    url: https://mcp-s.wewix.net/mcp?mcp=grafana-mcp
+    auth: vault://secret/production-master/mcp-access-key
+
+  - name: fire-console
+    type: http
+    url: https://mcp-s.wewix.net/mcp?mcp=fire-console
+    auth: none
