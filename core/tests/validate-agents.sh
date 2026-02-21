@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
-# validate-agents.sh — Verify that all 12 agent files exist in core/agents/
+# validate-agents.sh — Verify that all 13 agent files exist in core/agents/
 set -euo pipefail
 
 AGENTS_DIR="$(cd "$(dirname "$0")/../agents" && pwd)"
 
 EXPECTED_FILES=(
-  artifact-resolver.md
   bug-context.md
+  change-analyzer.md
   codebase-semantics.md
+  comms-analyzer.md
   documenter.md
   fix-list.md
-  grafana-analyzer.md
   hypotheses.md
+  log-analyzer.md
   meta-improver.md
-  production-analyzer.md
   publisher.md
+  service-resolver.md
   skeptic.md
-  slack-analyzer.md
   verifier.md
 )
 

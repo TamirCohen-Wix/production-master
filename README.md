@@ -213,11 +213,11 @@ Run `/update-context` from your repo in Claude Code. It analyzes your repo, asks
 | Agent | Role |
 |-------|------|
 | `bug-context` | Parses Jira tickets into structured briefs |
-| `artifact-resolver` | Validates service names against Grafana |
-| `grafana-analyzer` | Queries production logs, reports raw findings |
+| `service-resolver` | Validates and resolves service identifiers |
+| `log-analyzer` | Queries production logs, reports raw findings |
 | `codebase-semantics` | Maps code flows and error propagation |
-| `production-analyzer` | Finds PRs, commits, feature toggle changes |
-| `slack-analyzer` | Searches Slack for related discussions |
+| `change-analyzer` | Finds PRs, commits, feature toggle changes |
+| `comms-analyzer` | Searches team communications for related discussions |
 | `hypotheses` | Generates testable root cause theories |
 | `verifier` | Quality gate — evaluates hypothesis proof |
 | `skeptic` | Cross-examines competing hypotheses |

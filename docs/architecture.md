@@ -47,8 +47,8 @@ The orchestrator (`/production-master`) is the central coordinator. It:
 
 Agents are assigned models based on the complexity of their task:
 
-- **Haiku** — Used for agents that follow structured templates without needing to reason across large bodies of evidence: `bug-context` (structured Jira parsing), `artifact-resolver` (table lookup + validation), `documenter` (template-driven report compilation), and `publisher` (format conversion + posting).
-- **Sonnet** — Used for agents that require reasoning across multiple data sources, writing hypotheses, or evaluating evidence chains: `grafana-analyzer`, `codebase-semantics`, `production-analyzer`, `slack-analyzer`, `hypotheses`, `verifier`, `skeptic`, and `fix-list`.
+- **Haiku** — Used for agents that follow structured templates without needing to reason across large bodies of evidence: `bug-context` (structured Jira parsing), `service-resolver` (table lookup + validation), `documenter` (template-driven report compilation), and `publisher` (format conversion + posting).
+- **Sonnet** — Used for agents that require reasoning across multiple data sources, writing hypotheses, or evaluating evidence chains: `log-analyzer`, `codebase-semantics`, `change-analyzer`, `comms-analyzer`, `hypotheses`, `verifier`, `skeptic`, and `fix-list`.
 
 ## Investigation Flow
 
@@ -59,10 +59,10 @@ The canonical state machine and step-by-step flow live in [investigation-flow.md
 ```mermaid
 flowchart LR
     subgraph DATA_AGENTS ["Data Collection (isolated)"]
-        GA[Grafana Analyzer]
+        GA[Log Analyzer]
         CS[Codebase Semantics]
-        PA[Production Analyzer]
-        SA[Slack Analyzer]
+        PA[Change Analyzer]
+        SA[Comms Analyzer]
         FC[Fire Console]
     end
 
@@ -107,12 +107,12 @@ Custom MCP servers in `custom-mcps/` expose the abstract tool names and translat
 
 | Server | Tools | Used By |
 |--------|-------|---------|
-| Grafana Datasource | 11 (SQL/PromQL/LogQL) | grafana-analyzer, artifact-resolver |
-| Grafana MCP | 33 (dashboards, alerts, incidents) | grafana-analyzer |
-| Slack | 12 (search, threads, post) | slack-analyzer, publisher |
-| GitHub | 23 (PRs, commits, code) | production-analyzer |
+| Grafana Datasource | 11 (SQL/PromQL/LogQL) | log-analyzer, service-resolver |
+| Grafana MCP | 33 (dashboards, alerts, incidents) | log-analyzer |
+| Slack | 12 (search, threads, post) | comms-analyzer, publisher |
+| GitHub | 23 (PRs, commits, code) | change-analyzer |
 | Octocode | 7 (semantic code search) | codebase-semantics |
-| FT-release | 7 (feature toggles) | production-analyzer, fix-list |
+| FT-release | 7 (feature toggles) | change-analyzer, fix-list |
 | Fire Console | 12 (gRPC domain objects) | hypothesis, verifier |
 | Jira | 16 (issues, comments) | bug-context, publisher |
 | Context7 | 2 (library docs) | codebase-semantics |
