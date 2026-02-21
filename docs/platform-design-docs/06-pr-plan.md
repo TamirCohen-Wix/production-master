@@ -202,7 +202,7 @@ Branch: feat/core-output-domain
 - [ ] Create `core/domain/schema.json` — JSON Schema for `domain.json`
 - [ ] Create `core/domain/loader.md` — loading priority documentation
 - [ ] Create `core/domain/defaults.json` — default values for optional fields
-- [ ] Validate existing `Domain/Bookings/Server/scheduler/domain.json` against schema
+- [ ] Validate existing `domain/Bookings/Server/scheduler/domain.json` against schema
 
 <details>
 <summary><strong>Agent Prompt</strong></summary>
@@ -213,7 +213,7 @@ You are implementing PR 1.4 for the production-master monorepo migration. Your t
 CONTEXT:
 - The core/ directory already exists (PR 1.1 merged)
 - output-styles/ at root contains 2 files: investigation-report.md, publisher-format.md
-- Domain/Bookings/Server/scheduler/domain.json is the only existing domain config — use it as the reference for the schema
+- domain/Bookings/Server/scheduler/domain.json is the only existing domain config — use it as the reference for the schema
 
 TASKS:
 
@@ -245,12 +245,12 @@ TASKS:
    3. .claude/domain.json (project-level, Claude Code)
    4. .cursor/domain.json (project-level, Cursor)
    5. Database domain_configs table (Cloud)
-   6. Domain/<Division>/<Side>/<repo>/domain.json (repo fallback)
+   6. domain/<Division>/<Side>/<repo>/domain.json (repo fallback)
 
 4. Create core/domain/defaults.json with sensible defaults for optional fields:
    { "language": "unknown", "build_system": "unknown", "monorepo": false }
 
-5. Validate: run `npx ajv-cli validate -s core/domain/schema.json -d Domain/Bookings/Server/scheduler/domain.json`
+5. Validate: run `npx ajv-cli validate -s core/domain/schema.json -d domain/Bookings/Server/scheduler/domain.json`
    or write a small validation script. The existing domain.json MUST pass.
 
 6. Do NOT delete original output-styles/ directory
@@ -432,7 +432,7 @@ Jobs:
 4. validate-schema:
    - Verify core/domain/schema.json is valid JSON
    - Verify core/domain/defaults.json is valid JSON
-   - If ajv-cli available, validate Domain/Bookings/Server/scheduler/domain.json against schema
+   - If ajv-cli available, validate domain/Bookings/Server/scheduler/domain.json against schema
    - Otherwise just validate JSON syntax with jq
 
 5. validate-mcp:
@@ -801,7 +801,7 @@ TASKS:
 
 3. Update root README.md:
    - Update the directory structure section to show the new monorepo layout:
-     core/, adapter-claude/, adapter-cursor/ (future), adapter-cloud/ (future), Domain/, docs/, design-docs/
+    core/, adapter-claude/, adapter-cursor/ (future), adapter-cloud/ (future), domain/, docs/, design-docs/
    - Update installation instructions to reference adapter-claude/scripts/install.sh
    - Update command references to adapter-claude/commands/
    - Keep the project description, features list, and MCP server table
@@ -816,7 +816,7 @@ TASKS:
 6. Keep these at root (do NOT delete):
    - mcp-servers.json (the original template — core/ has a copy)
    - cursor-models.json (experimental)
-   - Domain/ directory
+  - domain/ directory
    - docs/ directory
    - design-docs/ directory
    - README.md, CLAUDE.md, LICENSE, .gitignore
@@ -2193,7 +2193,7 @@ Branch: feat/cloud-beta
 ```
 PR 5.5 is a manual process PR, not a coding task. Document beta testing results in the PR description.
 
-1. Insert Bookings domain config into the database (from Domain/Bookings/Server/scheduler/domain.json)
+1. Insert Bookings domain config into the database (from domain/Bookings/Server/scheduler/domain.json)
 2. Onboard 2 additional domains (coordinate with team leads to create domain.json files)
 3. Configure Jira webhooks for the 3 project keys
 4. Run for 2 weeks, monitoring dashboards
