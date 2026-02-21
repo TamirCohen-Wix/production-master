@@ -23,6 +23,9 @@ import { queriesRouter, setQueryRegistry } from './routes/queries.js';
 import { domainsRouter } from './routes/domains.js';
 import { healthRouter, setHealthRegistry } from './routes/health.js';
 
+// Webhooks
+import { jiraWebhookRouter, closeJiraWebhookQueue } from './webhooks/jira.js';
+
 // Orchestrator
 import { startEngine, stopEngine } from '../orchestrator/engine.js';
 
@@ -106,7 +109,10 @@ app.use('/', healthRouter);
 // Prometheus metrics endpoint (unauthenticated for scraper access)
 app.get('/metrics', getMetricsEndpoint);
 
-// All /api/v1 routes require authentication
+// Webhook routes — authenticated via their own signature verification, not API keys
+app.use('/api/v1/webhooks/jira', jiraWebhookRouter);
+
+// All /api/v1 routes (except webhooks above) require authentication
 app.use('/api/v1', authMiddleware);
 
 // Mount API routes
@@ -179,11 +185,12 @@ async function start(): Promise<void> {
     }
 
     try {
-      // Close BullMQ queue
+      // Close BullMQ queues
       await closeInvestigateQueue();
-      log.info('Investigation queue closed');
+      await closeJiraWebhookQueue();
+      log.info('Investigation queues closed');
     } catch (err) {
-      log.error('Error closing investigation queue', {
+      log.error('Error closing investigation queues', {
         error: err instanceof Error ? err.message : String(err),
       });
     }
