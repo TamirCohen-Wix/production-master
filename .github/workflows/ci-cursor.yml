@@ -1,0 +1,143 @@
+name: CI Cursor Adapter
+
+on:
+  push:
+    paths: ['adapter-cursor/**', 'core/**']
+  pull_request:
+    paths: ['adapter-cursor/**', 'core/**']
+
+jobs:
+  validate-plugin:
+    name: Validate plugin metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate plugin.json
+        run: |
+          echo "Checking adapter-cursor/.cursor-plugin/plugin.json..."
+          test -f adapter-cursor/.cursor-plugin/plugin.json || { echo "FAIL: plugin.json missing"; exit 1; }
+          jq empty adapter-cursor/.cursor-plugin/plugin.json || { echo "FAIL: plugin.json is not valid JSON"; exit 1; }
+
+          NAME=$(jq -r '.name' adapter-cursor/.cursor-plugin/plugin.json)
+          [ "$NAME" = "production-master" ] || { echo "FAIL: unexpected plugin name: $NAME"; exit 1; }
+          echo "OK: plugin.json is valid (name=$NAME)"
+
+  validate-rules:
+    name: Validate rules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check alwaysApply in all .mdc files
+        run: |
+          echo "Checking adapter-cursor/rules/*.mdc for alwaysApply: true..."
+          FAIL=0
+          for rule in adapter-cursor/rules/*.mdc; do
+            if ! grep -q 'alwaysApply: true' "$rule"; then
+              echo "FAIL: $rule does not contain 'alwaysApply: true'"
+              FAIL=$((FAIL + 1))
+            fi
+          done
+          [ "$FAIL" -eq 0 ] || exit 1
+          echo "OK: all .mdc files contain alwaysApply: true"
+
+  validate-commands:
+    name: Validate commands
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required commands
+        run: |
+          EXPECTED="production-master.md grafana-query.md slack-search.md production-changes.md resolve-artifact.md fire-console.md update-context.md production-master-report.md git-update-agents.md"
+          MISSING=0
+          for cmd in $EXPECTED; do
+            if [ ! -f "adapter-cursor/commands/$cmd" ]; then
+              echo "FAIL: adapter-cursor/commands/$cmd missing"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+          TOTAL=$(ls adapter-cursor/commands/*.md 2>/dev/null | wc -l | tr -d ' ')
+          echo "Commands: $TOTAL found (expected 9)"
+          [ "$MISSING" -eq 0 ] || exit 1
+          [ "$TOTAL" -eq 9 ] || { echo "FAIL: expected 9 command files, found $TOTAL"; exit 1; }
+          echo "OK: all 9 expected commands present"
+
+  validate-agents:
+    name: Validate agents
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required agents (no skeptic)
+        run: |
+          EXPECTED="artifact-resolver.md bug-context.md codebase-semantics.md documenter.md fix-list.md grafana-analyzer.md hypotheses.md production-analyzer.md publisher.md slack-analyzer.md verifier.md"
+          MISSING=0
+          for agent in $EXPECTED; do
+            if [ ! -f "adapter-cursor/agents/$agent" ]; then
+              echo "FAIL: adapter-cursor/agents/$agent missing"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+          TOTAL=$(ls adapter-cursor/agents/*.md 2>/dev/null | wc -l | tr -d ' ')
+          echo "Agents: $TOTAL found (expected 11)"
+          [ "$MISSING" -eq 0 ] || exit 1
+          [ "$TOTAL" -eq 11 ] || { echo "FAIL: expected 11 agent files, found $TOTAL"; exit 1; }
+
+          # Verify skeptic agent is NOT present
+          if [ -f "adapter-cursor/agents/skeptic.md" ]; then
+            echo "FAIL: skeptic.md should not exist in Cursor adapter"
+            exit 1
+          fi
+          echo "OK: all 11 expected agents present, no skeptic"
+
+  validate-mcp-json:
+    name: Validate MCP config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate .mcp.json
+        run: |
+          echo "Checking adapter-cursor/.mcp.json..."
+          test -f adapter-cursor/.mcp.json || { echo "FAIL: .mcp.json missing"; exit 1; }
+          jq empty adapter-cursor/.mcp.json || { echo "FAIL: .mcp.json is not valid JSON"; exit 1; }
+
+          SERVER_COUNT=$(jq '.mcpServers | keys | length' adapter-cursor/.mcp.json)
+          echo "MCP servers: $SERVER_COUNT (expected 9)"
+          [ "$SERVER_COUNT" -eq 9 ] || { echo "FAIL: expected 9 MCP servers, found $SERVER_COUNT"; exit 1; }
+
+          # Check for hardcoded hex secrets (32+ char hex strings)
+          if grep -E '"[a-f0-9]{32,}"' adapter-cursor/.mcp.json; then
+            echo "FAIL: potential hardcoded secrets detected (hex strings 32+ chars)"
+            exit 1
+          fi
+          echo "OK: .mcp.json valid with 9 servers, no hardcoded secrets"
+
+  validate-hooks:
+    name: Validate hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate hooks.json
+        run: |
+          echo "Checking adapter-cursor/hooks/hooks.json..."
+          test -f adapter-cursor/hooks/hooks.json || { echo "FAIL: hooks.json missing"; exit 1; }
+          jq empty adapter-cursor/hooks/hooks.json || { echo "FAIL: hooks.json is not valid JSON"; exit 1; }
+          echo "OK: hooks.json is valid JSON"
+
+  validate-symlinks:
+    name: Validate symlinks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check skills symlink
+        run: |
+          echo "Checking adapter-cursor/skills symlink..."
+          test -L adapter-cursor/skills || { echo "FAIL: adapter-cursor/skills is not a symlink"; exit 1; }
+          test -d adapter-cursor/skills || { echo "FAIL: adapter-cursor/skills symlink target does not resolve"; exit 1; }
+          TARGET=$(readlink adapter-cursor/skills)
+          echo "OK: adapter-cursor/skills -> $TARGET (resolves)"
