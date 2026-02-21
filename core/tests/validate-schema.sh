@@ -32,14 +32,14 @@ check_json "$REPO_ROOT/core/domain/schema.json" "core/domain/schema.json"
 check_json "$REPO_ROOT/core/domain/defaults.json" "core/domain/defaults.json"
 check_json "$REPO_ROOT/core/domain/feedback.schema.json" "core/domain/feedback.schema.json"
 
-# Check that the reference domain.json exists
-DOMAIN_FILE="$REPO_ROOT/Domain/Bookings/Server/scheduler/domain.json"
+# Check that the reference sample domain config exists
+DOMAIN_FILE="$REPO_ROOT/core/domain/examples/scheduler.domain.json"
 if [ -f "$DOMAIN_FILE" ]; then
-  echo "PASS: Domain/Bookings/Server/scheduler/domain.json — exists"
+  echo "PASS: core/domain/examples/scheduler.domain.json — exists"
   PASS=$((PASS + 1))
-  check_json "$DOMAIN_FILE" "Domain/Bookings/Server/scheduler/domain.json (valid JSON)"
+  check_json "$DOMAIN_FILE" "core/domain/examples/scheduler.domain.json (valid JSON)"
 else
-  echo "FAIL: Domain/Bookings/Server/scheduler/domain.json — not found"
+  echo "FAIL: core/domain/examples/scheduler.domain.json — not found"
   FAIL=$((FAIL + 1))
 fi
 
