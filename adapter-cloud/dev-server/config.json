@@ -1,0 +1,5 @@
+{
+  "buildScript": "build",
+  "watch": ["src"],
+  "printGrpcUrl": "false"
+}
