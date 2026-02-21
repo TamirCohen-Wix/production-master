@@ -184,6 +184,11 @@
       "type": "string",
       "description": "Grafana AppAnalytics dashboard ID (e.g., 'olcdJbinz')"
     },
+    "cloud_api_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Base URL of the production-master Cloud API (e.g., 'https://pm-api.example.com')"
+    },
     "request_id_format": {
       "type": "string",
       "description": "Format pattern for request IDs (e.g., '<unix_timestamp>.<random>')"

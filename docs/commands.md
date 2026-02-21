@@ -196,6 +196,24 @@ All issue types include environment info (plugin version, OS, domain config). A 
 
 ---
 
+## /similar-investigations
+
+**Semantic similarity search.** Find past investigations similar to a given investigation using vector embeddings.
+
+| Example |
+|---------|
+| `/similar-investigations inv-2026-02-21-123` |
+| `/similar-investigations inv-2026-02-21-123 --limit 10` |
+
+Queries the Cloud API's pgvector-backed similarity endpoint and returns a ranked table of matching investigations with ticket IDs, similarity scores, and summaries.
+
+### Requirements
+
+- `PRODUCTION_MASTER_API_KEY` environment variable must be set
+- Cloud API URL resolved from `PRODUCTION_MASTER_CLOUD_URL` env var or `cloud_api_url` in domain config
+
+---
+
 ## /git-update-agents
 
 **Repo sync.** Syncs local agent/command changes back to the production-master Git repository.
