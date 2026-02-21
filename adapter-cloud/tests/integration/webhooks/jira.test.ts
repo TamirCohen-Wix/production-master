@@ -23,6 +23,10 @@ const { mockAdd, mockQueueClose, mockQuery, mockInc } = vi.hoisted(() => ({
   mockInc: vi.fn(),
 }));
 
+const { mockAutoAssignJiraIssue } = vi.hoisted(() => ({
+  mockAutoAssignJiraIssue: vi.fn().mockResolvedValue({ status: 'assigned' }),
+}));
+
 vi.mock('bullmq', () => ({
   Queue: vi.fn().mockImplementation(() => ({
     add: mockAdd,
@@ -42,6 +46,11 @@ vi.mock('../../../src/observability/index.js', () => ({
     debug: vi.fn(),
   }),
   pmInvestigationTotal: { inc: mockInc },
+  pmJiraAssignmentTotal: { inc: vi.fn() },
+}));
+
+vi.mock('../../../src/services/jira-auto-assign.js', () => ({
+  autoAssignJiraIssue: (...args: unknown[]) => mockAutoAssignJiraIssue(...args),
 }));
 
 // ---------------------------------------------------------------------------
@@ -49,7 +58,7 @@ vi.mock('../../../src/observability/index.js', () => ({
 // ---------------------------------------------------------------------------
 
 import express from 'express';
-import { jiraWebhookRouter } from '../../../src/api/webhooks/jira.js';
+import { jiraWebhookRouter, setJiraWebhookRegistry } from '../../../src/api/webhooks/jira.js';
 import crypto from 'node:crypto';
 
 function buildApp() {
@@ -70,6 +79,31 @@ function issueCreatedPayload(issueKey = 'PROD-1234') {
         issuetype: { name: 'Bug' },
         priority: { name: 'High' },
         project: { key: issueKey.split('-')[0] },
+      },
+    },
+  };
+}
+
+function domainConfigRow() {
+  return {
+    repo: 'bookings-scheduler',
+    config: {
+      jira_project: 'PROD',
+      jira_assignment: {
+        enabled: true,
+        cc_bug_issue_types: ['CC Bug'],
+        group_field_name: 'Group',
+        rules: [
+          {
+            match_keywords_any: ['payment'],
+            group: 'Pulse',
+            assignee_email: 'pulse@wix.com',
+          },
+        ],
+        default: {
+          group: 'Bookeepers',
+          assignee_email: 'triage@wix.com',
+        },
       },
     },
   };
@@ -124,6 +158,13 @@ describe('POST /api/v1/webhooks/jira', () => {
 
     // Default: no existing investigation (dedup passes)
     mockQuery.mockResolvedValue({ rows: [] });
+    mockAutoAssignJiraIssue.mockResolvedValue({ status: 'assigned' });
+    setJiraWebhookRegistry({
+      getClient: vi.fn(),
+      listServers: vi.fn().mockReturnValue([]),
+      healthCheck: vi.fn(),
+      disconnectAll: vi.fn(),
+    } as unknown as import('../../../src/mcp/registry.js').McpRegistry);
   });
 
   afterEach(() => {
@@ -137,9 +178,11 @@ describe('POST /api/v1/webhooks/jira', () => {
 
   it('should accept a valid issue_created event and enqueue an investigation', async () => {
     // First call: dedup check (no existing)
-    // Second call: insert investigation
+    // Second call: domain config lookup
+    // Third call: insert investigation
     mockQuery
       .mockResolvedValueOnce({ rows: [] }) // dedup
+      .mockResolvedValueOnce({ rows: [domainConfigRow()] }) // domain lookup
       .mockResolvedValueOnce({ rows: [{ id: 'inv-001' }] }); // insert
 
     const res = await postWebhook(app, issueCreatedPayload());
@@ -150,8 +193,8 @@ describe('POST /api/v1/webhooks/jira', () => {
     expect(res.body.ticket_id).toBe('PROD-1234');
 
     // Verify investigation was inserted
-    expect(mockQuery).toHaveBeenCalledTimes(2);
-    const insertCall = mockQuery.mock.calls[1];
+    expect(mockQuery).toHaveBeenCalledTimes(3);
+    const insertCall = mockQuery.mock.calls[2];
     expect(insertCall[0]).toContain('INSERT INTO investigations');
     expect(insertCall[1]).toContain('PROD-1234');
 
@@ -160,12 +203,13 @@ describe('POST /api/v1/webhooks/jira', () => {
     expect(mockAdd.mock.calls[0][1]).toMatchObject({
       investigation_id: 'inv-001',
       ticket_id: 'PROD-1234',
-      domain: 'prod',
+      domain: 'bookings-scheduler',
       trigger_source: 'jira_webhook',
     });
 
     // Verify metric was incremented
     expect(mockInc).toHaveBeenCalledWith({ domain: 'unknown', status: 'queued', trigger_source: 'jira_webhook' });
+    expect(mockAutoAssignJiraIssue).toHaveBeenCalledTimes(1);
   });
 
   // -------------------------------------------------------------------------
@@ -217,6 +261,7 @@ describe('POST /api/v1/webhooks/jira', () => {
     process.env.JIRA_PROJECT_FILTER = 'PROD,SRE';
     mockQuery
       .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [domainConfigRow()] })
       .mockResolvedValueOnce({ rows: [{ id: 'inv-002' }] });
 
     const res = await postWebhook(app, issueCreatedPayload('PROD-999'));
@@ -228,6 +273,7 @@ describe('POST /api/v1/webhooks/jira', () => {
   it('should accept all projects when JIRA_PROJECT_FILTER is unset', async () => {
     mockQuery
       .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [domainConfigRow()] })
       .mockResolvedValueOnce({ rows: [{ id: 'inv-003' }] });
 
     const res = await postWebhook(app, issueCreatedPayload('RANDOM-42'));
@@ -280,6 +326,7 @@ describe('POST /api/v1/webhooks/jira', () => {
     process.env.JIRA_WEBHOOK_SECRET = secret;
     mockQuery
       .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [domainConfigRow()] })
       .mockResolvedValueOnce({ rows: [{ id: 'inv-sig' }] });
 
     const payload = issueCreatedPayload();
@@ -304,12 +351,67 @@ describe('POST /api/v1/webhooks/jira', () => {
   it('should map the project key to a lowercase domain', async () => {
     mockQuery
       .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] }) // no matching domain config, fallback to lowercase
       .mockResolvedValueOnce({ rows: [{ id: 'inv-dom' }] });
 
     await postWebhook(app, issueCreatedPayload('SRE-42'));
 
-    const insertCall = mockQuery.mock.calls[1];
+    const insertCall = mockQuery.mock.calls[2];
     // Second param in the INSERT should be the domain
     expect(insertCall[1]).toContain('sre');
+  });
+
+  it('should skip auto-assignment for non-CC Bug issue types while still enqueueing', async () => {
+    mockAutoAssignJiraIssue.mockResolvedValueOnce({
+      status: 'skipped',
+      reason: 'issue type not configured for CC bug auto-assignment',
+    });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [domainConfigRow()] })
+      .mockResolvedValueOnce({ rows: [{ id: 'inv-skip' }] });
+
+    const payload = issueCreatedPayload('PROD-321');
+    payload.issue.fields.issuetype.name = 'Task';
+    const res = await postWebhook(app, payload);
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('accepted');
+    expect(res.body.assignment).toBe('skipped');
+    expect(mockAdd).toHaveBeenCalledTimes(1);
+  });
+
+  it('should continue investigation enqueue when assignment fails', async () => {
+    mockAutoAssignJiraIssue.mockResolvedValueOnce({
+      status: 'failed',
+      reason: 'jira update-issue returned an error',
+    });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [domainConfigRow()] })
+      .mockResolvedValueOnce({ rows: [{ id: 'inv-fail-safe' }] });
+
+    const res = await postWebhook(app, issueCreatedPayload('PROD-654'));
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('accepted');
+    expect(res.body.assignment).toBe('failed');
+    expect(mockAdd).toHaveBeenCalledTimes(1);
+  });
+
+  it('should report fallback assignment when default route is used', async () => {
+    mockAutoAssignJiraIssue.mockResolvedValueOnce({
+      status: 'fallback_assigned',
+      reason: 'matched default route',
+    });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [domainConfigRow()] })
+      .mockResolvedValueOnce({ rows: [{ id: 'inv-fallback' }] });
+
+    const res = await postWebhook(app, issueCreatedPayload('PROD-741'));
+
+    expect(res.status).toBe(200);
+    expect(res.body.assignment).toBe('fallback_assigned');
   });
 });

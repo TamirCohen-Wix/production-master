@@ -56,3 +56,26 @@ To avoid branch cleanup failures and stale worktrees, follow this policy for eve
 - Auto-delete branch on merge enabled.
 
 If these settings drift, fix repo settings before starting a new PR wave.
+
+## Delivery Workflow (Required)
+
+For each implementation request, follow this sequence end-to-end:
+
+1. **Open/confirm issue first** with:
+   - scoped problem statement,
+   - TODO checklist,
+   - verification checklist,
+   - relevant context/links.
+2. **Create PR from a dedicated branch/worktree** that implements the issue scope.
+3. **Validate CI is passing** before merge.
+4. **Resolve all GitHub review threads/comments** (including Copilot review comments) before merge.
+5. **Squash-merge PR** into `main` and clean up branch/worktree per policy above.
+6. **Post implementation summary back on the issue** (what changed + validation results).
+7. **Check off all issue TODO items**.
+8. **Close the issue** only after all checklist items are complete.
+
+### Checklist Discipline
+
+- Treat issue checklists as the source of truth for done/not-done.
+- Do not close PR/issue with unresolved review conversations.
+- Keep verification evidence explicit in PR/issue comments (tests, CI, important manual checks).

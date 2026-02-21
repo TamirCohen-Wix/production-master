@@ -1,6 +1,7 @@
 import Redis from 'ioredis';
+import { getRedisUrl } from '../config/wix-config.js';
 
-const redis = new Redis.default(process.env.REDIS_URL ?? 'redis://localhost:6379', {
+const redis = new Redis.default(getRedisUrl(), {
   maxRetriesPerRequest: 3,
   lazyConnect: true,
 });

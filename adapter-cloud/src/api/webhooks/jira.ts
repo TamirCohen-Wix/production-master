@@ -15,7 +15,13 @@ import { Router } from 'express';
 import crypto from 'node:crypto';
 import { Queue } from 'bullmq';
 import { query } from '../../storage/db.js';
-import { createLogger, pmInvestigationTotal } from '../../observability/index.js';
+import { createLogger, pmInvestigationTotal, pmJiraAssignmentTotal } from '../../observability/index.js';
+import type { McpRegistry } from '../../mcp/registry.js';
+import {
+  autoAssignJiraIssue,
+  type JiraAssignmentConfig,
+  type JiraAutoAssignResult,
+} from '../../services/jira-auto-assign.js';
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -27,6 +33,7 @@ const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
 const investigationQueue = new Queue('investigations', {
   connection: { url: REDIS_URL },
 });
+let jiraWebhookRegistry: McpRegistry | null = null;
 
 /** Deduplication window: skip if same ticket investigated in last hour. */
 const DEDUP_WINDOW_MINUTES = 60;
@@ -98,11 +105,45 @@ function mapProjectToDomain(projectKey: string): string {
   return projectKey.toLowerCase();
 }
 
+interface DomainConfigLookupRow {
+  repo: string;
+  config: Record<string, unknown>;
+}
+
+interface JiraIssueFields {
+  issuetype?: { name?: string };
+  summary?: string;
+  description?: string;
+}
+
+async function getDomainConfigByJiraProject(projectKey: string): Promise<DomainConfigLookupRow | null> {
+  try {
+    const result = await query<DomainConfigLookupRow>(
+      `SELECT repo, config
+       FROM domain_configs
+       WHERE UPPER(config->>'jira_project') = $1
+       LIMIT 1`,
+      [projectKey.toUpperCase()],
+    );
+    return result.rows[0] ?? null;
+  } catch (err) {
+    log.warn('Failed to resolve domain config from jira_project', {
+      project_key: projectKey,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 
 export const jiraWebhookRouter = Router();
+
+export function setJiraWebhookRegistry(registry: McpRegistry): void {
+  jiraWebhookRegistry = registry;
+}
 
 /**
  * Capture raw body for signature verification.
@@ -184,8 +225,9 @@ jiraWebhookRouter.post('/', async (req, res) => {
       return;
     }
 
-    // --- Map project to domain ---
-    const domain = mapProjectToDomain(projectKey);
+    // --- Resolve domain from domain config by jira_project ---
+    const domainConfig = await getDomainConfigByJiraProject(projectKey);
+    const domain = domainConfig?.repo ?? mapProjectToDomain(projectKey);
 
     // --- Create investigation record ---
     const insertResult = await query<{ id: string }>(
@@ -217,6 +259,34 @@ jiraWebhookRouter.post('/', async (req, res) => {
     // --- Metrics ---
     pmInvestigationTotal.inc({ domain: 'unknown', status: 'queued', trigger_source: 'jira_webhook' });
 
+    // --- Best-effort auto-assignment (non-blocking for investigation enqueue) ---
+    let assignmentResult: JiraAutoAssignResult | undefined;
+    const issueFields = (req.body?.issue?.fields ?? {}) as JiraIssueFields;
+    const jiraAssignment = (domainConfig?.config?.jira_assignment ?? {}) as JiraAssignmentConfig;
+
+    if (jiraWebhookRegistry) {
+      assignmentResult = await autoAssignJiraIssue(jiraWebhookRegistry, {
+        issueKey,
+        issueType: issueFields.issuetype?.name,
+        summary: issueFields.summary ?? '',
+        description: issueFields.description ?? '',
+        assignment: jiraAssignment,
+      });
+
+      log.info('Jira webhook auto-assignment completed', {
+        ticket_id: issueKey,
+        domain,
+        assignment_status: assignmentResult.status,
+        assignment_reason: assignmentResult.reason,
+      });
+      pmJiraAssignmentTotal.inc({ status: assignmentResult.status, domain });
+    } else {
+      log.warn('Jira webhook registry not configured; skipping auto-assignment', {
+        ticket_id: issueKey,
+      });
+      pmJiraAssignmentTotal.inc({ status: 'skipped', domain });
+    }
+
     log.info('Jira webhook processed — investigation queued', {
       investigation_id: investigationId,
       ticket_id: issueKey,
@@ -228,6 +298,7 @@ jiraWebhookRouter.post('/', async (req, res) => {
       status: 'accepted',
       investigation_id: investigationId,
       ticket_id: issueKey,
+      assignment: assignmentResult?.status ?? 'skipped',
     });
   } catch (err) {
     log.error('Jira webhook handler error', {

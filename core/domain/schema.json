@@ -49,6 +49,85 @@
       "format": "uri",
       "description": "Base URL for Jira instance (e.g., 'https://wix.atlassian.net')"
     },
+    "jira_assignment": {
+      "type": "object",
+      "description": "Optional Jira ticket auto-assignment policy for cloud webhook flows.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable automatic Group/assignee routing for new Jira issues."
+        },
+        "cc_bug_issue_types": {
+          "type": "array",
+          "description": "Issue types considered CC Bug-like for routing.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "group_field_name": {
+          "type": "string",
+          "description": "Human-readable Jira field name used for Group assignment (runtime discovery hint)."
+        },
+        "group_field_key": {
+          "type": "string",
+          "description": "Fallback Jira custom field key for Group assignment (e.g., customfield_10126)."
+        },
+        "rules": {
+          "type": "array",
+          "description": "Ordered routing rules. First matching rule wins.",
+          "items": {
+            "type": "object",
+            "required": ["group"],
+            "properties": {
+              "match_issue_types": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Optional issue type allow-list for this rule."
+              },
+              "match_keywords_any": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Optional case-insensitive keyword list matched against issue summary/description."
+              },
+              "group": {
+                "type": "string",
+                "description": "Group value to set when this rule matches."
+              },
+              "assignee_account_id": {
+                "type": "string",
+                "description": "Jira accountId for assignee."
+              },
+              "assignee_email": {
+                "type": "string",
+                "description": "Assignee email resolved to accountId at runtime."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "default": {
+          "type": "object",
+          "required": ["group"],
+          "properties": {
+            "group": {
+              "type": "string",
+              "description": "Fallback Group value when no rule matches."
+            },
+            "assignee_account_id": {
+              "type": "string",
+              "description": "Fallback Jira accountId."
+            },
+            "assignee_email": {
+              "type": "string",
+              "description": "Fallback assignee email resolved to accountId at runtime."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "artifact_prefix": {
       "type": "string",
       "description": "Maven/Bazel artifact group prefix (e.g., 'com.wixpress.bookings')"

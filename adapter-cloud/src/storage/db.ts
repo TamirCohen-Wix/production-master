@@ -1,9 +1,10 @@
 import pg from 'pg';
+import { getDatabaseUrl } from '../config/wix-config.js';
 
 const { Pool } = pg;
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: getDatabaseUrl(),
   max: 20,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 5_000,

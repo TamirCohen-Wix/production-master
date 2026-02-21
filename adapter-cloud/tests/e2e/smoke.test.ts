@@ -49,6 +49,7 @@ vi.mock('../../src/observability/index.js', () => ({
   getMetricsEndpoint: vi.fn(),
   injectTraceContext: <T extends Record<string, unknown>>(carrier: T): T => carrier,
   pmInvestigationTotal: { inc: mockInc },
+  pmJiraAssignmentTotal: { inc: vi.fn() },
   pmInvestigationDurationSeconds: { observe: vi.fn() },
   pmInvestigationVerdict: { inc: vi.fn() },
   pmAgentDurationSeconds: { observe: vi.fn() },
@@ -146,6 +147,8 @@ describe('E2E: Full investigation flow via Jira webhook', () => {
     // --- Step 1: Jira webhook triggers investigation creation ---
 
     // Mock: dedup check returns no existing investigation
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+    // Mock: domain config lookup by jira_project
     mockQuery.mockResolvedValueOnce({ rows: [] });
     // Mock: INSERT INTO investigations returns new ID
     mockQuery.mockResolvedValueOnce({ rows: [{ id: 'inv-e2e-001' }] });
@@ -330,6 +333,7 @@ describe('E2E: Deduplication prevents duplicate investigations', () => {
     // First webhook — accepted
     mockQuery
       .mockResolvedValueOnce({ rows: [] }) // dedup: no existing
+      .mockResolvedValueOnce({ rows: [] }) // domain lookup
       .mockResolvedValueOnce({ rows: [{ id: 'inv-dedup-001' }] }); // insert
 
     const first = await httpRequest(app, 'POST', '/api/v1/webhooks/jira', {

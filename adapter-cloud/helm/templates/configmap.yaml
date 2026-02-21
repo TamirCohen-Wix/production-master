@@ -8,10 +8,6 @@ data:
   NODE_ENV: {{ .Values.env.NODE_ENV | quote }}
   PORT: {{ .Values.env.PORT | quote }}
   LOG_LEVEL: {{ .Values.env.LOG_LEVEL | quote }}
+  LOG_TO_PANORAMA: {{ .Values.env.LOG_TO_PANORAMA | quote }}
   OTEL_SERVICE_NAME: {{ .Values.env.OTEL_SERVICE_NAME | quote }}
   OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.env.OTEL_EXPORTER_OTLP_ENDPOINT | quote }}
-  POSTGRES_HOST: {{ .Values.postgresql.host | quote }}
-  POSTGRES_PORT: {{ .Values.postgresql.port | quote }}
-  POSTGRES_DB: {{ .Values.postgresql.database | quote }}
-  REDIS_HOST: {{ .Values.redis.host | quote }}
-  REDIS_PORT: {{ .Values.redis.port | quote }}

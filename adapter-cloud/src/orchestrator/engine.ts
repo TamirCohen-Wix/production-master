@@ -18,6 +18,7 @@
  */
 
 import { Worker, type Job } from 'bullmq';
+import { shutdownGuard } from '../lifecycle/shutdown-guard.js';
 import { context as otelContext, type Context as OtelContext } from '@opentelemetry/api';
 import { query, transaction } from '../storage/db.js';
 import type { McpRegistry } from '../workers/tool-handler.js';
@@ -433,7 +434,7 @@ export function startEngine(mcpRegistry: McpRegistry): Worker {
     'investigations',
     async (job: Job<InvestigationJob>) => {
       pmQueueDepth.dec({ queue: 'investigations' });
-      await executeInvestigation(job.data, mcpRegistry);
+      await shutdownGuard.run(() => executeInvestigation(job.data, mcpRegistry));
     },
     {
       connection: { url: redisUrl },
