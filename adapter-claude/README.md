@@ -1,5 +1,7 @@
 # Production Master -- Claude Code Adapter
 
+> **Sibling adapters:** [Cursor](../adapter-cursor/README.md) | [Cloud](../adapter-cloud/README.md)
+
 This directory contains all files specific to the **Claude Code** integration
 for Production Master. It acts as the adapter layer between the shared engine
 in `core/` and the Claude Code plugin runtime.

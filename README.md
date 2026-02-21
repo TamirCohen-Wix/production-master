@@ -7,21 +7,43 @@
 [![Version](https://img.shields.io/badge/version-1.0.3--beta-blue)](https://github.com/TamirCohen-Wix/production-master/releases/tag/v1.0.3-beta)
 [![CI](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml/badge.svg)](https://github.com/TamirCohen-Wix/production-master/actions/workflows/ci.yml)
 [![Author](https://img.shields.io/badge/author-Tamir%20Cohen-green)](https://wix.slack.com/team/U09H3AHE3C7)
-[![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://github.com/anthropics/claude-code/blob/main/plugins/README.md)
 
-Autonomous production investigation platform with a shared core and multiple surfaces: Claude Code plugin, Cursor plugin, and cloud pipeline.
+Autonomous production investigation **platform** with a shared core engine and three surfaces: Claude Code plugin, Cursor IDE plugin, and Cloud REST API.
 
 > [!WARNING]
-> **Beta.** Try it **per-session first** before installing persistently. Use **`local` scope** (the default) to limit blast radius.
+> **Beta.** For the Claude Code surface, try it **per-session first** before installing persistently. Use **`local` scope** (the default) to limit blast radius.
 
 > [!CAUTION]
 > **MCP connectivity can be unstable.** A full investigation takes ~40 minutes. If you hit MCP errors, check [#mcp-gw-support](https://wix.slack.com/archives/C093RAT0NLS).
 
+## Platform Architecture
+
+```mermaid
+graph TD
+    PM["Production Master Platform"]
+
+    PM --> CC["Claude Code Plugin<br/>(Interactive CLI)"]
+    PM --> CU["Cursor IDE Plugin<br/>(IDE-native)"]
+    PM --> CL["Cloud Service<br/>(REST API / Webhooks)"]
+
+    CC --> CORE["Shared Core Engine"]
+    CU --> CORE
+    CL --> CORE
+
+    CORE --> AGENTS["12 Agents"]
+    CORE --> SKILLS["9 Skills"]
+    CORE --> ORCH["Orchestrator"]
+    CORE --> DOMAIN["Domain Config"]
+    CORE --> OUTPUT["Output Styles"]
+
+    CORE --> MCP["9 MCP Server Integrations<br/>Grafana · Jira · Slack · GitHub<br/>Octocode · FT-Release · Fire Console<br/>Grafana-MCP · Context7"]
+```
+
 > [!TIP]
 > Surface-specific setup guides:
-> - Claude: `adapter-claude/README.md`
-> - Cursor: `adapter-cursor/README.md`
-> - Cloud: `adapter-cloud/README.md`
+> - **Claude Code:** [`adapter-claude/README.md`](adapter-claude/README.md)
+> - **Cursor IDE:** [`adapter-cursor/README.md`](adapter-cursor/README.md)
+> - **Cloud:** [`adapter-cloud/README.md`](adapter-cloud/README.md)
 
 ## Repository Structure
 
@@ -33,6 +55,7 @@ production-master/
 │   ├── output-styles/       # Report & publisher formats
 │   ├── orchestrator/        # Pipeline orchestration logic
 │   ├── domain/              # Domain config schema & loading
+│   │   └── examples/        # Reference domain config samples
 │   ├── tests/               # Core unit tests
 │   └── mcp-servers.json     # MCP server definitions
 ├── adapter-claude/          # Claude Code adapter
@@ -40,29 +63,26 @@ production-master/
 │   ├── hooks/               # Claude Code lifecycle hooks
 │   ├── scripts/             # Install, validate, sync scripts
 │   └── tests/               # Adapter-specific tests
-├── adapter-cursor/          # Cursor adapter
-├── adapter-cloud/           # Cloud adapter/service
+├── adapter-cursor/          # Cursor IDE adapter
+│   ├── rules/               # Cursor-specific rule files
+│   ├── commands/            # Cursor command definitions
+│   ├── agents/              # Cursor agent configurations
+│   ├── hooks/               # Lifecycle hooks
+│   └── tests/               # Adapter-specific tests
+├── adapter-cloud/           # Cloud adapter / REST service
+│   ├── src/                 # API, workers, MCP client, storage
+│   ├── helm/                # Kubernetes Helm charts
+│   ├── migrations/          # Database migrations
+│   └── tests/               # Unit, integration, e2e tests
 ├── docs/                    # User-facing documentation
-├── design-docs/             # Architecture & design documents
+├── docs/platform-design-docs/ # Architecture & design documents
 ├── mcp-servers.json         # Root MCP server config
-├── cursor-models.json       # Cursor adapter model config
-└── core/domain/examples/    # Reference domain config samples
+└── cursor-models.json       # Cursor adapter model config
 ```
-
-## Quick Start — Try Per-Session
-
-Nothing is installed. Gone when you close Claude Code:
-
-```bash
-gh repo clone TamirCohen-Wix/production-master
-claude --plugin-dir ./production-master
-```
-
-Then run `/production-master SCHED-45895` to investigate a ticket.
-
-> With `--plugin-dir`, commands are prefixed: `/production-master:grafana-query`. With a persistent install, they're available directly: `/grafana-query`.
 
 ## Install
+
+### Claude Code
 
 ```bash
 gh repo clone TamirCohen-Wix/production-master
@@ -70,17 +90,18 @@ cd production-master
 bash adapter-claude/scripts/install.sh
 ```
 
-Or [download the ZIP](https://github.com/TamirCohen-Wix/production-master/archive/refs/tags/v1.0.3-beta.zip):
-
-```bash
-unzip production-master-v1.0.3-beta.zip
-cd production-master-v1.0.3-beta
-bash adapter-claude/scripts/install.sh
-```
-
 The installer asks for an install scope, registers the plugin, configures MCP servers (prompts for your [access key](https://mcp-s-connect.wewix.net/mcp-servers)), and enables agent teams.
 
-### Plugin scopes
+**Quick trial (per-session, nothing installed):**
+
+```bash
+claude --plugin-dir ./production-master
+```
+
+<details>
+<summary>Plugin scopes & management (Claude Code)</summary>
+
+#### Plugin scopes
 
 | Scope | Location | Shared via git? | Best for |
 |-------|----------|-----------------|----------|
@@ -88,7 +109,7 @@ The installer asks for an install scope, registers the plugin, configures MCP se
 | `project` | `.claude/plugins/` in project | Yes | Team sharing |
 | `user` | `~/.claude/plugins/` | No | All projects |
 
-### Plugin management
+#### Plugin management
 
 ```bash
 claude plugin list                                    # Show installed plugins
@@ -98,7 +119,31 @@ claude plugin marketplace remove production-master    # Remove marketplace
 bash adapter-claude/scripts/validate-install.sh        # Diagnose issues
 ```
 
+</details>
+
+### Cursor IDE
+
+```bash
+gh repo clone TamirCohen-Wix/production-master
+cd production-master/adapter-cursor
+# Follow setup in adapter-cursor/README.md
+```
+
+Set `PRODUCTION_MASTER_ACCESS_KEY` and open the directory in Cursor — `.mcp.json` and plugin manifest are picked up automatically.
+
+### Cloud Service
+
+```bash
+cd adapter-cloud
+cp .env.example .env   # Edit with your API keys
+docker compose up -d   # API at http://localhost:3000
+```
+
+See [`adapter-cloud/README.md`](adapter-cloud/README.md) for full deployment docs including Wix Serverless.
+
 ## Usage
+
+Commands below use Claude Code slash-command syntax. Cursor and Cloud surfaces expose equivalent capabilities through their own UX/API.
 
 ```
 /production-master SCHED-45895                                  # Full investigation
@@ -154,7 +199,7 @@ Run `/update-context` from your repo in Claude Code. It analyzes your repo, asks
 
 ## Architecture
 
-12 agents, 9 commands, 9 MCP skill references. The orchestrator (in `core/orchestrator/`) classifies intent, gathers context from multiple sources in parallel, generates testable hypotheses, and iterates through a verification loop until a root cause is confirmed. Agent definitions live in `core/agents/`, and adapter-specific commands in `adapter-claude/commands/`.
+12 agents, 9 commands, 9 MCP skill references. The orchestrator (in `core/orchestrator/`) classifies intent, gathers context from multiple sources in parallel, generates testable hypotheses, and iterates through a verification loop until a root cause is confirmed. Agent definitions live in `core/agents/`, and adapter-specific commands in each `adapter-*/commands/` directory.
 
 | Agent | Role |
 |-------|------|
@@ -171,7 +216,7 @@ Run `/update-context` from your repo in Claude Code. It analyzes your repo, asks
 | `documenter` | Compiles investigation reports |
 | `publisher` | Publishes findings to Jira and/or Slack |
 
-For pipeline design, data flow, hypothesis loops, output format, and plugin internals, see the [architecture overview](docs/architecture.md).
+For pipeline design, data flow, hypothesis loops, output format, and platform internals, see the [architecture overview](docs/architecture.md).
 
 ## Documentation
 
@@ -179,15 +224,18 @@ For pipeline design, data flow, hypothesis loops, output format, and plugin inte
 |-------|-------------|
 | [Architecture](docs/architecture.md) | Pipeline design, agent table, data flow, output format |
 | [Investigation flow](docs/investigation-flow.md) | Step-by-step state machine |
-| [Commands reference](docs/commands.md) | All 9 commands with parameters and examples |
+| [Commands reference](docs/commands.md) | All 9 commands with parameters and examples (Claude Code) |
 | [Agent catalog](docs/agents.md) | Agent profiles — inputs, outputs, skills |
 | [Domain configs](docs/domain-configs.md) | Field reference, creation guide, config loading order |
 | [Contributing](docs/contributing.md) | How to add domains, improve agents, submit PRs |
 | [Troubleshooting](docs/troubleshooting.md) | MCP issues, mid-investigation recovery |
+| [Claude Code adapter](adapter-claude/README.md) | Claude Code-specific setup, hooks, scripts |
+| [Cursor adapter](adapter-cursor/README.md) | Cursor IDE-specific setup, rules, agents |
+| [Cloud adapter](adapter-cloud/README.md) | Cloud API, webhooks, workers, deployment |
 
 ## Updating
 
-To update to the latest version:
+To update to the latest version (Claude Code):
 
 ```bash
 claude plugin update production-master
@@ -227,9 +275,11 @@ PRs to `main` require passing CI and 1 approving review. See the [contributing g
 
 ## Requirements
 
-- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
-- [GitHub CLI](https://cli.github.com) (`gh`)
-- [MCP access key](https://mcp-s-connect.wewix.net/mcp-servers) for Grafana, Slack, Jira, GitHub, Octocode, FT-release, Context-7, Grafana-MCP, Fire Console
+| Surface | Requirements |
+|---------|-------------|
+| **Claude Code** | [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code), [GitHub CLI](https://cli.github.com) (`gh`), [MCP access key](https://mcp-s-connect.wewix.net/mcp-servers) |
+| **Cursor IDE** | [Cursor IDE](https://cursor.com) v0.40+, `PRODUCTION_MASTER_ACCESS_KEY` env var |
+| **Cloud** | Node.js 22+, Docker, PostgreSQL 16+, Redis 7+ |
 
 ---
 

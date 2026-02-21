@@ -2,7 +2,9 @@
 
 > **Experimental** — Commands and their behavior may change between versions.
 
-Production Master command documentation in this file is for the Claude surface (`adapter-claude/`). Cursor and cloud surfaces expose equivalent capabilities through their own adapter UX/API.
+> **Surface note:** This document covers the **Claude Code** surface (`adapter-claude/`). For other surfaces, see:
+> - **Cursor:** Commands are available via `adapter-cursor/commands/` with IDE-native invocation
+> - **Cloud:** Equivalent operations are exposed as REST API endpoints — see [`adapter-cloud/README.md`](../adapter-cloud/README.md)
 
 ---
 
