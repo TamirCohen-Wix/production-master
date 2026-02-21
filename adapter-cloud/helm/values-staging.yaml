@@ -21,3 +21,15 @@ postgresql:
 redis:
   host: staging-redis.wixpress.com
   port: "6379"
+
+secrets:
+  databaseUrl: "postgresql://production_master@staging-postgres.wixpress.com:5432/production_master_staging?sslmode=require"
+  redisUrl: "redis://staging-redis.wixpress.com:6379"
+  redisPassword: ""
+  anthropicApiKey: ""
+  jwtSecret: ""
+  mcpServiceAccountToken: ""
+  awsAccessKeyId: ""
+  awsSecretAccessKey: ""
+  s3ReportsBucket: "production-master-reports-staging"
+  apiKey: ""

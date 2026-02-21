@@ -16,8 +16,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # TODO: Re-enable once Wix Lifecycle CI handles lint/typecheck/tests.
-  # Disabled because the Wix npm registry is unreachable from GitHub Actions.
+  validate:
+    name: Typecheck, Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Override .npmrc and lockfile to use public registry
+        run: |
+          echo "registry=https://registry.npmjs.org/" > adapter-cloud/.npmrc
+          sed -i 's|https://npm.dev.wixpress.com/api/npm/npm-repos/|https://registry.npmjs.org/|g' adapter-cloud/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: adapter-cloud
+
+      - name: Typecheck
+        run: npm run typecheck
+        working-directory: adapter-cloud
+
+      - name: Lint
+        run: npm run lint
+        working-directory: adapter-cloud
+
+      - name: Test (unit)
+        run: npm run test:unit
+        working-directory: adapter-cloud
 
   migrations:
     name: Validate Migrations

@@ -28,6 +28,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "production-master.fullname" . }}-config
+            - secretRef:
+                name: {{ include "production-master.fullname" . }}-secret
           command: ["node", "dist/workers/worker.js"]
           resources:
             {{- toYaml .Values.resources.worker | nindent 12 }}

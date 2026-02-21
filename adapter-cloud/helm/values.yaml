@@ -79,3 +79,15 @@ postgresql:
 redis:
   host: redis
   port: "6379"
+
+secrets:
+  databaseUrl: ""
+  redisUrl: ""
+  redisPassword: ""
+  anthropicApiKey: ""
+  jwtSecret: ""
+  mcpServiceAccountToken: ""
+  awsAccessKeyId: ""
+  awsSecretAccessKey: ""
+  s3ReportsBucket: ""
+  apiKey: ""
