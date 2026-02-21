@@ -17,7 +17,7 @@ The domain configuration loader resolves `domain.json` by checking the following
 - **User-level overrides** (priorities 1-2) allow developers to customize domain settings without modifying the repository.
 - **Project-level configs** (priorities 3-4) are committed to the repo and shared across the team.
 - **Database lookup** (priority 5) is used in cloud deployments where domain configs are managed centrally.
-- Legacy repository fallback via `Domain/` has been retired. Keep domain configs in user-level paths, project-level dot directories, or cloud DB.
+- Legacy repository fallback via `domain/` has been retired. Keep domain configs in user-level paths, project-level dot directories, or cloud DB.
 
 ## Validation
 

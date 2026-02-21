@@ -307,7 +307,7 @@ production-master/
 │   ├── config/
 │   └── README.md
 │
-├── Domain/                            # Company domain configs (shared)
+├── domain/                            # Company domain configs (shared)
 │   └── Bookings/Server/scheduler/
 │       ├── domain.json
 │       ├── CLAUDE.md
@@ -333,7 +333,7 @@ graph TD
     CORE["core/ v1.x"] --> CLAUDE["adapter-claude/ v1.x"]
     CORE --> CURSOR["adapter-cursor/ v1.x"]
     CORE --> CLOUD["adapter-cloud/ v1.x"]
-    DOMAIN["Domain/ configs"] --> CORE
+    DOMAIN["domain/ configs"] --> CORE
 
     CLAUDE -->|"reads"| CORE_AGENTS["core/agents/"]
     CLAUDE -->|"reads"| CORE_SKILLS["core/skills/"]

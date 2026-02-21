@@ -186,7 +186,7 @@ If user wants to contribute:
 Use `PM_ROOT` from Step 0.2.
 
 ### 5.2 Determine domain path
-From `domain.json`, construct the path: `Domain/{division}/{side}/{repo}/`
+From `domain.json`, construct the path: `domain/{division}/{side}/{repo}/`
 
 ### 5.3 Create branch and apply changes
 
@@ -194,14 +194,14 @@ From `domain.json`, construct the path: `Domain/{division}/{side}/{repo}/`
 cd $PM_ROOT
 git checkout main && git pull
 git checkout -b update-context/$(date +%Y-%m-%d)-${REPO_NAME}
-mkdir -p Domain/{division}/{side}/{repo}/memory
+mkdir -p domain/{division}/{side}/{repo}/memory
 # Copy files from cursor domains dir
 ```
 
 ### 5.4 Commit and push
 
 ```bash
-git add Domain/
+git add domain/
 git commit -m "update-context: {action} domain config for {repo}
 
 {summary of changes}

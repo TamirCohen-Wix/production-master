@@ -67,7 +67,7 @@ production-master/           # Current structure
 ├── output-styles/           # Investigation report + publisher formatting
 ├── scripts/                 # install.sh, validate-install.sh, statusline.sh, etc.
 ├── mcp-servers.json         # MCP template (9 servers)
-├── Domain/                  # Domain configs
+├── domain/                  # Domain configs
 └── docs/                    # Architecture, flow, commands, agents, troubleshooting
 ```
 
@@ -81,7 +81,7 @@ Source: [Current repository](https://github.com/TamirCohen-Wix/production-master
 | Skills | `skills/` | `core/skills/` | Move to core (shared) |
 | Orchestrator logic | `commands/production-master.md` | `core/orchestrator/` | Extract to core modules |
 | Output styles | `output-styles/` | `core/output-styles/` | Move to core (shared) |
-| Domain configs | `Domain/` | Root `Domain/` | Stay at repo root (shared) |
+| Domain configs | `domain/` | Root `domain/` | Stay at repo root (shared) |
 | MCP template | `mcp-servers.json` | `core/mcp-servers.json` | Move to core |
 | **Commands** | `commands/` | `adapter-claude/commands/` | **Thin wrappers** referencing core |
 | **Hooks** | `hooks/hooks.json` | `adapter-claude/hooks/hooks.json` | Claude-specific |

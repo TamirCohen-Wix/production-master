@@ -153,7 +153,7 @@ graph TB
 | **Output styles** | 2 | `output-styles/*.md` | Production-ready |
 | **Scripts** | 6 | `scripts/*.sh` | Production-ready |
 | **Documentation** | 7 | `docs/*.md` | Production-ready |
-| **Domain configs** | 1 | `Domain/Bookings/Server/scheduler/` | Production-ready |
+| **Domain configs** | 1 | `domain/Bookings/Server/scheduler/` | Production-ready |
 | **CI workflows** | 1 | `.github/workflows/ci.yml` | Production-ready |
 | **MCP template** | 1 | `mcp-servers.json` | Production-ready |
 | **Plugin manifest** | 2 | `.claude-plugin/{plugin,marketplace}.json` | Production-ready |
@@ -478,7 +478,7 @@ production-master/
 │   ├── tsconfig.json                       # TypeScript config
 │   └── README.md                           # Cloud service docs
 │
-├── Domain/                                 # ═══ SHARED DOMAIN CONFIGS ═══
+├── domain/                                 # ═══ SHARED DOMAIN CONFIGS ═══
 │   └── Bookings/Server/scheduler/
 │       ├── domain.json                     # Machine-readable config
 │       ├── CLAUDE.md                       # Repo-specific instructions
@@ -933,7 +933,7 @@ Source: [OpenTelemetry LLM Observability](https://opentelemetry.io/blog/2024/llm
 | 3 | `.claude/domain.json` | Project | Claude Code |
 | 4 | `.cursor/domain.json` | Project | Cursor |
 | 5 | Database `domain_configs` table | Service | Cloud |
-| 6 | `Domain/<Division>/<Side>/<repo>/domain.json` | Repo | All (fallback) |
+| 6 | `domain/<Division>/<Side>/<repo>/domain.json` | Repo | All (fallback) |
 
 Source: [Current domain-configs docs](../docs/domain-configs.md)
 
@@ -1169,9 +1169,9 @@ graph LR
 /adapter-cloud/                 @TamirCohen-Wix
 
 # Domain configs — respective team owners
-/Domain/Bookings/               @bookings-team
-/Domain/Payments/               @payments-team
-/Domain/Events/                 @events-team
+/domain/Bookings/               @bookings-team
+/domain/Payments/               @payments-team
+/domain/Events/                 @events-team
 
 # Design docs
 /design-docs/                   @TamirCohen-Wix
