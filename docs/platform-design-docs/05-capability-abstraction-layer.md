@@ -1,5 +1,7 @@
 # Production Master: Capability Abstraction Layer
 
+> **Navigation:** [Index](./README.md) | Previous: [04 — Implementation plan](./04-implementation-plan.md) | Next: [06 — PR plan](./06-pr-plan.md)
+
 > **Document Type:** Architectural Addendum — Interface-Driven Design
 > **Version:** 1.0
 > **Date:** 2026-02-21
@@ -1201,13 +1203,13 @@ production-master/
 17. **Claude Code Plugins** — [code.claude.com/docs/en/plugins](https://code.claude.com/docs/en/plugins) — Plugin system, MCP configuration
 
 ### Design Documents
-18. **Overview & Shared Architecture** — [design-docs/00-overview-shared-architecture.md](./00-overview-shared-architecture.md)
-19. **Claude Code Plugin Design** — [design-docs/01-claude-code-plugin.md](./01-claude-code-plugin.md)
-20. **Cursor Plugin Design** — [design-docs/02-cursor-plugin.md](./02-cursor-plugin.md)
-21. **Cloud Pipeline Design** — [design-docs/03-cloud-pipeline.md](./03-cloud-pipeline.md)
-22. **Implementation Plan** — [design-docs/04-implementation-plan.md](./04-implementation-plan.md)
+18. **Overview and shared architecture** — [shared architecture document](./00-overview-shared-architecture.md)
+19. **Claude Code plugin design** — [Claude adapter design document](./01-claude-code-plugin.md)
+20. **Cursor plugin design** — [Cursor adapter design document](./02-cursor-plugin.md)
+21. **Cloud pipeline design** — [cloud pipeline design document](./03-cloud-pipeline.md)
+22. **Implementation plan** — [implementation plan document](./04-implementation-plan.md)
 
 ### Research Reports
-23. **Wix Deep Research** — `WIX - deep-research-report.md` — MCP gateway strategy, tool-agnostic integration
-24. **General Deep Research** — `General - deep-research-report.md` — Multi-agent architecture, knowledge graph
-25. **Plugins Deep Research** — `Plugins - deep-research-report.md` — Platform comparison, adapter architecture
+23. **Wix deep research** — [normalized Wix research summary](../research/wix-deep-research-report.md) — MCP gateway strategy, tool-agnostic integration
+24. **General deep research** — [normalized general research summary](../research/general-deep-research-report.md) — Multi-agent architecture, knowledge graph
+25. **Plugins deep research** — [normalized plugins research summary](../research/plugins-deep-research-report.md) — Platform comparison, adapter architecture

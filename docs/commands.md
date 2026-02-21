@@ -28,7 +28,7 @@
 
 When running a full investigation (Jira ticket or bug description):
 
-1. **Step 0:** Classify intent, load domain config, create output directory, verify 6 MCP servers
+1. **Step 0:** Classify intent, load domain config, create output directory, verify 7 MCP servers
 2. **Step 1:** Parse Jira ticket (bug-context agent), enrich via Fire Console, validate artifact IDs
 3. **Step 2:** Query Grafana logs (grafana-analyzer agent)
 4. **Step 2.5:** Discover local code clone

@@ -16,34 +16,42 @@ Autonomous production investigation **platform** with a shared core engine and t
 > [!CAUTION]
 > **MCP connectivity can be unstable.** A full investigation takes ~40 minutes. If you hit MCP errors, check [#mcp-gw-support](https://wix.slack.com/archives/C093RAT0NLS).
 
+## Quick Start
+
+Pick your surface and follow the setup guide:
+
+- If you use Claude Code, start with the [Claude adapter setup guide](adapter-claude/README.md).
+- If you use Cursor, follow the [Cursor adapter setup guide](adapter-cursor/README.md).
+- If you deploy the service, use the [Cloud adapter deployment guide](adapter-cloud/README.md).
+
+After setup, run your first investigation from Claude Code:
+
+```text
+/production-master SCHED-45895
+```
+
+For troubleshooting and operational recovery steps, see the [troubleshooting guide](docs/troubleshooting.md).
+
 ## Platform Architecture
 
 ```mermaid
 graph TD
     PM["Production Master Platform"]
-
     PM --> CC["Claude Code Plugin<br/>(Interactive CLI)"]
     PM --> CU["Cursor IDE Plugin<br/>(IDE-native)"]
     PM --> CL["Cloud Service<br/>(REST API / Webhooks)"]
-
     CC --> CORE["Shared Core Engine"]
     CU --> CORE
     CL --> CORE
-
     CORE --> AGENTS["12 Agents"]
     CORE --> SKILLS["9 Skills"]
     CORE --> ORCH["Orchestrator"]
     CORE --> DOMAIN["Domain Config"]
     CORE --> OUTPUT["Output Styles"]
-
     CORE --> MCP["9 MCP Server Integrations<br/>Grafana · Jira · Slack · GitHub<br/>Octocode · FT-Release · Fire Console<br/>Grafana-MCP · Context7"]
 ```
 
-> [!TIP]
-> Surface-specific setup guides:
-> - **Claude Code:** [`adapter-claude/README.md`](adapter-claude/README.md)
-> - **Cursor IDE:** [`adapter-cursor/README.md`](adapter-cursor/README.md)
-> - **Cloud:** [`adapter-cloud/README.md`](adapter-cloud/README.md)
+This diagram is an overview only. For pipeline internals and data flow, read the [architecture documentation](docs/architecture.md).
 
 ## Repository Structure
 
@@ -126,7 +134,7 @@ bash adapter-claude/scripts/validate-install.sh        # Diagnose issues
 ```bash
 gh repo clone TamirCohen-Wix/production-master
 cd production-master/adapter-cursor
-# Follow setup in adapter-cursor/README.md
+# Continue with the Cursor adapter setup guide
 ```
 
 Set `PRODUCTION_MASTER_ACCESS_KEY` and open the directory in Cursor — `.mcp.json` and plugin manifest are picked up automatically.
@@ -222,6 +230,7 @@ For pipeline design, data flow, hypothesis loops, output format, and platform in
 
 | Topic | Description |
 |-------|-------------|
+| [Documentation index](docs/README.md) | Start here for documentation navigation and audience-specific paths |
 | [Architecture](docs/architecture.md) | Pipeline design, agent table, data flow, output format |
 | [Investigation flow](docs/investigation-flow.md) | Step-by-step state machine |
 | [Commands reference](docs/commands.md) | All 9 commands with parameters and examples (Claude Code) |

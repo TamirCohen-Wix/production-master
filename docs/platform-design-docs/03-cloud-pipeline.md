@@ -1,5 +1,7 @@
 # Production Master: Cloud Pipeline Service Design
 
+> **Navigation:** [Index](./README.md) | Previous: [02 — Cursor plugin design](./02-cursor-plugin.md) | Next: [04 — Implementation plan](./04-implementation-plan.md)
+
 > **Document Type:** Application Design & Implementation
 > **Version:** 1.0
 > **Date:** 2026-02-21

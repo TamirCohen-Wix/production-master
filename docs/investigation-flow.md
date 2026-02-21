@@ -25,7 +25,7 @@ flowchart TD
     CLASSIFY --> |TRACE_REQUEST| DIRECT_TRACE["Direct Request Trace"]
     CLASSIFY --> |Other modes| DIRECT_OTHER["Direct Execution"]
 
-    INIT --> MCP_CHECK["Step 0.3: Verify 6 MCP Servers"]
+    INIT --> MCP_CHECK["Step 0.3: Verify 7 MCP Servers"]
     MCP_CHECK --> |All OK| JIRA["Step 0.4: Fetch Jira Ticket"]
     MCP_CHECK --> |Any FAIL| STOP["STOP — Fix MCP"]
 

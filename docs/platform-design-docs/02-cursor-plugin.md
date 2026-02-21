@@ -1,5 +1,7 @@
 # Production Master: Cursor Plugin Design
 
+> **Navigation:** [Index](./README.md) | Previous: [01 — Claude Code plugin design](./01-claude-code-plugin.md) | Next: [03 — Cloud pipeline design](./03-cloud-pipeline.md)
+
 > **Document Type:** Application Design & Implementation
 > **Version:** 1.0
 > **Date:** 2026-02-21

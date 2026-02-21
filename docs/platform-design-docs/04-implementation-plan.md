@@ -1,5 +1,7 @@
 # Production Master: Implementation Plan
 
+> **Navigation:** [Index](./README.md) | Previous: [03 — Cloud pipeline design](./03-cloud-pipeline.md) | Next: [05 — Capability abstraction layer](./05-capability-abstraction-layer.md)
+
 > **Document Type:** Master Implementation Plan — The Blueprint
 > **Version:** 1.0
 > **Date:** 2026-02-21
@@ -652,7 +654,7 @@ Source: [Cursor Plugin Docs](https://cursor.com/docs/plugins/building)
 | P30 | Self-improvement meta-agent | **New** | P2 | Post-investigation agent that analyzes outcomes, detects patterns across investigations, and suggests prompt/workflow improvements. Runs asynchronously after investigation completion. |
 | P31 | Debug bundle export API | **New** | P1 | `GET /api/v1/investigations/:id/bundle` — returns investigation debug bundle as `.zip`. Includes traces, findings, agent outputs, and self-diagnostics. |
 
-Source: [Cloud Pipeline Design](./03-cloud-pipeline.md), [Wix Research](../design-docs/00-overview-shared-architecture.md)
+Source: [Cloud pipeline design](./03-cloud-pipeline.md), [overview and shared architecture](./00-overview-shared-architecture.md)
 
 ---
 
@@ -1273,15 +1275,15 @@ graph LR
 11. **MCP GW Support Slack** — [#mcp-gw-support](https://wix.slack.com/archives/C093RAT0NLS)
 
 ### Research Reports
-12. **Wix Deep Research Report** — `WIX - deep-research-report.md` — Multi-agent architecture, deployment, security
-13. **General Deep Research Report** — `General - deep-research-report.md` — Industry landscape, architecture paradigms
-14. **Plugins Deep Research Report** — `Plugins - deep-research-report.md` — Cursor/Claude comparison, core+adapter architecture
+12. **Wix deep research report** — [normalized Wix research summary](../research/wix-deep-research-report.md) — Multi-agent architecture, deployment, security
+13. **General deep research report** — [normalized general research summary](../research/general-deep-research-report.md) — Industry landscape, architecture paradigms
+14. **Plugins deep research report** — [normalized plugins research summary](../research/plugins-deep-research-report.md) — Cursor/Claude comparison, core+adapter architecture
 
 ### Design Documents
-15. **Overview & Shared Architecture** — [design-docs/00-overview-shared-architecture.md](./00-overview-shared-architecture.md)
-16. **Claude Code Plugin Design** — [design-docs/01-claude-code-plugin.md](./01-claude-code-plugin.md)
-17. **Cursor Plugin Design** — [design-docs/02-cursor-plugin.md](./02-cursor-plugin.md)
-18. **Cloud Pipeline Design** — [design-docs/03-cloud-pipeline.md](./03-cloud-pipeline.md)
+15. **Overview and shared architecture** — [shared architecture document](./00-overview-shared-architecture.md)
+16. **Claude Code plugin design** — [Claude adapter design document](./01-claude-code-plugin.md)
+17. **Cursor plugin design** — [Cursor adapter design document](./02-cursor-plugin.md)
+18. **Cloud pipeline design** — [cloud pipeline design document](./03-cloud-pipeline.md)
 
 ### Industry References
 19. **AWS Bedrock Intelligent Prompt Routing** — [aws.amazon.com/blogs/machine-learning/intelligent-prompt-routing-bedrock/](https://aws.amazon.com/blogs/machine-learning/intelligent-prompt-routing-bedrock/) — 35-56% cost savings
