@@ -12,6 +12,7 @@ import { runAgent, type AgentRunOptions } from './agent-runner.js';
 import * as RecommendationModel from '../storage/models/recommendation.js';
 import type { CreateRecommendationInput } from '../storage/models/recommendation.js';
 import { createLogger } from '../observability/index.js';
+import { runFeedbackCorroboration } from './feedback-corroborator.js';
 import type { McpRegistry } from './tool-handler.js';
 
 // ---------------------------------------------------------------------------
@@ -207,6 +208,18 @@ export async function runMetaAnalysis(
     totalRecommendations: recommendations.length,
     storedSuccessfully: created.length,
   });
+
+  // 6. Run feedback corroboration
+  try {
+    const corroboratedEntries = await runFeedbackCorroboration();
+    log.info('Feedback corroboration completed', {
+      entries_created: corroboratedEntries.length,
+    });
+  } catch (err) {
+    log.warn('Feedback corroboration failed — non-fatal', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
 
   return created;
 }

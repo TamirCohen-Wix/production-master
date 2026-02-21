@@ -12,6 +12,7 @@ import { queryRateLimit } from '../middleware/rate-limit.js';
 import { createLogger } from '../../observability/index.js';
 import * as RecommendationModel from '../../storage/models/recommendation.js';
 import { runMetaAnalysis } from '../../workers/meta-analysis.js';
+import { applyRecommendation } from '../../workers/knowledge-applier.js';
 import type { McpRegistry } from '../../workers/tool-handler.js';
 
 // ---------------------------------------------------------------------------
@@ -148,6 +149,39 @@ metaRouter.post('/recommendations/:id/reject', async (req, res) => {
     res.json(recommendation);
   } catch (err) {
     log.error('Failed to reject recommendation', {
+      error: err instanceof Error ? err.message : String(err),
+      recommendation_id: req.params.id,
+    });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// --- POST /recommendations/:id/apply — apply an approved recommendation as knowledge ---
+metaRouter.post('/recommendations/:id/apply', async (req, res) => {
+  try {
+    const recommendation = await RecommendationModel.getById(req.params.id);
+
+    if (!recommendation) {
+      res.status(404).json({ error: 'Recommendation not found' });
+      return;
+    }
+
+    if (recommendation.status !== 'approved') {
+      res.status(409).json({
+        error: 'Only approved recommendations can be applied',
+        current_status: recommendation.status,
+      });
+      return;
+    }
+
+    const knowledgeEntry = await applyRecommendation(recommendation);
+
+    res.json({
+      message: 'Recommendation applied as knowledge entry',
+      knowledge_entry: knowledgeEntry,
+    });
+  } catch (err) {
+    log.error('Failed to apply recommendation', {
       error: err instanceof Error ? err.message : String(err),
       recommendation_id: req.params.id,
     });
