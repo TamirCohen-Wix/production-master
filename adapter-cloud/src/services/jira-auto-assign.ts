@@ -52,6 +52,7 @@ export interface JiraAutoAssignResult {
 }
 
 let cachedGroupField: { fieldName: string; fieldKey: string; expiresAt: number } | null = null;
+let inFlightGroupFieldLookup: Promise<string | undefined> | null = null;
 const toolNameCache = new Map<string, string>();
 
 function normalize(value: string): string {
@@ -222,28 +223,37 @@ async function resolveGroupFieldKey(
     return cachedGroupField.fieldKey;
   }
 
-  try {
-    const result = await callJiraTool(client, 'list_fields', {});
-    const text = extractTextContent(result);
-    const parsed = parseJsonFromText(text);
+  // Deduplicate concurrent field discovery calls during cold cache windows.
+  if (!inFlightGroupFieldLookup) {
+    inFlightGroupFieldLookup = (async () => {
+      try {
+        const result = await callJiraTool(client, 'list_fields', {});
+        const text = extractTextContent(result);
+        const parsed = parseJsonFromText(text);
 
-    const fieldKey = findFieldKeyFromJson(parsed, groupFieldName) ?? findFieldKeyFromText(text, groupFieldName);
-    if (fieldKey) {
-      cachedGroupField = {
-        fieldName: groupFieldName,
-        fieldKey,
-        expiresAt: now + GROUP_FIELD_CACHE_TTL_MS,
-      };
-      return fieldKey;
-    }
-  } catch (err) {
-    log.warn('Failed to discover Jira Group field key', {
-      error: err instanceof Error ? err.message : String(err),
-      group_field_name: groupFieldName,
-    });
+        const fieldKey = findFieldKeyFromJson(parsed, groupFieldName) ?? findFieldKeyFromText(text, groupFieldName);
+        if (fieldKey) {
+          cachedGroupField = {
+            fieldName: groupFieldName,
+            fieldKey,
+            expiresAt: now + GROUP_FIELD_CACHE_TTL_MS,
+          };
+          return fieldKey;
+        }
+      } catch (err) {
+        log.warn('Failed to discover Jira Group field key', {
+          error: err instanceof Error ? err.message : String(err),
+          group_field_name: groupFieldName,
+        });
+      } finally {
+        inFlightGroupFieldLookup = null;
+      }
+      return undefined;
+    })();
   }
 
-  return fallbackKey;
+  const discovered = await inFlightGroupFieldLookup;
+  return discovered ?? fallbackKey;
 }
 
 function extractAccountId(payload: unknown): string | undefined {
@@ -276,14 +286,24 @@ async function resolveAssigneeAccountId(
   if (target.assignee_account_id) return target.assignee_account_id;
   if (!target.assignee_email) return undefined;
 
-  const result = await callJiraTool(client, 'get_user', { email: target.assignee_email });
-  const text = extractTextContent(result);
-  const parsed = parseJsonFromText(text);
-  return extractAccountId(parsed) ?? extractAccountId(text);
+  try {
+    const result = await callJiraTool(client, 'get_user', { email: target.assignee_email });
+    const text = extractTextContent(result);
+    const parsed = parseJsonFromText(text);
+    return extractAccountId(parsed) ?? extractAccountId(text);
+  } catch (err) {
+    log.warn('Failed to resolve Jira assignee account id from email', {
+      assignee_email: target.assignee_email,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    // Continue with Group-only assignment when user resolution fails.
+    return undefined;
+  }
 }
 
 export function resetJiraAutoAssignCaches(): void {
   cachedGroupField = null;
+  inFlightGroupFieldLookup = null;
   toolNameCache.clear();
 }
 
@@ -331,6 +351,7 @@ export async function autoAssignJiraIssue(
     };
 
     if (assigneeAccountId) {
+      // Keep both fields for compatibility with heterogeneous Jira server mappings.
       payload.assignee = { accountId: assigneeAccountId };
       customFields.assignee = { accountId: assigneeAccountId };
     }
