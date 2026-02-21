@@ -6,6 +6,8 @@ tools: Read, Write, Bash, ToolSearch
 mcpServers: mcp-s
 skills:
   - grafana-datasource
+  - db-core
+  - trino
 maxTurns: 20
 ---
 
@@ -67,6 +69,7 @@ If the skill reference is not provided in your prompt, state this explicitly and
 - `GRAFANA_SKILL_REFERENCE` — Full skill file for grafana-datasource tools
 - `OUTPUT_FILE` — Path to write your report
 - `TRACE_FILE` — Path to write your trace log (see Trace File section below)
+- Optional skill references: `DB_CORE_SKILL_REFERENCE`, `TRINO_SKILL_REFERENCE` (for orchestrator-requested data-layer escalation only)
 
 ## Workflow
 
@@ -113,6 +116,9 @@ WHERE $__timeFilter(timestamp) AND artifact_id = '<ARTIFACT>' AND level = 'ERROR
   AND message LIKE '%<error_pattern>%'
 ORDER BY timestamp DESC LIMIT 10
 ```
+
+### Step 1.6 — Data-layer escalation (only when explicitly requested)
+If orchestrator TASK explicitly asks for DB or warehouse correlation, use DB-core/Trino tools in read-only mode to validate schema/partition/data-shape assumptions tied to the error window.
 
 **Parse the JSON `data` payload and report ALL fields.** Common critical findings:
 - Empty/null fields that should have values (e.g., `resource: "<empty>"`)

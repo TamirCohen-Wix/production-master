@@ -24,6 +24,12 @@ EXPECTED_INTERFACES=(
   "domain-objects.json"
   "documentation.json"
   "service-registry.json"
+  "knowledge-base.json"
+  "internal-docs-schema.json"
+  "devex-intelligence.json"
+  "db-ops.json"
+  "data-warehouse.json"
+  "root-cause-orchestration.json"
 )
 
 for file in "${EXPECTED_INTERFACES[@]}"; do

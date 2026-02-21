@@ -7,11 +7,24 @@ provider: abstract
 
 # Code Search — Capability Skill Reference
 
-Abstract capability contract for cross-repository code search, file retrieval, and symbol navigation. This skill file defines the normalized tool interface — the actual MCP server translates to the active provider (Octocode, Sourcegraph, GitHub Code Search, etc.).
+Abstract capability contract for cross-repository code search, file retrieval, and symbol navigation.
+
+This skill defines normalized operations. Concrete providers (for example `octocode`) map their tool names and parameters to this interface.
 
 ---
 
-## Tools
+## Tool Decision Matrix
+
+| Need | Operation |
+|------|-----------|
+| Find where an error string appears | `search_code` |
+| Find which file/path likely owns a concern | `search_code` (`match=path`) |
+| Read the implementation in context | `get_file` |
+| Locate classes/functions/types by name | `search_symbols` |
+
+---
+
+## Operations
 
 ### search_code
 
@@ -60,3 +73,30 @@ Search for code symbols (classes, functions, types) across repositories.
 | `kind` | enum: class, function, interface, type, variable | No | Symbol kind filter |
 
 **Returns:** `{ symbols: [{ name, kind, file_path, line_number, repo }] }`
+
+---
+
+## Recommended Workflow
+
+1. Start broad with `search_code` using 2-4 keywords from logs/errors.
+2. Narrow by repo/extension once likely candidates are found.
+3. Use `get_file` to inspect full context around matches.
+4. Use `search_symbols` to verify ownership and call graph entry points.
+
+---
+
+## Guardrails
+
+- Prefer a small set of precise keywords over very broad text.
+- Use `match=path` to quickly discover ownership directories.
+- Always verify with `get_file` before drawing conclusions.
+- Treat search hits as leads, not proof.
+
+---
+
+## Common Failure Modes
+
+- Searching with a single generic token (too noisy).
+- Skipping file readback after hit discovery.
+- Confusing symbol names across similarly named repos/services.
+- Assuming top-ranked result is the real execution path.

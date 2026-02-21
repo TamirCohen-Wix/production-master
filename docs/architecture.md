@@ -12,13 +12,13 @@ graph TD
     CU["Cursor IDE Plugin<br/>(IDE-native)"] --> CORE
     CL["Cloud Service<br/>(REST API / Webhooks)"] --> CORE
 
-    CORE --> AGENTS["12 Agents"]
-    CORE --> SKILLS["9 Skills"]
+    CORE --> AGENTS["13 Agents"]
+    CORE --> SKILLS["21 Skills"]
     CORE --> ORCH["Orchestrator"]
     CORE --> DOMAIN["Domain Config"]
     CORE --> OUTPUT["Output Styles"]
 
-    CORE --> MCP["9 MCP Server Integrations"]
+    CORE --> MCP["15 MCP Tool Families"]
 ```
 
 Surfaces:
@@ -30,7 +30,7 @@ Each surface connects to the shared core engine in `core/`, which contains all a
 
 ## Pipeline Design
 
-12 specialized agents, 9 commands, 9 MCP skill integrations, 2 output styles, 1 link validation hook.
+13 specialized agents, 9 commands, 21 skill references, 2 output styles, 1 link validation hook.
 
 The orchestrator (`/production-master`) is the central coordinator. It:
 1. Classifies user intent into 7 modes (full investigation, log query, request trace, metrics, Slack search, code search, toggle check)
@@ -97,25 +97,31 @@ Domain configuration is documented in [domain-configs.md](domain-configs.md), in
 
 ## Capability Abstraction
 
-The platform abstracts vendor-specific MCP tools behind capability-level interfaces. Each capability (e.g., `log-system`, `ticket-system`) defines a normalized set of operations in `core/capabilities/interfaces/`. The capability registry (`core/capabilities/registry.yaml`) maps each capability to its active provider and alternatives.
+The platform abstracts vendor-specific MCP tools behind capability-level interfaces. Each capability (for example `log-system`, `ticket-system`, `knowledge-base`, `db-ops`) defines a normalized set of operations in `core/capabilities/interfaces/`. The capability registry (`core/capabilities/registry.yaml`) maps each capability to its active provider and alternatives.
 
-Abstract skill files in `core/skills/` (e.g., `log-system/SKILL.md`) define the normalized tool contract, while vendor-specific skill files (e.g., `grafana-datasource/SKILL.md`) document the concrete MCP tools. The capability router (`core/capabilities/router.md`) resolves which skill file to load at Step 0.5.
+Abstract skill files in `core/skills/` (e.g., `log-system/SKILL.md`) define the normalized tool contract, while vendor-specific skill files (e.g., `grafana-datasource/SKILL.md`, `devex/SKILL.md`) document concrete MCP tool usage.
 
 Custom MCP servers in `custom-mcps/` expose the abstract tool names and translate to upstream vendor calls. This allows swapping providers (e.g., Grafana → Datadog) without changing agent prompts.
 
 ## MCP Server Dependencies
 
-| Server | Tools | Used By |
+| Server / Family | Tools | Used By |
 |--------|-------|---------|
-| Grafana Datasource | 11 (SQL/PromQL/LogQL) | log-analyzer, service-resolver |
-| Grafana MCP | 33 (dashboards, alerts, incidents) | log-analyzer |
-| Slack | 12 (search, threads, post) | comms-analyzer, publisher |
+| Grafana Datasource | 10 (SQL/PromQL/LogQL) | log-analyzer, service-resolver |
+| Grafana MCP | 25 (dashboards, alerts, incidents) | log-analyzer |
+| Slack | 11 (search, threads, post) | comms-analyzer, publisher |
 | GitHub | 23 (PRs, commits, code) | change-analyzer |
-| Octocode | 7 (semantic code search) | codebase-semantics |
+| Octocode | 6 (code search + repo structure) | codebase-semantics |
 | FT-release | 7 (feature toggles) | change-analyzer, fix-list |
-| Fire Console | 12 (gRPC domain objects) | hypothesis, verifier |
-| Jira | 16 (issues, comments) | bug-context, publisher |
+| Fire Console | 13 (gRPC domain objects) | hypotheses, verifier |
+| Jira | 17 (issues, comments) | bug-context, publisher |
 | Context7 | 2 (library docs) | codebase-semantics |
+| DevEx | 20 (ownership/build/release) | change-analyzer |
+| Docs Schema | 6 (internal docs/schema/FQDN) | codebase-semantics, hypotheses |
+| KB Retrieval | 7 (knowledge retrieval/writeback) | hypotheses, verifier |
+| DB Core | 15 (DB diagnostics) | log-analyzer, hypotheses, verifier |
+| Trino | 8 (warehouse query/metadata) | log-analyzer, hypotheses, verifier |
+| Root Cause | 2 (async RCA lifecycle) | hypotheses, verifier |
 
 ## Output Directory Structure
 
@@ -126,8 +132,8 @@ For canonical directory layout, naming conventions, and state file semantics, se
 ```
 production-master/
 ├── core/                        ← Shared, adapter-agnostic logic
-│   ├── agents/                  ← 12 pipeline agents
-│   ├── skills/                  ← 9 MCP skill references
+│   ├── agents/                  ← 13 pipeline agents
+│   ├── skills/                  ← 21 capability + vendor skill references
 │   ├── output-styles/           ← Report & publisher formats
 │   ├── orchestrator/            ← Pipeline orchestration logic
 │   ├── domain/                  ← Domain config schema & loading

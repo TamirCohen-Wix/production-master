@@ -93,6 +93,7 @@ capabilities:
     required_operations:
       - query_domain
       - list_domain_types
+    vendor_skill: core/skills/fire-console/SKILL.md
 
   documentation:
     description: "Library and framework documentation lookup and search"
@@ -103,6 +104,7 @@ capabilities:
     required_operations:
       - search_docs
       - get_doc_content
+    vendor_skill: core/skills/context7/SKILL.md
 
   service-registry:
     description: "Service discovery, metadata lookup, and dependency mapping"
@@ -114,3 +116,75 @@ capabilities:
       - resolve_service
       - list_services
       - get_service_metadata
+    vendor_skill: core/skills/grafana-datasource/SKILL.md
+
+  knowledge-base:
+    description: "Internal knowledge retrieval and writeback for known issues, patterns, and runbooks"
+    provider: kb-retrieval
+    alternatives:
+      - internal-kb
+    required_operations:
+      - list_knowledge_bases
+      - retrieve_documents
+      - get_document
+      - insert_document
+    vendor_skill: core/skills/kb-retrieval/SKILL.md
+
+  internal-docs-schema:
+    description: "Internal docs and schema discovery (FQDN, service, contract lookup)"
+    provider: docs-schema
+    alternatives:
+      - internal-docs
+    required_operations:
+      - search_docs
+      - lookup_fqdn
+      - get_schema
+    vendor_skill: core/skills/docs-schema/SKILL.md
+
+  devex-intelligence:
+    description: "Engineering intelligence for ownership, releases, builds, and commit rollout visibility"
+    provider: devex
+    alternatives:
+      - github
+    required_operations:
+      - get_ownership
+      - search_releases
+      - search_builds
+      - locate_commit_rollout
+    vendor_skill: core/skills/devex/SKILL.md
+
+  db-ops:
+    description: "Database operational diagnostics: clusters, processes, lag, schema history, and SQL analysis"
+    provider: db-core
+    alternatives:
+      - mysql-admin
+      - postgres-admin
+    required_operations:
+      - list_clusters
+      - inspect_processes
+      - check_replication_lag
+      - execute_sql
+    vendor_skill: core/skills/db-core/SKILL.md
+
+  data-warehouse:
+    description: "Warehouse querying and metadata inspection for analytics/event validation"
+    provider: trino
+    alternatives:
+      - bigquery
+      - snowflake
+    required_operations:
+      - execute_query
+      - get_table_schema
+      - get_table_partitions
+      - get_table_stats
+    vendor_skill: core/skills/trino/SKILL.md
+
+  root-cause-orchestration:
+    description: "Asynchronous root cause analysis orchestration lifecycle (start and await)"
+    provider: root-cause
+    alternatives:
+      - internal-rca
+    required_operations:
+      - start_analysis
+      - await_analysis
+    vendor_skill: core/skills/root-cause/SKILL.md

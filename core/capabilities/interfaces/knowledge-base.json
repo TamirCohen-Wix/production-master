@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "knowledge-base",
+  "description": "Interface schema for internal knowledge base retrieval and writeback",
+  "type": "object",
+  "properties": {
+    "operations": {
+      "type": "object",
+      "properties": {
+        "list_knowledge_bases": {
+          "description": "List available internal knowledge bases",
+          "type": "object"
+        },
+        "retrieve_documents": {
+          "description": "Retrieve relevant knowledge base documents for a query",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["query"],
+              "properties": {
+                "query": { "type": "string" },
+                "knowledge_base": { "type": "string" },
+                "limit": { "type": "integer" }
+              }
+            }
+          }
+        },
+        "get_document": {
+          "description": "Fetch a full knowledge base document by ID",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["document_id"],
+              "properties": {
+                "document_id": { "type": "string" }
+              }
+            }
+          }
+        },
+        "insert_document": {
+          "description": "Insert validated findings into a knowledge base",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["knowledge_base", "content"],
+              "properties": {
+                "knowledge_base": { "type": "string" },
+                "content": { "type": "string" },
+                "tags": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

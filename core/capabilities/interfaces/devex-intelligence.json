@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "devex-intelligence",
+  "description": "Interface schema for ownership, releases, builds, and rollout visibility",
+  "type": "object",
+  "properties": {
+    "operations": {
+      "type": "object",
+      "properties": {
+        "get_ownership": {
+          "description": "Resolve ownership for service/project/path",
+          "type": "object"
+        },
+        "search_releases": {
+          "description": "Find release records in a time window",
+          "type": "object"
+        },
+        "search_builds": {
+          "description": "Find build records and statuses in a time window",
+          "type": "object"
+        },
+        "locate_commit_rollout": {
+          "description": "Track where a commit was deployed",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["commit_sha"],
+              "properties": {
+                "commit_sha": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -7,11 +7,24 @@ provider: abstract
 
 # Ticket System — Capability Skill Reference
 
-Abstract capability contract for issue tracking and ticket management. This skill file defines the normalized tool interface — the actual MCP server translates to the active provider (Jira, Linear, GitHub Issues, etc.).
+Abstract capability contract for issue tracking and ticket management.
+
+This skill defines normalized operations. Concrete providers (for example `jira`) map their API specifics to this interface.
 
 ---
 
-## Tools
+## Tool Decision Matrix
+
+| Need | Operation |
+|------|-----------|
+| Read one ticket with full context | `get_ticket` |
+| Discover related tickets | `search_tickets` |
+| Add investigation findings/progress | `add_comment` |
+| Move ticket to new workflow state | `update_status` |
+
+---
+
+## Operations
 
 ### get_ticket
 
@@ -68,3 +81,29 @@ Transition a ticket to a new status.
 | `comment` | string | No | Optional comment to add with the transition |
 
 **Returns:** `{ ticket_id, previous_status, new_status }`
+
+---
+
+## Recommended Workflow
+
+1. Load source ticket with `get_ticket`.
+2. Expand incident context via `search_tickets` (duplicates, regressions, linked issues).
+3. Post progress checkpoints with `add_comment`.
+4. Transition state with `update_status` only when entry/exit criteria are met.
+
+---
+
+## Guardrails
+
+- Preserve original incident details; avoid rewriting history in comments.
+- Keep comments evidence-first and time-stamped.
+- Do not transition status without clear rationale.
+- Include links to PRs/reports when updating tickets.
+
+---
+
+## Common Failure Modes
+
+- Moving status before evidence is complete.
+- Overwriting concise ticket narrative with noisy updates.
+- Failing to correlate with previous similar issues.

@@ -7,11 +7,23 @@ provider: abstract
 
 # Feature Flags — Capability Skill Reference
 
-Abstract capability contract for feature toggle management, rollout control, and release strategies. This skill file defines the normalized tool interface — the actual MCP server translates to the active provider (FT-release, LaunchDarkly, Split, etc.).
+Abstract capability contract for feature toggle management, rollout control, and release strategies.
+
+This skill defines normalized operations. Concrete providers (for example `ft-release`) map their tool names and payloads to this interface.
 
 ---
 
-## Tools
+## Tool Decision Matrix
+
+| Need | Operation |
+|------|-----------|
+| Inspect one flag deeply | `get_flag` |
+| Discover candidate flags by service/owner | `list_flags` |
+| Prove rollout timing relative to incident | `get_rollout_history` |
+
+---
+
+## Operations
 
 ### get_flag
 
@@ -54,3 +66,29 @@ Get the release/rollout history for a feature flag.
 | `limit` | integer | No | Maximum number of releases to return |
 
 **Returns:** `{ releases: [{ release_id, flag_id, strategy, percentage, created_by, created }] }`
+
+---
+
+## Investigation Workflow
+
+1. Run `list_flags` with service/team terms to find candidates.
+2. Use `get_flag` for each candidate to validate ownership, status, and strategy.
+3. Use `get_rollout_history` to establish whether behavior changed in the incident window.
+4. Compare rollout dates vs merge dates. Rollout timing is usually the behavior change signal.
+
+---
+
+## Guardrails
+
+- Do not assume a merge PR changed behavior if rollout happened earlier.
+- Require timeline evidence before attributing impact to a flag.
+- Track partial rollouts separately from 100 percent rollout.
+- Record who changed what and when for auditability.
+
+---
+
+## Common Failure Modes
+
+- Confusing flag cleanup PRs with actual user-facing behavior changes.
+- Ignoring percentage rollout and audience segmentation.
+- Using only flag names without checking ownership/context.

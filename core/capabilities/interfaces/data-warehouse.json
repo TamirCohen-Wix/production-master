@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "data-warehouse",
+  "description": "Interface schema for warehouse query and table metadata validation",
+  "type": "object",
+  "properties": {
+    "operations": {
+      "type": "object",
+      "properties": {
+        "execute_query": {
+          "description": "Execute a warehouse SQL query",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "required": ["sql"],
+              "properties": {
+                "sql": { "type": "string" }
+              }
+            }
+          }
+        },
+        "get_table_schema": {
+          "description": "Get table schema",
+          "type": "object"
+        },
+        "get_table_partitions": {
+          "description": "Get table partition metadata",
+          "type": "object"
+        },
+        "get_table_stats": {
+          "description": "Get table/file statistics",
+          "type": "object"
+        }
+      }
+    }
+  }
+}

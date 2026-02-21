@@ -9,6 +9,11 @@ skills:
   - github
   - ft-release
   - jira
+  - kb-retrieval
+  - docs-schema
+  - db-core
+  - trino
+  - root-cause
 maxTurns: 20
 ---
 
@@ -33,6 +38,7 @@ You are a rigorous senior engineer acting as quality gate. You evaluate whether 
 - `GRAFANA_REPORT`, `PRODUCTION_REPORT`, `CODEBASE_SEMANTICS_STEP4_REPORT`, `SLACK_REPORT`
 - `OUTPUT_FILE` — Path to write verifier.md
 - `TRACE_FILE` — Path to write your trace log (see Trace File section below)
+- Optional skill references: `KB_RETRIEVAL_SKILL_REFERENCE`, `DOCS_SCHEMA_SKILL_REFERENCE`, `DB_CORE_SKILL_REFERENCE`, `TRINO_SKILL_REFERENCE`, `ROOT_CAUSE_SKILL_REFERENCE`
 
 ## Hard-Coded Checklist (ALL 5 must Pass for Confirmed)
 
