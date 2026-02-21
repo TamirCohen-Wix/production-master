@@ -16,29 +16,43 @@ flowchart TD
     PR01[PR-01 Contracts Foundation] --> PR02[PR-02 MCP Interface Layer]
     PR01 --> PR03[PR-03 Core Orchestrator Extraction]
     PR01 --> PR04[PR-04 Capability Resolver]
+    PR01 --> PR05[PR-05 Industry MCP Audit]
+    PR04 --> PR06[PR-06 Modes + Resource Limits]
+    PR04 --> PR07[PR-07 Knowledge + Feedback Loop]
     PR02 --> PR12[PR-12 Provider Switching + Parity]
     PR03 --> PR08[PR-08 Cloud Ingress + Orchestrator Skeleton]
     PR03 --> PR09[PR-09 Cursor Adapter Scaffold]
     PR03 --> PR10[PR-10 Claude Adapter Scaffold]
+    PR06 --> PR13[PR-13 Cursor Workflows + Subagents]
+    PR06 --> PR14[PR-14 Claude Workflows + Hooks]
     PR04 --> PR09
     PR04 --> PR10
     PR08 --> PR11[PR-11 Cloud Worker Runtime + Queue]
-    PR09 --> PR13[PR-13 Cursor Workflows + Subagents]
-    PR10 --> PR14[PR-14 Claude Workflows + Hooks]
+    PR07 --> PR11
+    PR10 --> PR14
     PR11 --> PR15[PR-15 Observability + SLO Dashboards]
+    PR15 --> PR19[PR-19 Debug Bundle Export]
     PR12 --> PR16[PR-16 Internal MCP First Migration]
+    PR05 --> PR16
+    PR07 --> PR20[PR-20 Self-Improvement Agent]
+    PR03 --> PR21[PR-21 Cross-Repo Awareness]
+    PR03 --> PR22[PR-22 Future Endpoint SDK]
     PR13 --> PR17[PR-17 E2E + Canary Release]
     PR14 --> PR17
     PR15 --> PR17
     PR16 --> PR17
+    PR19 --> PR17
+    PR20 --> PR17
+    PR21 --> PR17
+    PR22 --> PR17
     PR17 --> PR18[PR-18 Launch Readiness + Runbooks]
 ```
 
 ### Parallel Lanes
-- **Lane A (Core):** PR-01, PR-02, PR-03, PR-04
+- **Lane A (Core):** PR-01, PR-02, PR-03, PR-04, PR-06, PR-21, PR-22
 - **Lane B (Adapters):** PR-09, PR-10, PR-13, PR-14
-- **Lane C (Cloud):** PR-08, PR-11, PR-15
-- **Lane D (Platform/Reliability):** PR-12, PR-16, PR-17, PR-18
+- **Lane C (Cloud):** PR-08, PR-11, PR-15, PR-19
+- **Lane D (Platform/Reliability):** PR-05, PR-07, PR-12, PR-16, PR-20, PR-17, PR-18
 
 ## PR Matrix
 | PR | Title | Depends On | Parallel? | Owner Suggestion |
@@ -47,6 +61,9 @@ flowchart TD
 | PR-02 | MCP Interface Abstraction Layer | PR-01 | Yes (w/ PR-03, PR-04) | Integration team |
 | PR-03 | Core Orchestrator Extraction | PR-01 | Yes (w/ PR-02, PR-04) | Core team |
 | PR-04 | Capability Resolver + Planner Contracts | PR-01 | Yes (w/ PR-02, PR-03) | Core team |
+| PR-05 | Industry MCP Audit + Alternatives Recommendation | PR-01 | Yes (w/ PR-02/03/04) | Architecture team |
+| PR-06 | Modes + Resource Limits + Per-Run Overrides | PR-04 | Yes (w/ PR-08/09/10) | Core team |
+| PR-07 | Domain Knowledge + Feedback Ingestion Framework | PR-04 | Yes (w/ PR-08/09/10) | AI platform team |
 | PR-08 | Cloud Ingress + Orchestrator Skeleton | PR-03 | Yes (w/ PR-09, PR-10) | Cloud team |
 | PR-09 | Cursor Adapter Scaffold | PR-03, PR-04 | Yes (w/ PR-08, PR-10) | Cursor team |
 | PR-10 | Claude Adapter Scaffold | PR-03, PR-04 | Yes (w/ PR-08, PR-09) | Claude team |
@@ -56,6 +73,10 @@ flowchart TD
 | PR-14 | Claude Workflows + Hooks | PR-10 | Yes (w/ PR-11, PR-13) | Claude team |
 | PR-15 | Observability + SLO Dashboards | PR-11 | Yes (w/ PR-12, PR-13, PR-14) | SRE/Platform |
 | PR-16 | First Internal MCP Migration (one domain) | PR-12 | Yes (w/ PR-15) | Integration team |
+| PR-19 | Downloadable Debug Bundle + Replay UX | PR-15 | Yes (w/ PR-16/20/21/22) | Platform team |
+| PR-20 | Self-Improvement Agent (guarded mode) | PR-07 | Yes (w/ PR-15/16/19) | AI platform team |
+| PR-21 | Cross-Repo/Cross-Service Context Engine | PR-03 | Yes (w/ PR-15/16/19/20) | Core + Cloud team |
+| PR-22 | Future Endpoint Adapter SDK + Template | PR-03 | Yes (w/ PR-15/16/19/20/21) | Platform team |
 | PR-17 | E2E + Canary Release Gates | PR-13, PR-14, PR-15, PR-16 | No (synthesis PR) | Platform team |
 | PR-18 | Launch Readiness + Runbooks + Go/No-Go | PR-17 | No (last) | Program owner |
 
@@ -118,6 +139,48 @@ Todos:
 - [ ] Implement resolver service
 - [ ] Add fallback simulation tests
 - [ ] Add capability parity tests
+
+## PR-05 Industry MCP Audit + Alternatives Recommendation
+**Goal:** Re-evaluate current MCP set against leading industry alternatives and publish adopt/keep/replace guidance.
+
+Checklist:
+- [ ] Audit current MCP coverage and gaps
+- [ ] Benchmark alternatives for each major domain
+- [ ] Produce keep/replace recommendations
+- [ ] Define evaluation cadence (quarterly)
+
+Todos:
+- [ ] Publish MCP comparison matrix
+- [ ] Tag domains for internal MCP prioritization
+- [ ] Add decision records (ADRs)
+
+## PR-06 Modes + Resource Limits + Per-Run Overrides
+**Goal:** Implement user-configurable limits and runtime mode profiles.
+
+Checklist:
+- [ ] Add mode profiles (`fast`, `balanced`, `deep`, custom)
+- [ ] Add limits (tokens/bytes/API calls/runtime)
+- [ ] Add per-run override support
+- [ ] Add optional persistence for user defaults
+
+Todos:
+- [ ] Implement `ModePolicy` contract
+- [ ] Add adapter UI/command wiring for overrides
+- [ ] Add regression tests per mode
+
+## PR-07 Domain Knowledge + Feedback Ingestion Framework
+**Goal:** Add domain-specific knowledge slices and safe user feedback ingestion.
+
+Checklist:
+- [ ] Create domain knowledge storage model
+- [ ] Add feedback ingestion pipeline with validation gates
+- [ ] Add local domain adjustment support
+- [ ] Add safety checks against poisoned updates
+
+Todos:
+- [ ] Implement `knowledge-slice` contracts
+- [ ] Add moderated feedback workflow
+- [ ] Add audit logs for knowledge updates
 
 ## PR-08 Cloud Ingress + Orchestrator Skeleton
 **Goal:** Bring up cloud surface with ingestion API and core orchestration wiring.
@@ -246,6 +309,62 @@ Todos:
 - [ ] Add comparison telemetry
 - [ ] Add rollback playbook
 
+## PR-19 Downloadable Debug Bundle + Replay UX
+**Goal:** Provide exportable debug bundle for issue filing and support workflows.
+
+Checklist:
+- [ ] Bundle includes trace, model/tool decisions, evidence scoring
+- [ ] Support compressed export
+- [ ] Add one-command attach instructions for issues
+- [ ] Validate replay from bundle
+
+Todos:
+- [ ] Implement bundle assembler
+- [ ] Add adapter/cloud export endpoints
+- [ ] Add replay verification tests
+
+## PR-20 Self-Improvement Agent (guarded mode)
+**Goal:** Introduce meta-agent that proposes improvements from run history.
+
+Checklist:
+- [ ] Add suggestion-only mode (default)
+- [ ] Add approval workflow for applying suggestions
+- [ ] Add evaluation rubric and safety constraints
+- [ ] Add governance audit trail
+
+Todos:
+- [ ] Implement meta-agent pipeline
+- [ ] Add suggestion scoring dashboard
+- [ ] Add kill switch and rollback
+
+## PR-21 Cross-Repo/Cross-Service Context Engine
+**Goal:** Add ecosystem-wide propagation awareness across repositories/services.
+
+Checklist:
+- [ ] Add multi-repo context indexing
+- [ ] Add service dependency mapping integration
+- [ ] Add cross-surface impact inference
+- [ ] Add performance budgets for wide-scope runs
+
+Todos:
+- [ ] Implement cross-repo resolver
+- [ ] Add lineage metadata to evidence contracts
+- [ ] Add large-scope scenario tests
+
+## PR-22 Future Endpoint Adapter SDK + Template
+**Goal:** Ensure easy onboarding of new endpoints beyond Cursor/Claude/Cloud.
+
+Checklist:
+- [ ] Define adapter SDK contract
+- [ ] Add scaffold/template generator
+- [ ] Add compatibility tests for new adapters
+- [ ] Document onboarding workflow
+
+Todos:
+- [ ] Add `adapter-template` package
+- [ ] Add sample “fourth endpoint” reference adapter
+- [ ] Add CI template for new adapters
+
 ## PR-17 E2E + Canary Release Gates
 **Goal:** Final cross-surface integration and release readiness gates.
 
@@ -276,10 +395,10 @@ Todos:
 
 ## Execution Checklist (Program)
 - [ ] PR-01 merged
-- [ ] PR-02/03/04 merged
-- [ ] PR-08/09/10 merged
+- [ ] PR-02/03/04/05 merged
+- [ ] PR-06/07/08/09/10 merged
 - [ ] PR-11/12/13/14 merged
-- [ ] PR-15/16 merged
+- [ ] PR-15/16/19/20/21/22 merged
 - [ ] PR-17 merged
 - [ ] PR-18 merged
 

@@ -9,6 +9,7 @@ Deliver the most important product version of `production-master`: one shared in
 3. Cloud pipeline (standalone autonomous investigation service) [SRC-WIX] [SRC-GEN]
 4. Shared architecture standards + contracts [SRC-WIX] [SRC-PLUG]
 5. PR execution breakdown and delivery checklist (`pr-execution-plan.md`)
+6. Strategic requirements coverage matrix (`requirements-coverage-matrix.md`)
 
 ## Research Extracts Used as Requirements
 > “Shared core library + platform-specific adapters + semantic versioning + independent pipelines.” [SRC-WIX]
@@ -93,6 +94,54 @@ production-master/
 - MCP gateway and policy enforcement
 - Knowledge retrieval (vector + optional graph)
 - SLO dashboards and auto rollback
+
+## Strategic Principle Coverage Additions
+### Mission-First, Ecosystem-Agnostic, Platform-Strong
+- Architecture is defined from investigation capabilities first, then mapped to tools.
+- No lock to Wix-only assumptions; interfaces are enterprise-generic and provider-pluggable.
+- Cursor and Claude each use native strengths (rules/skills/subagents/hooks vs skills/hooks/subagents/agent-teams) with parity of investment.
+- Cloud is first-class, autonomous, and UI-independent.
+
+### Configurability and Runtime Controls
+Required controls (global defaults + per-run override):
+- token budgets per run and per capability
+- byte limits for tool payloads
+- API call caps per interface/provider
+- runtime duration caps
+- mode profiles: `fast`, `balanced`, `deep`, custom profile
+- persisted user defaults with run-level override
+
+### Cross-Repo / Cross-Service Awareness
+- Capability resolver must support ecosystem scope (multiple repos/services), not single-repo only.
+- Evidence model includes service/repo lineage metadata.
+- Impact analysis supports downstream/upstream propagation checks.
+
+### Transparency and Debuggability
+- Every run produces a trace artifact.
+- Debug bundle export includes:
+  - execution trace,
+  - selected tools/providers,
+  - model routing decisions,
+  - evidence scoring,
+  - degraded-mode events.
+- Bundle is downloadable and attachable to issues/support channels.
+
+### Learning and Knowledge Evolution
+- Domain-specific knowledge slices per service/repo.
+- Safe feedback ingestion pipeline with validation gates.
+- Local domain adjustments allowed in controlled scope.
+- Self-improvement agent operates in suggestion mode first, optional autonomous tuning only behind governance gates.
+
+### Future Endpoint Expandability
+- Endpoint adapter contract is generic: new endpoints can be added without core redesign.
+- Add explicit SDK/adapter template for future surfaces.
+
+### Industry Research Cadence
+- MCP inventory is re-evaluated quarterly:
+  - keep/replace decisions,
+  - benchmark against industry alternatives,
+  - migration recommendations with ROI/risk.
+- Research and unknown-unknowns review is a recurring governance item.
 
 ## MCP Catalog and Ownership
 From current repo config and Wix MCP references: [SRC-MCP-CONFIG] [SRC-WIX-MCP-PRIVATE] [SRC-WIX-MCP-PORTAL]
