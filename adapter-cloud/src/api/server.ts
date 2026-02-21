@@ -22,6 +22,7 @@ import { batchRouter, closeBatchQueue } from './routes/batch.js';
 import { investigationsRouter } from './routes/investigations.js';
 import { queriesRouter, setQueryRegistry } from './routes/queries.js';
 import { domainsRouter } from './routes/domains.js';
+import { similarRouter } from './routes/similar.js';
 import { healthRouter, setHealthRegistry } from './routes/health.js';
 
 // Webhooks
@@ -125,6 +126,7 @@ app.use('/api/v1', authMiddleware);
 app.use('/api/v1/investigate', investigateRouter);
 app.use('/api/v1/investigate/batch', batchRouter);
 app.use('/api/v1/investigations', investigationsRouter);
+app.use('/api/v1/investigations', similarRouter);
 app.use('/api/v1/query', queriesRouter);
 app.use('/api/v1/domains', domainsRouter);
 
