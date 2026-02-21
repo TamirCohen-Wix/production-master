@@ -1,5 +1,5 @@
 /**
- * Unit tests for the observability stack (PR 4.5).
+ * Unit tests for the observability stack.
  *
  * These tests validate metric definitions, logger output structure,
  * and the tracing module's public API without requiring a running
@@ -26,19 +26,32 @@ describe('metrics', () => {
     expect(typeof m.getMetricsEndpoint).toBe('function');
   });
 
-  it('should register all 12 domain metrics', async () => {
+  it('should register all domain metrics', async () => {
     const m = await importMetrics();
     const expectedNames = [
+      // Investigation lifecycle
       'pm_investigation_total',
       'pm_investigation_duration_seconds',
       'pm_investigation_verdict',
+      'pm_investigation_hypothesis_iterations',
+      // Agent execution
+      'pm_agent_invocation_total',
+      'pm_agent_invocation_duration_seconds',
       'pm_agent_duration_seconds',
       'pm_agent_tokens_total',
+      // MCP calls
+      'pm_mcp_tool_call_total',
+      'pm_mcp_tool_call_duration_seconds',
       'pm_mcp_call_duration_seconds',
       'pm_mcp_call_errors_total',
+      // Hypothesis loop (legacy)
       'pm_hypothesis_iterations',
       'pm_hypothesis_confidence',
+      // Cost tracking
+      'pm_llm_tokens_total',
+      'pm_llm_cost_dollars_total',
       'pm_llm_cost_dollars',
+      // Infrastructure
       'pm_queue_depth',
       'pm_worker_utilization',
     ];
@@ -54,15 +67,16 @@ describe('metrics', () => {
 
   it('should produce valid Prometheus text output', async () => {
     const m = await importMetrics();
-    m.pmInvestigationTotal.inc({ trigger: 'api' });
+    m.pmInvestigationTotal.inc({ domain: 'payments', status: 'queued', trigger_source: 'api' });
     const output = await m.register.metrics();
     expect(output).toContain('pm_investigation_total');
-    expect(output).toContain('trigger="api"');
+    expect(output).toContain('trigger_source="api"');
+    expect(output).toContain('domain="payments"');
   });
 
   it('should record histogram observations', async () => {
     const m = await importMetrics();
-    m.pmInvestigationDurationSeconds.observe({ status: 'success' }, 42);
+    m.pmInvestigationDurationSeconds.observe({ domain: 'payments', status: 'completed' }, 42);
     const output = await m.register.metrics();
     expect(output).toContain('pm_investigation_duration_seconds_bucket');
   });
@@ -72,6 +86,98 @@ describe('metrics', () => {
     m.pmQueueDepth.set({ queue: 'default' }, 7);
     const output = await m.register.metrics();
     expect(output).toContain('pm_queue_depth');
+  });
+
+  // --- New metric tests ---
+
+  it('should record investigation_hypothesis_iterations with domain label', async () => {
+    const m = await importMetrics();
+    m.pmInvestigationHypothesisIterations.observe({ domain: 'payments' }, 3);
+    const output = await m.register.metrics();
+    expect(output).toContain('pm_investigation_hypothesis_iterations_bucket');
+    expect(output).toContain('domain="payments"');
+  });
+
+  it('should record agent_invocation_total with agent_name and domain labels', async () => {
+    const m = await importMetrics();
+    m.pmAgentInvocationTotal.inc({ agent_name: 'triage', domain: 'infra' });
+    const output = await m.register.metrics();
+    expect(output).toContain('pm_agent_invocation_total');
+    expect(output).toContain('agent_name="triage"');
+    expect(output).toContain('domain="infra"');
+  });
+
+  it('should record agent_invocation_duration_seconds with agent_name label', async () => {
+    const m = await importMetrics();
+    m.pmAgentInvocationDurationSeconds.observe({ agent_name: 'gather-logs' }, 12.5);
+    const output = await m.register.metrics();
+    expect(output).toContain('pm_agent_invocation_duration_seconds_bucket');
+    expect(output).toContain('agent_name="gather-logs"');
+  });
+
+  it('should record mcp_tool_call_total with server, tool, and status labels', async () => {
+    const m = await importMetrics();
+    m.pmMcpToolCallTotal.inc({ server: 'grafana', tool: 'query_loki', status: 'success' });
+    m.pmMcpToolCallTotal.inc({ server: 'grafana', tool: 'query_loki', status: 'error' });
+    const output = await m.register.metrics();
+    expect(output).toContain('pm_mcp_tool_call_total');
+    expect(output).toContain('server="grafana"');
+    expect(output).toContain('tool="query_loki"');
+    expect(output).toContain('status="success"');
+    expect(output).toContain('status="error"');
+  });
+
+  it('should record mcp_tool_call_duration_seconds with server label', async () => {
+    const m = await importMetrics();
+    m.pmMcpToolCallDurationSeconds.observe({ server: 'jira' }, 1.5);
+    const output = await m.register.metrics();
+    expect(output).toContain('pm_mcp_tool_call_duration_seconds_bucket');
+    expect(output).toContain('server="jira"');
+  });
+
+  it('should record llm_tokens_total with model and type labels', async () => {
+    const m = await importMetrics();
+    m.pmLlmTokensTotal.inc({ model: 'claude-sonnet-4-6', type: 'input' }, 1500);
+    m.pmLlmTokensTotal.inc({ model: 'claude-sonnet-4-6', type: 'output' }, 800);
+    const output = await m.register.metrics();
+    expect(output).toContain('pm_llm_tokens_total');
+    expect(output).toContain('model="claude-sonnet-4-6"');
+    expect(output).toContain('type="input"');
+    expect(output).toContain('type="output"');
+  });
+
+  it('should record llm_cost_dollars_total with model and domain labels', async () => {
+    const m = await importMetrics();
+    m.pmLlmCostDollarsTotal.inc({ model: 'claude-haiku-4-5-20251001', domain: 'payments' }, 0.05);
+    const output = await m.register.metrics();
+    expect(output).toContain('pm_llm_cost_dollars_total');
+    expect(output).toContain('model="claude-haiku-4-5-20251001"');
+    expect(output).toContain('domain="payments"');
+  });
+
+  it('should retain legacy metrics for backward compatibility', async () => {
+    const m = await importMetrics();
+
+    // Legacy metrics should still be present
+    m.pmLlmCostDollars.inc({ model: 'claude-sonnet-4-6' }, 0.1);
+    m.pmMcpCallDurationSeconds.observe({ server: 'grafana', tool: 'query' }, 2.0);
+    m.pmMcpCallErrorsTotal.inc({ server: 'grafana', tool: 'query', error_type: 'timeout' });
+    m.pmHypothesisIterations.observe(3);
+    m.pmHypothesisConfidence.observe(0.85);
+
+    const output = await m.register.metrics();
+    expect(output).toContain('pm_llm_cost_dollars');
+    expect(output).toContain('pm_mcp_call_duration_seconds_bucket');
+    expect(output).toContain('pm_mcp_call_errors_total');
+    expect(output).toContain('pm_hypothesis_iterations_bucket');
+    expect(output).toContain('pm_hypothesis_confidence_bucket');
+  });
+
+  it('should expose all metrics via the registry', async () => {
+    const m = await importMetrics();
+    const metricsJson = await m.register.getMetricsAsJSON();
+    // We expect at least 19 custom metrics
+    expect(metricsJson.length).toBeGreaterThanOrEqual(19);
   });
 });
 

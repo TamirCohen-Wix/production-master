@@ -239,7 +239,7 @@ grafanaAlertWebhookRouter.post('/', async (req, res) => {
       );
 
       // --- Metrics ---
-      pmInvestigationTotal.inc({ trigger: 'grafana_alert' });
+      pmInvestigationTotal.inc({ domain: 'unknown', status: 'queued', trigger_source: 'grafana_alert' });
 
       log.info('Grafana alert enqueued for investigation', {
         investigation_id: investigationId,

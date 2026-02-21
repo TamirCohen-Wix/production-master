@@ -26,6 +26,7 @@ import { createLogger } from '../observability/index.js';
 import {
   pmInvestigationDurationSeconds,
   pmInvestigationVerdict,
+  pmInvestigationHypothesisIterations,
   pmQueueDepth,
 } from '../observability/index.js';
 
@@ -193,6 +194,7 @@ async function executeInvestigation(
           investigationId,
           gatherContext: accumulatedContext,
           mcpRegistry,
+          domain: job.domain,
         });
 
         accumulatedContext += `\n\n[hypothesize]\nAccepted hypothesis: ${hypothesisResult.accepted_hypothesis.hypothesis}\nConfidence: ${hypothesisResult.accepted_hypothesis.confidence}\nIterations: ${hypothesisResult.iterations}\nConverged: ${hypothesisResult.converged}`;
@@ -215,7 +217,8 @@ async function executeInvestigation(
       ['completed', investigationId],
     );
 
-    pmInvestigationDurationSeconds.observe({ status: 'completed' }, durationSec);
+    const domainLabel = job.domain ?? 'unknown';
+    pmInvestigationDurationSeconds.observe({ domain: domainLabel, status: 'completed' }, durationSec);
     pmInvestigationVerdict.inc({ verdict: 'completed' });
 
     log.info('Investigation completed', {
@@ -224,13 +227,14 @@ async function executeInvestigation(
     });
   } catch (err) {
     const durationSec = (Date.now() - startTime) / 1000;
+    const domainLabel = job.domain ?? 'unknown';
 
     await query(
       "UPDATE investigations SET status = 'failed', error = $1, updated_at = NOW() WHERE id = $2",
       [err instanceof Error ? err.message : String(err), investigationId],
     );
 
-    pmInvestigationDurationSeconds.observe({ status: 'failed' }, durationSec);
+    pmInvestigationDurationSeconds.observe({ domain: domainLabel, status: 'failed' }, durationSec);
     pmInvestigationVerdict.inc({ verdict: 'failed' });
 
     log.error('Investigation failed', {

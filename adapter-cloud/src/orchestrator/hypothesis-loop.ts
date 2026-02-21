@@ -13,7 +13,11 @@ import type { AgentOutput } from '../workers/agent-runner.js';
 import type { McpRegistry } from '../workers/tool-handler.js';
 import { query } from '../storage/db.js';
 import { createLogger } from '../observability/index.js';
-import { pmHypothesisIterations, pmHypothesisConfidence } from '../observability/index.js';
+import {
+  pmHypothesisIterations,
+  pmHypothesisConfidence,
+  pmInvestigationHypothesisIterations,
+} from '../observability/index.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,6 +48,8 @@ export interface HypothesisLoopOptions {
   confidenceThreshold?: number;
   /** Maximum iterations (default: 5) */
   maxIterations?: number;
+  /** Domain for metric labelling */
+  domain?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -121,7 +127,9 @@ export async function runHypothesisLoop(options: HypothesisLoopOptions): Promise
     mcpRegistry,
     confidenceThreshold = DEFAULT_CONFIDENCE_THRESHOLD,
     maxIterations = DEFAULT_MAX_ITERATIONS,
+    domain,
   } = options;
+  const domainLabel = domain ?? 'unknown';
 
   log.info('Starting hypothesis loop', {
     investigation_id: investigationId,
@@ -201,6 +209,7 @@ export async function runHypothesisLoop(options: HypothesisLoopOptions): Promise
 
       pmHypothesisIterations.observe(iteration);
       pmHypothesisConfidence.observe(verified.confidence);
+      pmInvestigationHypothesisIterations.observe({ domain: domainLabel }, iteration);
 
       return {
         accepted_hypothesis: verified,
@@ -222,6 +231,7 @@ export async function runHypothesisLoop(options: HypothesisLoopOptions): Promise
 
   pmHypothesisIterations.observe(maxIterations);
   pmHypothesisConfidence.observe(accepted.confidence);
+  pmInvestigationHypothesisIterations.observe({ domain: domainLabel }, maxIterations);
 
   return {
     accepted_hypothesis: accepted,

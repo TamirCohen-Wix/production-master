@@ -9,7 +9,12 @@ import { query } from '../storage/db.js';
 import { createLogger } from '../observability/index.js';
 import {
   pmAgentDurationSeconds,
+  pmAgentInvocationTotal,
+  pmAgentInvocationDurationSeconds,
   pmAgentTokensTotal,
+  pmLlmTokensTotal,
+  pmLlmCostDollarsTotal,
+  pmLlmCostDollars,
 } from '../observability/index.js';
 
 // ---------------------------------------------------------------------------
@@ -27,6 +32,8 @@ export interface DispatchOptions {
   mcpRegistry: McpRegistry;
   /** Investigation mode (affects model selection) */
   mode?: string;
+  /** Domain for metric labelling */
+  domain?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -48,7 +55,8 @@ const log = createLogger('orchestrator:dispatcher');
  * - Returns the agent output
  */
 export async function dispatchAgent(options: DispatchOptions): Promise<AgentOutput> {
-  const { investigationId, agentName, investigationContext, mcpRegistry } = options;
+  const { investigationId, agentName, investigationContext, mcpRegistry, domain } = options;
+  const domainLabel = domain ?? 'unknown';
 
   log.info('Dispatching agent', {
     investigation_id: investigationId,
@@ -117,7 +125,13 @@ export async function dispatchAgent(options: DispatchOptions): Promise<AgentOutp
     const durationMs = Date.now() - startTime;
     const durationSec = durationMs / 1000;
 
-    // Record metrics
+    // Record metrics — new metrics
+    pmAgentInvocationTotal.inc({ agent_name: agentName, domain: domainLabel });
+    pmAgentInvocationDurationSeconds.observe({ agent_name: agentName }, durationSec);
+    pmLlmTokensTotal.inc({ model: agentName, type: 'input' }, output.tokenUsage.inputTokens);
+    pmLlmTokensTotal.inc({ model: agentName, type: 'output' }, output.tokenUsage.outputTokens);
+
+    // Record metrics — legacy metrics (backward compatibility)
     pmAgentDurationSeconds.observe({ agent: agentName }, durationSec);
     pmAgentTokensTotal.inc({ agent: agentName, direction: 'input' }, output.tokenUsage.inputTokens);
     pmAgentTokensTotal.inc({ agent: agentName, direction: 'output' }, output.tokenUsage.outputTokens);

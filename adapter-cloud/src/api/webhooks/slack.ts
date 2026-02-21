@@ -210,7 +210,7 @@ slackWebhookRouter.post(
       );
 
       // --- Metrics ---
-      pmInvestigationTotal.inc({ trigger: 'slack_command' });
+      pmInvestigationTotal.inc({ domain: 'unknown', status: 'queued', trigger_source: 'slack_command' });
 
       log.info('Investigation queued from Slack', {
         investigation_id: investigationId,

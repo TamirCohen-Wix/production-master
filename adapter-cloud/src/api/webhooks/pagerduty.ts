@@ -318,7 +318,7 @@ pagerdutyWebhookRouter.post('/', async (req, res) => {
     );
 
     // --- Metrics ---
-    pmInvestigationTotal.inc({ trigger: 'pagerduty' });
+    pmInvestigationTotal.inc({ domain: 'unknown', status: 'queued', trigger_source: 'pagerduty' });
 
     log.info('PagerDuty incident enqueued for investigation', {
       investigation_id: investigationId,
