@@ -1,0 +1,22 @@
+---
+description: Delivery autonomy and branch hygiene for implementation requests. Prefer continuing end-to-end without pausing for routine branch-state confirmations.
+alwaysApply: true
+---
+
+# Autonomous Delivery
+
+When handling implementation requests in this repo, run the full issue -> branch -> PR -> CI -> merge -> issue-close flow autonomously.
+
+## Branch Hygiene
+
+- If current branch/worktree appears unrelated to the new task, start from fresh `origin/main` on a new branch and continue.
+- Do not block on confirmation for routine branch cleanup choices.
+- Preserve unrelated user changes; do not revert or edit them.
+- Only pause to ask when an action is destructive/irreversible or ambiguous in scope.
+
+## Execution Expectations
+
+- Open/confirm issue first.
+- Implement end-to-end until merged when permissions allow.
+- Resolve review comments before merge.
+- Post summary back on issue and close it after checklist completion.

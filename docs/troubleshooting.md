@@ -121,7 +121,7 @@ Each investigation creates a separate timestamped output directory, so they don'
 
 ### How do I contribute a domain config for my team?
 
-Run `/update-context` and say "yes" when it offers to open a PR. The config will be placed in `Domain/<Division>/<Side>/<repo>/` following the repository convention.
+Run `/update-context` and say "yes" when it offers to open a PR. The contributed sample should be added to `core/domain/examples/<repo>.domain.json`.
 
 ### What's the difference between agent teams and sequential mode?
 

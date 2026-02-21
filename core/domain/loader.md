@@ -11,14 +11,13 @@ The domain configuration loader resolves `domain.json` by checking the following
 | 3 | `.claude/domain.json` | Project-level config (Claude Code) |
 | 4 | `.cursor/domain.json` | Project-level config (Cursor) |
 | 5 | Database `domain_configs` table | Cloud / hosted environment |
-| 6 | `Domain/<Division>/<Side>/<repo>/domain.json` | Repository fallback (legacy layout) |
 
 ## Notes
 
 - **User-level overrides** (priorities 1-2) allow developers to customize domain settings without modifying the repository.
 - **Project-level configs** (priorities 3-4) are committed to the repo and shared across the team.
 - **Database lookup** (priority 5) is used in cloud deployments where domain configs are managed centrally.
-- **Repository fallback** (priority 6) uses the legacy `Domain/` directory structure from the monorepo layout.
+- Legacy repository fallback via `Domain/` has been retired. Keep domain configs in user-level paths, project-level dot directories, or cloud DB.
 
 ## Validation
 

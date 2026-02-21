@@ -17,17 +17,17 @@ The easiest way — use `/update-context`:
 1. Install Production Master
 2. Run `/update-context` from your repo in Claude Code — it guides you through creating domain config interactively
 3. Say "yes" when it asks to open a PR
-4. The PR lands in `Domain/<Division>/<Side>/<repo>/`
+4. The PR should contribute a sanitized sample to `core/domain/examples/<repo>.domain.json`
 
 ### Manual Domain Creation
 
 If you prefer to create domain configs manually:
 
-1. Create a directory: `Domain/<Division>/<Side>/<repo>/`
+1. Create your local domain directory: `~/.claude/production-master/domains/<repo>/` (or Cursor equivalent)
 2. Add `domain.json` with your service configuration (see [architecture.md](architecture.md) for field reference)
 3. Add `CLAUDE.md` with repo-specific instructions
 4. Add `memory/MEMORY.md` with a skeleton template
-5. Open a PR
+5. Open a PR with only a sanitized `core/domain/examples/<repo>.domain.json` sample
 
 ## Contributing Pipeline Improvements
 
@@ -44,7 +44,7 @@ If you prefer to create domain configs manually:
 - **Claude integration** (`adapter-claude/commands/`, `adapter-claude/hooks/`, `adapter-claude/scripts/`)
 - **Cursor integration** (`adapter-cursor/`)
 - **Cloud integration** (`adapter-cloud/`)
-- **Domain configs** (`Domain/`) — Add or update team-specific configurations
+- **Domain config schema/examples** (`core/domain/`) — Update schema/defaults and sanitized sample configs
 
 ## Guidelines
 
