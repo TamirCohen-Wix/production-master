@@ -454,7 +454,6 @@ describe('GET /api/v1/investigations/:id/bundle', () => {
     expect(res.status).toBe(404);
     expect(res.body.error).toBe('Investigation not found');
   });
-
   it('should return a zip bundle with expected headers and PK signature', async () => {
     mockQuery
       .mockResolvedValueOnce({
