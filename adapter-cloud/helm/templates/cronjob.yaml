@@ -1,4 +1,7 @@
-# Placeholder for scheduled health checks / maintenance jobs
+# Scheduled health check — runs every hour, POSTs to the API's
+# /api/v1/health-check endpoint with all monitored domains.
+# If any service's error rate exceeds the configured threshold
+# (default 5x baseline), it auto-triggers an investigation.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -6,8 +9,10 @@ metadata:
   labels:
     {{- include "production-master.labels" . | nindent 4 }}
 spec:
-  schedule: "0 */6 * * *"
+  schedule: "0 * * * *"
   concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
       template:
@@ -18,12 +23,20 @@ spec:
           {{- end }}
           containers:
             - name: scheduled-check
-              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-              imagePullPolicy: {{ .Values.image.pullPolicy }}
-              command: ["node", "dist/workers/scheduled-check.js"]
-              envFrom:
-                - configMapRef:
-                    name: {{ include "production-master.fullname" . }}-config
-                - secretRef:
-                    name: {{ include "production-master.fullname" . }}-secret
+              image: curlimages/curl:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  curl -sf -X POST \
+                    -H "Content-Type: application/json" \
+                    -H "Authorization: Bearer ${API_KEY}" \
+                    "http://{{ include "production-master.fullname" . }}-api:{{ .Values.service.port }}/api/v1/health-check" \
+                    -d '{}' || exit 1
+              env:
+                - name: API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "production-master.fullname" . }}-secret
+                      key: API_KEY
           restartPolicy: OnFailure
