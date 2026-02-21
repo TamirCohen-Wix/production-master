@@ -1,0 +1,20 @@
+---
+description: Repo delivery workflow from issue to merged PR
+alwaysApply: true
+---
+
+# Issue To Merge Workflow
+
+Human purpose: enforce this repository's required execution flow for every implementation task.
+
+## Applies When
+
+- Any request that changes files, docs, scripts, or behavior in this repository.
+
+## Enforcement Guidance
+
+- Start by opening or confirming a GitHub issue with: scoped problem statement, TODO checklist, verification checklist, and context links.
+- Implement from a dedicated branch/worktree that maps to exactly one PR.
+- Open a PR referencing the issue and keep PR summary/test plan aligned to the issue checklist.
+- Do not merge until required CI is green.
+- After merge, update the issue with implementation summary and validation evidence, then mark checklist items done and close the issue.

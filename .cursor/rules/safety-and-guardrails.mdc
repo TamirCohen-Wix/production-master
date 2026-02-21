@@ -1,0 +1,24 @@
+---
+description: Git worktree hygiene, merge policy, and cleanup safety
+alwaysApply: true
+---
+
+# Worktree And Merge Guardrails
+
+Human purpose: prevent branch/worktree drift and enforce repository merge policy.
+
+## Applies When
+
+- Branch creation, PR merge, and post-merge cleanup operations.
+
+## Enforcement Guidance
+
+- Enforce `one PR = one branch = one worktree`; do not reuse stale worktrees.
+- Merge strategy is squash merge into `main`.
+- After merge, clean up in this order:
+  1. verify PR merged to `main`,
+  2. remove worktree,
+  3. delete local branch,
+  4. prune/fetch remote refs.
+- Never delete a branch before removing its worktree.
+- Do not claim task completion until cleanup and issue closure steps are done.

@@ -79,6 +79,18 @@ For each implementation request, follow this sequence end-to-end:
 7. **Check off all issue TODO items**.
 8. **Close the issue** only after all checklist items are complete.
 
+## Claude Code Project Rules (Required)
+
+Use these as project-scoped operating rules for Claude Code in this repository:
+
+- **Issue-first execution:** Start by opening or confirming a GitHub issue with scoped problem statement, TODO checklist, verification checklist, and context links.
+- **Branch/worktree isolation:** Use one dedicated branch and one dedicated worktree per PR.
+- **PR review discipline:** Do not merge with unresolved review threads/comments (including automated/Copilot comments when present).
+- **Verification evidence:** Before completion claims or merge, confirm fresh CI/test results and report explicit evidence.
+- **Merge strategy:** Squash-merge only into `main`.
+- **Post-merge cleanup order:** (1) verify PR merged, (2) remove worktree, (3) delete local branch, (4) prune/fetch remotes.
+- **Issue closure discipline:** Post implementation summary + validation results, check off issue checklist items, then close the issue.
+
 ### Checklist Discipline
 
 - Treat issue checklists as the source of truth for done/not-done.
