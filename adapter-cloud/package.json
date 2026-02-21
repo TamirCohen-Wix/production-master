@@ -36,7 +36,10 @@
     "prom-client": "^15.1.0",
     "winston": "^3.17.0",
     "yaml": "^2.7.0",
-    "zod": "^3.24.0"
+    "zod": "^3.24.0",
+    "@wix/serverless-api": "latest",
+    "@wix/serverless-runtime": "latest",
+    "@wix/wix-aspects": "latest"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
@@ -48,6 +51,29 @@
     "eslint": "^9.17.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "@wix/serverless-cli": "latest",
+    "@wix/serverless-tsc-config": "latest",
+    "@wix/serverless-testkit": "latest",
+    "dotenv-cli": "^8.0.0",
+    "concurrently": "^9.0.0"
+  },
+  "wix": {
+    "framework": {
+      "type": "WIX_SERVERLESS"
+    },
+    "artifact": {
+      "groupId": "com.wixpress.b7",
+      "artifactId": "production-master",
+      "targets": {
+        "docker": true
+      }
+    },
+    "validations": {
+      "postBuild": [
+        "lint",
+        "test"
+      ]
+    }
   }
 }
