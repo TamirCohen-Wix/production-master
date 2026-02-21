@@ -20,6 +20,32 @@ Autonomous production investigation pipeline for [Claude Code](https://docs.anth
 > [!TIP]
 > **Using Cursor?** See the [`cursor-support`](https://github.com/TamirCohen-Wix/production-master/tree/cursor-support) branch — it includes a `.cursor/` directory with agents, commands, and skills adapted for Cursor's single-agent model.
 
+## Repository Structure
+
+```
+production-master/
+├── core/                    # Shared, adapter-agnostic logic
+│   ├── agents/              # 12 investigation agents
+│   ├── skills/              # 9 MCP skill definitions
+│   ├── output-styles/       # Report & publisher formats
+│   ├── orchestrator/        # Pipeline orchestration logic
+│   ├── domain/              # Domain config schema & loading
+│   ├── tests/               # Core unit tests
+│   └── mcp-servers.json     # MCP server definitions
+├── adapter-claude/          # Claude Code adapter
+│   ├── commands/            # Slash commands for Claude Code
+│   ├── hooks/               # Claude Code lifecycle hooks
+│   ├── scripts/             # Install, validate, sync scripts
+│   └── tests/               # Adapter-specific tests
+├── Domain/                  # User domain configs (per-repo)
+├── docs/                    # User-facing documentation
+├── design-docs/             # Architecture & design documents
+├── mcp-servers.json         # Root MCP server config
+└── cursor-models.json       # Cursor adapter model config
+```
+
+> **Future adapters:** `adapter-cursor/` and `adapter-cloud/` are planned.
+
 ## Quick Start — Try Per-Session
 
 Nothing is installed. Gone when you close Claude Code:
@@ -38,7 +64,7 @@ Then run `/production-master SCHED-45895` to investigate a ticket.
 ```bash
 gh repo clone TamirCohen-Wix/production-master
 cd production-master
-bash scripts/install.sh
+bash adapter-claude/scripts/install.sh
 ```
 
 Or [download the ZIP](https://github.com/TamirCohen-Wix/production-master/archive/refs/tags/v1.0.3-beta.zip):
@@ -46,7 +72,7 @@ Or [download the ZIP](https://github.com/TamirCohen-Wix/production-master/archiv
 ```bash
 unzip production-master-v1.0.3-beta.zip
 cd production-master-v1.0.3-beta
-bash scripts/install.sh
+bash adapter-claude/scripts/install.sh
 ```
 
 The installer asks for an install scope, registers the plugin, configures MCP servers (prompts for your [access key](https://mcp-s-connect.wewix.net/mcp-servers)), and enables agent teams.
@@ -66,7 +92,7 @@ claude plugin list                                    # Show installed plugins
 claude plugin install production-master --scope local # Install
 claude plugin uninstall production-master --scope local # Uninstall
 claude plugin marketplace remove production-master    # Remove marketplace
-bash scripts/validate-install.sh                      # Diagnose issues
+bash adapter-claude/scripts/validate-install.sh        # Diagnose issues
 ```
 
 ## Usage
@@ -125,7 +151,7 @@ Run `/update-context` from your repo in Claude Code. It analyzes your repo, asks
 
 ## Architecture
 
-12 agents, 9 commands, 9 MCP skill references. The orchestrator classifies intent, gathers context from multiple sources in parallel, generates testable hypotheses, and iterates through a verification loop until a root cause is confirmed.
+12 agents, 9 commands, 9 MCP skill references. The orchestrator (in `core/orchestrator/`) classifies intent, gathers context from multiple sources in parallel, generates testable hypotheses, and iterates through a verification loop until a root cause is confirmed. Agent definitions live in `core/agents/`, and adapter-specific commands in `adapter-claude/commands/`.
 
 | Agent | Role |
 |-------|------|
@@ -168,14 +194,14 @@ To install a specific version:
 
 ```bash
 git checkout v1.0.3-beta         # Switch to a specific release tag
-bash scripts/install.sh
+bash adapter-claude/scripts/install.sh
 ```
 
 To downgrade:
 
 ```bash
 git checkout v1.0.1-beta         # Any previous tag
-bash scripts/install.sh
+bash adapter-claude/scripts/install.sh
 ```
 
 > All available versions are listed on the [releases page](https://github.com/TamirCohen-Wix/production-master/releases).
