@@ -55,7 +55,7 @@ server.registerTool(
       'Query time-series metrics (CPU, memory, request rates, latency). Returns normalized series data.',
     inputSchema: {
       expression: z.string().describe('Metric query expression (PromQL, etc.)'),
-      from_time: z.string().describe('Start of time range (ISO 8601)'),
+      from_time: z.string().optional().describe('Start of time range (ISO 8601)'),
       to_time: z.string().optional().describe('End of time range (ISO 8601)'),
       step: z.string().optional().describe('Query resolution step (e.g., 5m, 1h)'),
     },
