@@ -26,8 +26,10 @@ jobs:
         with:
           node-version: 22
 
-      - name: Override .npmrc to use public registry
-        run: echo "registry=https://registry.npmjs.org/" > adapter-cloud/.npmrc
+      - name: Override .npmrc and lockfile to use public registry
+        run: |
+          echo "registry=https://registry.npmjs.org/" > adapter-cloud/.npmrc
+          sed -i 's|https://npm.dev.wixpress.com/api/npm/npm-repos/|https://registry.npmjs.org/|g' adapter-cloud/package-lock.json
 
       - name: Install dependencies
         run: npm ci
