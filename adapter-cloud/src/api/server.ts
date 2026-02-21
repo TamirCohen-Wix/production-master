@@ -25,6 +25,7 @@ import { healthRouter, setHealthRegistry } from './routes/health.js';
 
 // Webhooks
 import { jiraWebhookRouter, closeJiraWebhookQueue } from './webhooks/jira.js';
+import { slackWebhookRouter, closeSlackQueue } from './webhooks/slack.js';
 
 // Orchestrator
 import { startEngine, stopEngine } from '../orchestrator/engine.js';
@@ -102,6 +103,7 @@ const app = express();
 
 // Body parsing
 app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 // Health routes are unauthenticated
 app.use('/', healthRouter);
@@ -111,8 +113,9 @@ app.get('/metrics', getMetricsEndpoint);
 
 // Webhook routes — authenticated via their own signature verification, not API keys
 app.use('/api/v1/webhooks/jira', jiraWebhookRouter);
+app.use('/api/v1/webhooks/slack', slackWebhookRouter);
 
-// All /api/v1 routes (except webhooks above) require authentication
+// All other /api/v1 routes require authentication
 app.use('/api/v1', authMiddleware);
 
 // Mount API routes
@@ -188,6 +191,7 @@ async function start(): Promise<void> {
       // Close BullMQ queues
       await closeInvestigateQueue();
       await closeJiraWebhookQueue();
+      await closeSlackQueue();
       log.info('Investigation queues closed');
     } catch (err) {
       log.error('Error closing investigation queues', {
