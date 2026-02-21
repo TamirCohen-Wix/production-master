@@ -13,12 +13,12 @@ jobs:
 
       - name: Validate plugin.json
         run: |
-          echo "Checking .claude-plugin/plugin.json..."
-          test -f .claude-plugin/plugin.json || { echo "FAIL: plugin.json missing"; exit 1; }
-          jq empty .claude-plugin/plugin.json || { echo "FAIL: plugin.json is not valid JSON"; exit 1; }
+          echo "Checking adapter-claude/.claude-plugin/plugin.json..."
+          test -f adapter-claude/.claude-plugin/plugin.json || { echo "FAIL: plugin.json missing"; exit 1; }
+          jq empty adapter-claude/.claude-plugin/plugin.json || { echo "FAIL: plugin.json is not valid JSON"; exit 1; }
 
-          NAME=$(jq -r '.name' .claude-plugin/plugin.json)
-          VERSION=$(jq -r '.version' .claude-plugin/plugin.json)
+          NAME=$(jq -r '.name' adapter-claude/.claude-plugin/plugin.json)
+          VERSION=$(jq -r '.version' adapter-claude/.claude-plugin/plugin.json)
           echo "Plugin: $NAME v$VERSION"
 
           [ "$NAME" = "production-master" ] || { echo "FAIL: unexpected plugin name: $NAME"; exit 1; }
@@ -27,11 +27,11 @@ jobs:
 
       - name: Validate marketplace.json
         run: |
-          echo "Checking .claude-plugin/marketplace.json..."
-          test -f .claude-plugin/marketplace.json || { echo "FAIL: marketplace.json missing"; exit 1; }
-          jq empty .claude-plugin/marketplace.json || { echo "FAIL: marketplace.json is not valid JSON"; exit 1; }
+          echo "Checking adapter-claude/.claude-plugin/marketplace.json..."
+          test -f adapter-claude/.claude-plugin/marketplace.json || { echo "FAIL: marketplace.json missing"; exit 1; }
+          jq empty adapter-claude/.claude-plugin/marketplace.json || { echo "FAIL: marketplace.json is not valid JSON"; exit 1; }
 
-          PLUGIN_COUNT=$(jq '.plugins | length' .claude-plugin/marketplace.json)
+          PLUGIN_COUNT=$(jq '.plugins | length' adapter-claude/.claude-plugin/marketplace.json)
           [ "$PLUGIN_COUNT" -ge 1 ] || { echo "FAIL: no plugins defined"; exit 1; }
           echo "OK: marketplace.json is valid ($PLUGIN_COUNT plugin(s))"
 
@@ -53,8 +53,8 @@ jobs:
 
       - name: Validate hooks.json
         run: |
-          test -f hooks/hooks.json || { echo "FAIL: hooks/hooks.json missing"; exit 1; }
-          jq empty hooks/hooks.json || { echo "FAIL: hooks.json is not valid JSON"; exit 1; }
+          test -f adapter-claude/hooks/hooks.json || { echo "FAIL: hooks.json missing"; exit 1; }
+          jq empty adapter-claude/hooks/hooks.json || { echo "FAIL: hooks.json is not valid JSON"; exit 1; }
           echo "OK: hooks.json is valid"
 
   validate-content:
@@ -68,12 +68,12 @@ jobs:
           EXPECTED="production-master.md git-update-agents.md update-context.md fire-console.md grafana-query.md production-changes.md resolve-artifact.md slack-search.md"
           MISSING=0
           for cmd in $EXPECTED; do
-            if [ ! -f "commands/$cmd" ]; then
-              echo "FAIL: commands/$cmd missing"
+            if [ ! -f "adapter-claude/commands/$cmd" ]; then
+              echo "FAIL: adapter-claude/commands/$cmd missing"
               MISSING=$((MISSING + 1))
             fi
           done
-          TOTAL=$(ls commands/*.md 2>/dev/null | wc -l | tr -d ' ')
+          TOTAL=$(ls adapter-claude/commands/*.md 2>/dev/null | wc -l | tr -d ' ')
           echo "Commands: $TOTAL found"
           [ "$MISSING" -eq 0 ] || exit 1
           echo "OK: all expected commands present"
@@ -83,12 +83,12 @@ jobs:
           EXPECTED="artifact-resolver.md bug-context.md codebase-semantics.md documenter.md fix-list.md grafana-analyzer.md hypotheses.md production-analyzer.md publisher.md skeptic.md slack-analyzer.md verifier.md"
           MISSING=0
           for agent in $EXPECTED; do
-            if [ ! -f "agents/$agent" ]; then
-              echo "FAIL: agents/$agent missing"
+            if [ ! -f "core/agents/$agent" ]; then
+              echo "FAIL: core/agents/$agent missing"
               MISSING=$((MISSING + 1))
             fi
           done
-          TOTAL=$(ls agents/*.md 2>/dev/null | wc -l | tr -d ' ')
+          TOTAL=$(ls core/agents/*.md 2>/dev/null | wc -l | tr -d ' ')
           echo "Agents: $TOTAL found"
           [ "$MISSING" -eq 0 ] || exit 1
           echo "OK: all expected agents present"
@@ -98,12 +98,12 @@ jobs:
           EXPECTED="context7 fire-console ft-release github grafana-datasource grafana-mcp jira octocode slack"
           MISSING=0
           for skill in $EXPECTED; do
-            if [ ! -d "skills/$skill" ] || [ ! -f "skills/$skill/SKILL.md" ]; then
-              echo "FAIL: skills/$skill/SKILL.md missing"
+            if [ ! -d "core/skills/$skill" ] || [ ! -f "core/skills/$skill/SKILL.md" ]; then
+              echo "FAIL: core/skills/$skill/SKILL.md missing"
               MISSING=$((MISSING + 1))
             fi
           done
-          TOTAL=$(ls -d skills/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
+          TOTAL=$(ls -d core/skills/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
           echo "Skills: $TOTAL found"
           [ "$MISSING" -eq 0 ] || exit 1
           echo "OK: all expected skills present"
@@ -118,17 +118,17 @@ jobs:
         run: sudo apt-get install -y shellcheck
 
       - name: Run shellcheck on install.sh
-        run: shellcheck --severity=error scripts/install.sh
+        run: shellcheck --severity=error adapter-claude/scripts/install.sh
 
       - name: Run shellcheck on validate-install.sh
-        run: shellcheck --severity=error scripts/validate-install.sh
+        run: shellcheck --severity=error adapter-claude/scripts/validate-install.sh
 
       - name: Run shellcheck on validate-report-links.sh
-        if: hashFiles('scripts/validate-report-links.sh') != ''
-        run: shellcheck --severity=error scripts/validate-report-links.sh
+        if: hashFiles('adapter-claude/scripts/validate-report-links.sh') != ''
+        run: shellcheck --severity=error adapter-claude/scripts/validate-report-links.sh
 
       - name: Run shellcheck on bump-version.sh
-        run: shellcheck --severity=error scripts/bump-version.sh
+        run: shellcheck --severity=error adapter-claude/scripts/bump-version.sh
 
       - name: Run shellcheck on statusline.sh
-        run: shellcheck --severity=error scripts/statusline.sh
+        run: shellcheck --severity=error adapter-claude/scripts/statusline.sh
