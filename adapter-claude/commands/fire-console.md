@@ -77,7 +77,7 @@ Extract identifiers: MSID, booking_id, service_id, event_id, artifact_id from th
 
 ## Step 2: Load Skill
 
-Read `skills/fire-console/SKILL.md` for exact tool parameters, artifact naming, and payload formats.
+Read `core/skills/fire-console/SKILL.md` for exact tool parameters, artifact naming, and payload formats.
 
 ---
 

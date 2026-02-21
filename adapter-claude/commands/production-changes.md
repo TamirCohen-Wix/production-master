@@ -80,7 +80,7 @@ Extract:
 
 ## Step 2: Load Skills
 
-Read `skills/github/SKILL.md` and `skills/ft-release/SKILL.md` for tool parameters.
+Read `core/skills/github/SKILL.md` and `core/skills/ft-release/SKILL.md` for tool parameters.
 
 ---
 

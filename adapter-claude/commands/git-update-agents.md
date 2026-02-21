@@ -30,9 +30,9 @@ fi
 Run these commands:
 
 # Sync pipeline components to plugin root
-rsync -av --delete ~/.claude/agents/ $PM_ROOT/agents/
-rsync -av --delete ~/.claude/commands/ $PM_ROOT/commands/
-rsync -av --delete ~/.claude/skills/ $PM_ROOT/skills/
+rsync -av --delete ~/.claude/agents/ $PM_ROOT/core/agents/
+rsync -av --delete ~/.claude/commands/ $PM_ROOT/adapter-claude/commands/
+rsync -av --delete ~/.claude/skills/ $PM_ROOT/core/skills/
 rsync -av --delete ~/.claude/output-styles/ $PM_ROOT/output-styles/
 
 # Sync hooks script
@@ -41,7 +41,7 @@ rsync -av ~/.claude/hooks/validate-report-links.sh $PM_ROOT/scripts/validate-rep
 
 # Stage changes
 cd $PM_ROOT
-git add -A agents/ commands/ skills/ output-styles/ scripts/ hooks/
+git add -A core/agents/ adapter-claude/commands/ core/skills/ output-styles/ scripts/ hooks/
 
 # Check for changes
 git diff --cached --name-status
@@ -49,7 +49,7 @@ git diff --cached --name-status
 If no staged changes, respond "Nothing to sync — everything is up to date." and stop.
 
 If there are changes, build a commit message:
-- Title: "Update pipeline: " + comma-separated list of changed categories (derive category from first dir, e.g. agents/foo.md → "agents", scripts/validate-report-links.sh → "scripts")
+- Title: "Update pipeline: " + comma-separated list of changed categories (derive category from first dir, e.g. core/agents/foo.md → "agents", scripts/validate-report-links.sh → "scripts")
 - Body: one bullet per file: "- New: path" for A, "- Updated: path" for M, "- Deleted: path" for D
 - End with: Co-Authored-By: Claude <noreply@anthropic.com>
 
