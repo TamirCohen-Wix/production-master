@@ -12,6 +12,7 @@ import {
   startToolCallSpan,
   recordSpanError,
 } from '../observability/tracing.js';
+import { query } from '../storage/db.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -79,6 +80,10 @@ export interface ToolHandlerOptions {
   investigationId?: string;
   /** Domain name for span attributes */
   domain?: string;
+  /** Agent name issuing the tool call */
+  agentName?: string;
+  /** Pipeline phase issuing the tool call */
+  phase?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,6 +96,118 @@ import {
   pmMcpCallDurationSeconds,
   pmMcpCallErrorsTotal,
 } from '../observability/index.js';
+
+const MAX_PAYLOAD_CHARS = 20_000;
+const MAX_ARRAY_ITEMS = 1_000;
+const MAX_OBJECT_KEYS = 1_000;
+
+const SENSITIVE_KEY_PATTERNS: RegExp[] = [
+  /token/i,
+  /api[_-]?key/i,
+  /authorization/i,
+  /password/i,
+  /secret/i,
+  /access[_-]?key/i,
+];
+
+function truncateText(value: string): string {
+  if (value.length <= MAX_PAYLOAD_CHARS) return value;
+  return `${value.slice(0, MAX_PAYLOAD_CHARS)}...[truncated]`;
+}
+
+function isSensitiveKey(key: string): boolean {
+  return SENSITIVE_KEY_PATTERNS.some((re) => re.test(key));
+}
+
+function sanitizeJson(value: unknown): unknown {
+  if (typeof value === 'string') return truncateText(value);
+
+  if (Array.isArray(value)) {
+    const limited = value.slice(0, MAX_ARRAY_ITEMS).map((v) => sanitizeJson(v));
+    if (value.length > MAX_ARRAY_ITEMS) {
+      return [...limited, '[truncated array]'];
+    }
+    return limited;
+  }
+
+  if (value && typeof value === 'object') {
+    const resultEntries: [string, unknown][] = [];
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (resultEntries.length >= MAX_OBJECT_KEYS) {
+        break;
+      }
+      if (isSensitiveKey(k)) {
+        resultEntries.push([k, '[REDACTED]']);
+      } else {
+        resultEntries.push([k, sanitizeJson(v)]);
+      }
+    }
+    return Object.fromEntries(resultEntries);
+  }
+
+  return value;
+}
+
+async function persistMcpToolCall(input: {
+  investigationId?: string;
+  phase?: string;
+  agentName?: string;
+  toolUseId: string;
+  serverName: string;
+  toolName: string;
+  requestPayload: Record<string, unknown>;
+  responsePayload?: unknown;
+  isError: boolean;
+  errorMessage?: string;
+  durationMs: number;
+}): Promise<void> {
+  try {
+    await query(
+      `INSERT INTO mcp_tool_calls (
+        investigation_id, phase, agent_name, tool_use_id, server_name, tool_name,
+        request_payload, response_payload, is_error, error_message, duration_ms
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9, $10, $11)`,
+      [
+        input.investigationId ?? null,
+        input.phase ?? null,
+        input.agentName ?? null,
+        input.toolUseId,
+        input.serverName,
+        input.toolName,
+        JSON.stringify(sanitizeJson(input.requestPayload)),
+        JSON.stringify(sanitizeJson(input.responsePayload ?? null)),
+        input.isError,
+        input.errorMessage ?? null,
+        input.durationMs,
+      ],
+    );
+  } catch {
+    // Best-effort persistence only; MCP call failures should not be caused by
+    // telemetry/storage side effects.
+  }
+}
+
+const PERSIST_TIMEOUT_MS = 200;
+
+/**
+ * Fire-and-forget wrapper around persistMcpToolCall with a strict timeout
+ * so that storage latency cannot delay tool execution.
+ */
+function persistMcpToolCallBestEffort(input: Parameters<typeof persistMcpToolCall>[0]): void {
+  void (async () => {
+    try {
+      await Promise.race([
+        persistMcpToolCall(input),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('persistMcpToolCall timeout')), PERSIST_TIMEOUT_MS),
+        ),
+      ]);
+    } catch {
+      // Best-effort telemetry: ignore persistence errors/timeouts.
+    }
+  })();
+}
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -107,21 +224,34 @@ export async function handleToolUse(
   mcpRegistry: McpRegistry,
   options?: ToolHandlerOptions,
 ): Promise<ToolResultBlock> {
+  const startTime = performance.now();
   const server = mcpRegistry.resolveServer(toolCall.name);
 
   if (!server) {
     pmMcpToolCallTotal.inc({ server: 'unknown', tool: toolCall.name, status: 'error' });
+    const message = `No MCP server registered for tool "${toolCall.name}"`;
+    void persistMcpToolCallBestEffort({
+      investigationId: options?.investigationId,
+      phase: options?.phase,
+      agentName: options?.agentName,
+      toolUseId: toolCall.id,
+      serverName: 'unknown',
+      toolName: toolCall.name,
+      requestPayload: toolCall.input,
+      responsePayload: { error: message },
+      isError: true,
+      errorMessage: message,
+      durationMs: 0,
+    });
     return {
       type: 'tool_result',
       tool_use_id: toolCall.id,
       content: JSON.stringify({
-        error: `No MCP server registered for tool "${toolCall.name}"`,
+        error: message,
       }),
       is_error: true,
     };
   }
-
-  const startTime = performance.now();
 
   // Start a tool-call span if trace context is available
   const spanInfo = options?.traceCtx
@@ -166,6 +296,20 @@ export async function handleToolUse(
       spanInfo.span.end();
     }
 
+    // Fire-and-forget persistence with strict timeout to avoid blocking tool execution
+    void persistMcpToolCallBestEffort({
+      investigationId: options?.investigationId,
+      phase: options?.phase,
+      agentName: options?.agentName,
+      toolUseId: toolCall.id,
+      serverName: server.name,
+      toolName: toolCall.name,
+      requestPayload: toolCall.input,
+      responsePayload: result,
+      isError: result.isError ?? false,
+      durationMs: Math.round(performance.now() - startTime),
+    });
+
     return {
       type: 'tool_result',
       tool_use_id: toolCall.id,
@@ -188,6 +332,21 @@ export async function handleToolUse(
 
     // Legacy metrics
     pmMcpCallErrorsTotal.inc({ server: server.name, tool: toolCall.name, error_type: 'exception' });
+
+    // Fire-and-forget persistence with strict timeout
+    void persistMcpToolCallBestEffort({
+      investigationId: options?.investigationId,
+      phase: options?.phase,
+      agentName: options?.agentName,
+      toolUseId: toolCall.id,
+      serverName: server.name,
+      toolName: toolCall.name,
+      requestPayload: toolCall.input,
+      responsePayload: { error: message },
+      isError: true,
+      errorMessage: message,
+      durationMs: Math.round(performance.now() - startTime),
+    });
 
     return {
       type: 'tool_result',

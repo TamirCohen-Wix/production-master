@@ -120,7 +120,7 @@ This adapter exposes the Production Master investigation engine as a cloud servi
 - `GET /api/v1/investigations/:id/report` — latest report
 - `GET /api/v1/investigations/:id/similar` — semantically similar incidents (pgvector)
 - `POST /api/v1/investigations/:id/feedback` — submit quality feedback
-- `GET /api/v1/investigations/:id/bundle` — download debug bundle (`.zip`)
+- `GET /api/v1/investigations/:id/bundle` — download debug bundle (`.zip`) with report, phase timeline, agent runs/outputs, hypothesis iterations, domain config snapshot, and MCP tool calls (forward-only; older investigations include a `not_available` marker)
 
 ## Wix Deployment
 

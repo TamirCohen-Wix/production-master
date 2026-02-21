@@ -19,6 +19,18 @@ import type { QueryResultRow } from 'pg';
 
 const log = createLogger('api:investigations');
 
+const mcpCollectionStartedAtRaw = process.env.MCP_COLLECTION_STARTED_AT;
+if (!mcpCollectionStartedAtRaw) {
+  throw new Error('MCP_COLLECTION_STARTED_AT environment variable is required but was not set');
+}
+const mcpCollectionStartedAtMs = Date.parse(mcpCollectionStartedAtRaw);
+if (Number.isNaN(mcpCollectionStartedAtMs)) {
+  throw new Error(
+    `MCP_COLLECTION_STARTED_AT environment variable must be a valid date string, got: "${mcpCollectionStartedAtRaw}"`,
+  );
+}
+const MCP_COLLECTION_STARTED_AT = new Date(mcpCollectionStartedAtMs).toISOString();
+
 // ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
@@ -140,6 +152,7 @@ investigationsRouter.get('/:id/bundle', queryRateLimit, async (req, res) => {
       res.status(404).json({ error: 'Investigation not found' });
       return;
     }
+    const investigation = investigations[0];
 
     const reportRows = await safeQuery<{
       summary: string;
@@ -197,6 +210,68 @@ investigationsRouter.get('/:id/bundle', queryRateLimit, async (req, res) => {
       [investigationId],
     );
 
+    const outputRows = await safeQuery<{
+      agent_name: string;
+      content: string;
+      token_usage: unknown;
+      iterations: number;
+      stop_reason: string | null;
+      created_at?: string;
+    }>(
+      `SELECT agent_name, content, token_usage, iterations, stop_reason, created_at
+       FROM agent_outputs
+       WHERE investigation_id = $1
+       ORDER BY created_at ASC`,
+      [investigationId],
+    );
+
+    const hypothesisRows = await safeQuery<{
+      iteration: number;
+      hypothesis: string;
+      confidence: number;
+      evidence_summary: string;
+      verified: boolean;
+      created_at?: string;
+    }>(
+      `SELECT iteration, hypothesis, confidence, evidence_summary, verified, created_at
+       FROM hypothesis_iterations
+       WHERE investigation_id = $1
+       ORDER BY iteration ASC`,
+      [investigationId],
+    );
+
+    const mcpRows = await safeQuery<{
+      phase: string | null;
+      agent_name: string | null;
+      tool_use_id: string | null;
+      server_name: string;
+      tool_name: string;
+      request_payload: unknown;
+      response_payload: unknown;
+      is_error: boolean;
+      error_message: string | null;
+      duration_ms: number;
+      created_at?: string;
+    }>(
+      `SELECT phase, agent_name, tool_use_id, server_name, tool_name, request_payload, response_payload,
+              is_error, error_message, duration_ms, created_at
+       FROM mcp_tool_calls
+       WHERE investigation_id = $1
+       ORDER BY created_at ASC`,
+      [investigationId],
+    );
+
+    const domainConfigRows = investigation.domain
+      ? await safeQuery<{ repo: string; config: unknown; claude_md: string; updated_at?: string }>(
+        `SELECT repo, config, claude_md, updated_at
+         FROM domain_configs
+         WHERE repo = $1
+         ORDER BY updated_at DESC
+         LIMIT 1`,
+        [investigation.domain],
+      )
+      : [];
+
     let s3Report: string | null = null;
     try {
       s3Report = await getReport(investigationId);
@@ -205,7 +280,17 @@ investigationsRouter.get('/:id/bundle', queryRateLimit, async (req, res) => {
     }
 
     const report = reportRows[0] ?? null;
-    const investigation = investigations[0];
+    const hasLegacyMcpGap =
+      mcpRows.length === 0 &&
+      Date.parse(investigation.created_at) < Date.parse(MCP_COLLECTION_STARTED_AT);
+
+    const mcpBundlePayload = hasLegacyMcpGap
+      ? {
+        status: 'not_available',
+        reason: `collection_started_after_${MCP_COLLECTION_STARTED_AT}`,
+      }
+      : mcpRows;
+
     const tokenTotals = agentRows.reduce(
       (acc, row) => {
         const usage = (row.token_usage as { inputTokens?: number; outputTokens?: number; totalTokens?: number } | null) ?? {};
@@ -225,6 +310,10 @@ investigationsRouter.get('/:id/bundle', queryRateLimit, async (req, res) => {
       phases_count: phaseRows.length,
       agents_count: agentRows.length,
       feedback_count: feedbackRows.length,
+      agent_outputs_count: outputRows.length,
+      hypotheses_count: hypothesisRows.length,
+      mcp_tool_calls_count: Array.isArray(mcpBundlePayload) ? mcpBundlePayload.length : 0,
+      mcp_collection_started_at: MCP_COLLECTION_STARTED_AT,
       token_usage: tokenTotals,
     };
 
@@ -244,7 +333,11 @@ investigationsRouter.get('/:id/bundle', queryRateLimit, async (req, res) => {
     archive.append(JSON.stringify(report ?? {}, null, 2), { name: 'bundle/report.json' });
     archive.append(JSON.stringify(phaseRows, null, 2), { name: 'bundle/phases.json' });
     archive.append(JSON.stringify(agentRows, null, 2), { name: 'bundle/agent-runs.json' });
+    archive.append(JSON.stringify(outputRows, null, 2), { name: 'bundle/agent-outputs.json' });
+    archive.append(JSON.stringify(hypothesisRows, null, 2), { name: 'bundle/hypothesis-iterations.json' });
+    archive.append(JSON.stringify(mcpBundlePayload, null, 2), { name: 'bundle/mcp-tool-calls.json' });
     archive.append(JSON.stringify(feedbackRows, null, 2), { name: 'bundle/feedback.json' });
+    archive.append(JSON.stringify(domainConfigRows[0] ?? {}, null, 2), { name: 'bundle/domain-config.json' });
 
     if (s3Report) {
       archive.append(s3Report, { name: 'bundle/report-from-object-store.html' });

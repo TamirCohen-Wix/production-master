@@ -44,6 +44,8 @@ export interface AgentRunOptions {
   investigationId?: string;
   /** Domain name for span attributes */
   domain?: string;
+  /** Pipeline phase issuing this agent run (e.g. 'gather', 'hypothesis') */
+  phase?: string;
 }
 
 export interface AgentOutput {
@@ -131,13 +133,13 @@ export async function runAgent(
   let finalContent = '';
 
   // Build tool handler options for trace propagation
-  const toolHandlerOptions = options.traceCtx
-    ? {
-        traceCtx: options.traceCtx,
-        investigationId: options.investigationId,
-        domain: options.domain,
-      }
-    : undefined;
+  const toolHandlerOptions = {
+    traceCtx: options.traceCtx,
+    investigationId: options.investigationId,
+    domain: options.domain,
+    agentName,
+    phase: options.phase,
+  };
 
   // Agentic loop
   while (iterations < maxIterations) {

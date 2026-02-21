@@ -11,17 +11,24 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import JSZip from 'jszip';
+
+// Set required env vars before module imports
+vi.hoisted(() => {
+  process.env.MCP_COLLECTION_STARTED_AT = '2026-02-21T19:26:07.000Z';
+});
 
 // ---------------------------------------------------------------------------
 // Mocks — vi.hoisted() ensures variables are available to hoisted vi.mock()
 // ---------------------------------------------------------------------------
 
-const { mockAdd, mockQueueClose, mockQuery, mockInc, mockGetReport } = vi.hoisted(() => ({
+const { mockAdd, mockQueueClose, mockQuery, mockInc, mockGetReport, mockLogError } = vi.hoisted(() => ({
   mockAdd: vi.fn().mockResolvedValue({ id: 'job-1' }),
   mockQueueClose: vi.fn().mockResolvedValue(undefined),
   mockQuery: vi.fn(),
   mockInc: vi.fn(),
   mockGetReport: vi.fn().mockResolvedValue(null),
+  mockLogError: vi.fn(),
 }));
 
 vi.mock('bullmq', () => ({
@@ -43,7 +50,7 @@ vi.mock('../../../src/observability/index.js', () => ({
   createLogger: () => ({
     info: vi.fn(),
     warn: vi.fn(),
-    error: vi.fn(),
+    error: mockLogError,
     debug: vi.fn(),
   }),
   pmInvestigationTotal: { inc: mockInc },
@@ -57,6 +64,7 @@ vi.mock('../../../src/observability/index.js', () => ({
 import express from 'express';
 import { investigateRouter } from '../../../src/api/routes/investigate.js';
 import { investigationsRouter } from '../../../src/api/routes/investigations.js';
+import { authMiddleware } from '../../../src/api/middleware/auth.js';
 import type { Request, Response, NextFunction } from 'express';
 
 /** Stub auth middleware that always sets a user context. */
@@ -70,6 +78,14 @@ function buildApp() {
   app.use(express.json());
   app.use(stubAuth);
   app.use('/api/v1/investigate', investigateRouter);
+  app.use('/api/v1/investigations', investigationsRouter);
+  return app;
+}
+
+function buildAppWithRealAuth() {
+  const app = express();
+  app.use(express.json());
+  app.use(authMiddleware);
   app.use('/api/v1/investigations', investigationsRouter);
   return app;
 }
@@ -444,6 +460,27 @@ describe('GET /api/v1/investigations/:id/bundle', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockQuery.mockReset();
+    mockGetReport.mockReset();
+    mockGetReport.mockResolvedValue(null);
+  });
+
+  it('should require authentication when auth middleware is enabled', async () => {
+    const previousApiKeys = process.env.API_KEYS;
+    process.env.API_KEYS = 'valid-key';
+
+    try {
+      const authedApp = buildAppWithRealAuth();
+      const res = await request(authedApp, 'GET', '/api/v1/investigations/inv-100/bundle');
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBeDefined();
+    } finally {
+      if (previousApiKeys === undefined) {
+        delete process.env.API_KEYS;
+      } else {
+        process.env.API_KEYS = previousApiKeys;
+      }
+    }
   });
 
   it('should return 404 when investigation does not exist', async () => {
@@ -454,7 +491,7 @@ describe('GET /api/v1/investigations/:id/bundle', () => {
     expect(res.status).toBe(404);
     expect(res.body.error).toBe('Investigation not found');
   });
-  it('should return a zip bundle with expected headers and PK signature', async () => {
+  it('should return a zip bundle with expected files', async () => {
     mockQuery
       .mockResolvedValueOnce({
         rows: [
@@ -474,7 +511,11 @@ describe('GET /api/v1/investigations/:id/bundle', () => {
       .mockResolvedValueOnce({ rows: [] }) // investigation_reports
       .mockResolvedValueOnce({ rows: [] }) // investigation_phases
       .mockResolvedValueOnce({ rows: [] }) // agent_runs
-      .mockResolvedValueOnce({ rows: [] }); // feedback
+      .mockResolvedValueOnce({ rows: [] }) // feedback
+      .mockResolvedValueOnce({ rows: [] }) // agent_outputs
+      .mockResolvedValueOnce({ rows: [] }) // hypothesis_iterations
+      .mockResolvedValueOnce({ rows: [] }) // mcp_tool_calls
+      .mockResolvedValueOnce({ rows: [] }); // domain_configs
 
     const res = await requestBinary(app, 'GET', '/api/v1/investigations/inv-100/bundle');
 
@@ -482,8 +523,55 @@ describe('GET /api/v1/investigations/:id/bundle', () => {
     expect(res.headers.get('content-type') ?? '').toContain('application/zip');
     expect(res.headers.get('content-disposition') ?? '').toContain('investigation-inv-100-bundle.zip');
     expect(res.bytes.length).toBeGreaterThan(20);
-    // ZIP local file header signature
-    expect(res.bytes[0]).toBe(0x50);
-    expect(res.bytes[1]).toBe(0x4b);
+
+    const zip = await JSZip.loadAsync(Buffer.from(res.bytes));
+    const fileNames = Object.keys(zip.files);
+    expect(fileNames).toContain('bundle/metadata.json');
+    expect(fileNames).toContain('bundle/report.json');
+    expect(fileNames).toContain('bundle/phases.json');
+    expect(fileNames).toContain('bundle/agent-runs.json');
+    expect(fileNames).toContain('bundle/agent-outputs.json');
+    expect(fileNames).toContain('bundle/hypothesis-iterations.json');
+    expect(fileNames).toContain('bundle/mcp-tool-calls.json');
+    expect(fileNames).toContain('bundle/domain-config.json');
+    expect(fileNames).toContain('bundle/feedback.json');
+    expect(fileNames).toContain('bundle/self-diagnostics.md');
+  });
+
+  it('should include legacy mcp not_available marker for older investigations', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'inv-legacy',
+            ticket_id: 'PROD-LEGACY',
+            domain: 'payments',
+            mode: 'balanced',
+            status: 'completed',
+            error: null,
+            created_at: '2026-01-01T00:00:00Z',
+            updated_at: '2026-01-01T00:10:00Z',
+            completed_at: '2026-01-01T00:10:00Z',
+          },
+        ],
+      }) // investigations
+      .mockResolvedValueOnce({ rows: [] }) // investigation_reports
+      .mockResolvedValueOnce({ rows: [] }) // investigation_phases
+      .mockResolvedValueOnce({ rows: [] }) // agent_runs
+      .mockResolvedValueOnce({ rows: [] }) // feedback
+      .mockResolvedValueOnce({ rows: [] }) // agent_outputs
+      .mockResolvedValueOnce({ rows: [] }) // hypothesis_iterations
+      .mockResolvedValueOnce({ rows: [] }) // mcp_tool_calls
+      .mockResolvedValueOnce({ rows: [] }); // domain_configs
+
+    const res = await requestBinary(app, 'GET', '/api/v1/investigations/inv-legacy/bundle');
+    expect(res.status).toBe(200);
+
+    const zip = await JSZip.loadAsync(Buffer.from(res.bytes));
+    const mcpFile = zip.file('bundle/mcp-tool-calls.json');
+    expect(mcpFile).toBeTruthy();
+    const mcpContent = await mcpFile!.async('string');
+    expect(mcpContent).toContain('"status": "not_available"');
+    expect(mcpContent).toContain('collection_started_after_');
   });
 });

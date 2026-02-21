@@ -1,6 +1,8 @@
 -- Migration 001: Create investigations table
 -- Tracks each investigation lifecycle from trigger to verdict
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE IF NOT EXISTS investigations (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     ticket_id       TEXT NOT NULL,
