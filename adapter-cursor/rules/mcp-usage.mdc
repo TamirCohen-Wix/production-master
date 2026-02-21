@@ -1,0 +1,74 @@
+---
+description: MCP server inventory and tool usage conventions for production-master in Cursor. Lists all 9 MCP servers, tool naming patterns, and skill file locations.
+alwaysApply: true
+---
+
+# MCP Server Usage
+
+Production-master relies on 9 MCP servers for data collection and actions.
+Every agent that uses MCP tools MUST receive the corresponding skill file
+content in its prompt.
+
+## MCP Servers
+
+| # | Server Name | Purpose |
+|---|-------------|---------|
+| 1 | **octocode** | GitHub code search, file content, repo structure, PR search |
+| 2 | **Slack** | Slack channel and thread search, message retrieval |
+| 3 | **jira** | Jira ticket read/write, comment posting |
+| 4 | **grafana-datasource** | Grafana SQL queries for logs, errors, metrics |
+| 5 | **FT-release** | Feature toggle release lifecycle queries |
+| 6 | **github** | GitHub API operations (PRs, commits, deploys) |
+| 7 | **context-7** | Context7 library documentation lookup |
+| 8 | **grafana-mcp** | Grafana dashboard and panel queries |
+| 9 | **fire-console** | Wix Fire Console for site/service configuration inspection |
+
+## Tool Naming Convention
+
+MCP tools follow the pattern:
+
+```
+mcp__<server>__<tool>
+```
+
+Examples:
+- `mcp__octocode__githubSearchCode`
+- `mcp__grafana-datasource__query`
+- `mcp__jira__getIssue`
+- `mcp__Slack__search`
+- `mcp__fire-console__inspect`
+
+Always use the exact server name as registered in `core/mcp-servers.json`.
+Server names are case-sensitive (`Slack`, not `slack`; `FT-release`, not
+`ft-release`).
+
+## Skill Files
+
+Each MCP server has a corresponding skill file that documents available tools,
+parameters, and usage patterns:
+
+```
+core/skills/<server>/SKILL.md
+```
+
+| Agent | Skill File(s) |
+|-------|---------------|
+| grafana-analyzer | `core/skills/grafana-datasource/SKILL.md` |
+| codebase-semantics | `core/skills/octocode/SKILL.md` |
+| slack-analyzer | `core/skills/slack/SKILL.md` |
+| production-analyzer | `core/skills/github/SKILL.md` + `core/skills/ft-release/SKILL.md` |
+| fix-list | `core/skills/ft-release/SKILL.md` |
+| publisher | `core/skills/jira/SKILL.md` + `core/skills/slack/SKILL.md` |
+| hypotheses / verifier | `core/skills/fire-console/SKILL.md` (on-demand domain queries) |
+
+Load ALL skill files once at the start of an investigation (Step 0.5).
+Do not re-read them for every agent launch.
+
+## fire-console: No Authentication Required
+
+The `fire-console` MCP server does NOT require a user access key. It connects
+directly without authentication headers, unlike the other 8 servers which
+require `<YOUR_ACCESS_KEY>` to be configured.
+
+This makes fire-console available out-of-the-box for configuration inspection
+queries (site settings, service definitions, FT status on specific sites).

@@ -1,0 +1,48 @@
+---
+description: Model tiering policy for production-master subagents. Assigns Haiku to simple-task agents and Sonnet to reasoning-heavy agents. Opus is never used for subagents.
+alwaysApply: true
+---
+
+# Model Tiering for Subagents
+
+Every subagent launched by the orchestrator MUST use the correct model tier.
+Using a higher tier than needed wastes tokens and time. Using a lower tier than
+needed produces unreliable reasoning.
+
+## Haiku Tier (`model: "haiku"`)
+
+Use Haiku for agents that perform **structured extraction or formatting** with
+minimal reasoning:
+
+| Agent | Why Haiku is sufficient |
+|-------|------------------------|
+| **bug-context** | Parses a Jira ticket into structured fields. No cross-source reasoning needed. |
+| **artifact-resolver** | Validates artifact IDs against a known registry. Lookup-only task. |
+| **documenter** | Formats an existing report into a Jira-friendly markdown document. Template-driven output. |
+| **publisher** | Posts a pre-written report to Jira and Slack. API call orchestration only. |
+
+## Sonnet Tier (`model: "sonnet"`)
+
+Use Sonnet for agents that perform **reasoning, correlation, or judgment**:
+
+| Agent | Why Sonnet is required |
+|-------|----------------------|
+| **grafana-analyzer** | Must interpret log patterns, build SQL queries dynamically, and correlate error spikes with time windows. |
+| **codebase-semantics** | Must trace error propagation paths across files, understand call chains, and identify relevant code sections. |
+| **production-analyzer** | Must correlate PR merges, deploys, and FT rollouts with incident timelines. Requires temporal reasoning. |
+| **slack-analyzer** | Must extract relevant context from noisy Slack threads, distinguishing signal from chatter. |
+| **hypotheses** | Must synthesize findings from ALL data sources into coherent root-cause hypotheses with evidence chains. |
+| **verifier** | Must critically evaluate hypotheses against the 5-point checklist, identify logical gaps, and assign confidence. |
+| **skeptic** | Must challenge the verifier's conclusions, probe for alternative explanations, and identify confirmation bias. |
+| **fix-list** | Must reason about code changes needed, assess risk of each fix, and produce actionable fix plans. |
+
+## Opus -- Never for Subagents
+
+Opus is NEVER used for subagents. The orchestrator itself runs on whatever model
+the user's session provides (which may be Opus), but all spawned subagents use
+Haiku or Sonnet as specified above.
+
+**Rationale:** Subagent tasks are scoped narrowly enough that Sonnet handles the
+hardest reasoning. Opus would add latency and cost with no quality improvement
+for these bounded tasks. The orchestrator handles the unbounded, multi-step
+decision-making that benefits from the session model.

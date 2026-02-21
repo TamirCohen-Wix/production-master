@@ -1,0 +1,73 @@
+---
+description: Output directory structure and file naming conventions for production-master investigation runs in Cursor. Defines the canonical layout under .cursor/debug/.
+alwaysApply: true
+---
+
+# Output Conventions
+
+Every production-master investigation writes its artifacts to a dedicated output
+directory. This ensures runs are isolated and reproducible.
+
+## Output Directory
+
+```
+.cursor/debug/<ticket-id>-<timestamp>/
+```
+
+- `<ticket-id>` -- The Jira ticket key, lowercased (e.g., `book-12345`).
+- `<timestamp>` -- ISO-8601-ish compact format: `YYYYMMDD-HHmmss` (e.g., `20260221-143052`).
+- Example: `.cursor/debug/book-12345-20260221-143052/`
+
+If running outside a git repository, use `./debug/` instead of `.cursor/debug/`.
+
+## File Layout
+
+```
+.cursor/debug/<ticket-id>-<timestamp>/
+  findings-summary.md        # Persistent state file (updated after every phase)
+  bug-context.md             # Parsed Jira ticket context
+  grafana-report.md          # Grafana log analysis results
+  codebase-semantics.md      # Code analysis and error propagation paths
+  production-report.md       # PR, deploy, and FT rollout correlation
+  slack-report.md            # Relevant Slack thread findings
+  hypothesis-1.md            # First hypothesis with evidence and checklist
+  hypothesis-2.md            # Second hypothesis (if needed)
+  hypothesis-N.md            # Additional hypotheses as needed
+  fix-list.md                # Actionable fix plan
+  report.md                  # Final human-readable investigation report
+  status.json                # Machine-readable run status
+```
+
+## File Descriptions
+
+### findings-summary.md
+The central state file. Updated after EVERY phase. Contains: current pipeline
+state, incident window, services involved, checklist status, proven facts,
+identified gaps, per-agent next tasks, and the agent invocation log.
+
+### Trace Files (debugging only)
+```
+  *-trace-V*.md              # Internal agent trace logs (e.g., grafana-trace-V1.md)
+```
+Trace files are for human debugging ONLY. They are NEVER shared between agents
+and NEVER passed as input to any subagent.
+
+### status.json
+Machine-readable status for tooling integration:
+```json
+{
+  "ticket": "BOOK-12345",
+  "state": "COMPLETE",
+  "confidence": 85,
+  "hypotheses_tested": 2,
+  "confirmed_hypothesis": 1,
+  "timestamp": "2026-02-21T14:30:52Z"
+}
+```
+
+## Naming Rules
+
+- All filenames use lowercase kebab-case.
+- Hypothesis files are numbered sequentially: `hypothesis-1.md`, `hypothesis-2.md`, etc.
+- Trace files include a version suffix: `*-trace-V1.md`, `*-trace-V2.md`.
+- Never overwrite a previous run's directory. Every run gets a fresh directory.

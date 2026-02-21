@@ -1,0 +1,66 @@
+---
+description: Core investigation guardrails for production-master. Enforces citation discipline, data isolation, raw-data-only collection, autonomous operation, fresh-start semantics, fast-fail error handling, and the 5-point hypothesis verification checklist.
+alwaysApply: true
+---
+
+# Investigation Guardrails
+
+These rules are non-negotiable during every production-master investigation run.
+
+## 1. Citation Required
+
+Every factual claim MUST cite its source. A "proof" is a verifiable reference:
+a file path with line number, a Grafana query result, a PR link, a Jira comment,
+a Slack message URL, or an MCP tool response.
+
+- NEVER state "X calls Y" without a `file:line` or GitHub link.
+- NEVER state traffic numbers without a Grafana query reference.
+- NEVER reference a frontend repo or widget without verifying it exists via Octocode or GitHub search.
+- NEVER reference code in `statics/viewer/angular/` in the scheduler repo -- it is dead code.
+- When unsure, say "unverified" and flag it for the user.
+
+## 2. Data Isolation
+
+Data-collection agents (grafana-analyzer, codebase-semantics, production-analyzer,
+slack-analyzer) NEVER see each other's outputs. Only the Hypothesis and Verifier
+agents synthesize across data sources. The orchestrator is the sole entity that
+reads all reports.
+
+## 3. Raw Data -> Analysis Only
+
+Data agents report raw findings ONLY. They do not draw conclusions, suggest root
+causes, or perform cross-source analysis. All analysis happens in the Hypothesis
+and Verifier phases.
+
+## 4. Autonomous Decisions
+
+The orchestrator decides what to investigate next. Do NOT ask the user
+mid-investigation. If data is missing, note the gap in findings-summary.md and
+proceed with what is available.
+
+## 5. Fresh Start
+
+Every investigation starts from scratch. NEVER read from previous `debug-*` or
+`.cursor/debug/*` directories. Each run creates a new output directory. NEVER
+reference findings, hypotheses, or conclusions from previous sessions.
+
+## 6. Fast-Fail
+
+If an MCP tool or agent fails, report it immediately in findings-summary.md.
+Do NOT retry silently, fabricate data, or pretend the call succeeded. Surface
+the failure so the orchestrator can decide on a recovery path.
+
+## 7. Five-Point Hypothesis Verification Checklist
+
+Every hypothesis MUST be evaluated against ALL five points. A hypothesis is
+CONFIRMED only when all five pass. Any single Fail means DECLINED.
+
+1. **Logs** -- Are log entries found that confirm the error pattern?
+2. **Pinpoint explanation** -- Is the exact mechanism identified (file:line, code path, trigger condition)?
+3. **Why started** -- Is there a clear trigger (PR merge, FT rollout, config change, deploy) with a timeline match?
+4. **If still in code** -- Is the vulnerable code still present, or has it been fixed?
+5. **Why stopped** -- Is there an explanation for why the issue resolved (if it did)?
+
+Track checklist status in `findings-summary.md` after every phase. When
+confidence >= 70% but not all items pass, note "High confidence, incomplete
+proof" and consider presenting to the user after 3+ iterations at plateau.
