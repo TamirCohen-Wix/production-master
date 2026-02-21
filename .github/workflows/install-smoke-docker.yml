@@ -90,6 +90,9 @@ jobs:
               jq empty adapter-cursor/.cursor-plugin/plugin.json
               test -f adapter-cursor/.mcp.json
               jq empty adapter-cursor/.mcp.json
+              bash -n adapter-cursor/scripts/install.sh
+              chmod +x adapter-cursor/tests/validate-install.sh
+              bash adapter-cursor/tests/validate-install.sh
 
               if [ -z "${CURSOR_CLI_NPM_PACKAGE:-}" ]; then
                 echo "WARN: CURSOR_CLI_NPM_PACKAGE repo variable not set; skipping runtime Cursor CLI checks"
