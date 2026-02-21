@@ -27,6 +27,7 @@ import { similarRouter } from './routes/similar.js';
 import { feedbackRouter } from './routes/feedback.js';
 import { analyticsRouter } from './routes/analytics.js';
 import { healthRouter, setHealthRegistry } from './routes/health.js';
+import { metaRouter, setMetaRegistry } from './routes/meta.js';
 
 // Webhooks
 import { jiraWebhookRouter, closeJiraWebhookQueue } from './webhooks/jira.js';
@@ -143,6 +144,7 @@ app.use('/api/v1/query', queriesRouter);
 app.use('/api/v1/domains', domainsRouter);
 app.use('/api/v1/onboard', onboardingRouter);
 app.use('/api/v1/health-check', healthCheckRouter);
+app.use('/api/v1/meta', metaRouter);
 
 // ---------------------------------------------------------------------------
 // Startup
@@ -169,6 +171,9 @@ async function start(): Promise<void> {
 
   // Build the adapted registry for the orchestrator (bridges class -> interface)
   const adaptedRegistry = adaptRegistry(mcpRegistry);
+
+  // Inject adapted registry into meta-analysis routes
+  setMetaRegistry(adaptedRegistry);
 
   // Start orchestrator engine (BullMQ worker)
   try {
