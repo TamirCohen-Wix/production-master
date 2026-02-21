@@ -23,11 +23,8 @@ jobs:
           cache: npm
           cache-dependency-path: adapter-cloud/package-lock.json
 
-      - name: Upgrade npm
-        run: npm install -g npm@latest
-
       - name: Install dependencies
-        run: npm ci
+        run: npm install
         working-directory: adapter-cloud
 
       - name: Typecheck
@@ -46,11 +43,8 @@ jobs:
           cache: npm
           cache-dependency-path: adapter-cloud/package-lock.json
 
-      - name: Upgrade npm
-        run: npm install -g npm@latest
-
       - name: Install dependencies
-        run: npm ci
+        run: npm install
         working-directory: adapter-cloud
 
       - name: Run tests
