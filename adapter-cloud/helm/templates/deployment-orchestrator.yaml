@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "production-master.fullname" . }}-orchestrator
+  labels:
+    {{- include "production-master.labels" . | nindent 4 }}
+    app.kubernetes.io/component: orchestrator
+spec:
+  replicas: {{ .Values.replicaCount.orchestrator }}
+  selector:
+    matchLabels:
+      {{- include "production-master.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: orchestrator
+  template:
+    metadata:
+      labels:
+        {{- include "production-master.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: orchestrator
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: orchestrator
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "production-master.fullname" . }}-config
+            - secretRef:
+                name: {{ include "production-master.fullname" . }}-secret
+          command: ["node", "dist/orchestrator/engine.js"]
+          resources:
+            {{- toYaml .Values.resources.orchestrator | nindent 12 }}

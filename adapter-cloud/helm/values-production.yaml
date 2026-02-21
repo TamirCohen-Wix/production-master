@@ -1,0 +1,42 @@
+# Production overrides
+
+replicaCount:
+  api: 4
+  orchestrator: 2
+  worker: 6
+
+ingress:
+  host: production-master.prod.example.com
+
+resources:
+  api:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  orchestrator:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  worker:
+    requests:
+      cpu: "1"
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 65
+
+env:
+  NODE_ENV: production
+  LOG_LEVEL: warn

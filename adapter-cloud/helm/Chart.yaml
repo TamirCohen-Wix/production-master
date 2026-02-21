@@ -1,0 +1,6 @@
+apiVersion: v2
+name: production-master
+description: Production Master cloud deployment — incident investigation platform
+type: application
+version: 1.0.0-alpha.1
+appVersion: "1.0.0-alpha.1"

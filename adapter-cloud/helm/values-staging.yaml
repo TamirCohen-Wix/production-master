@@ -1,0 +1,36 @@
+# Staging overrides
+
+replicaCount:
+  api: 1
+  orchestrator: 1
+  worker: 1
+
+ingress:
+  host: production-master.staging.example.com
+
+resources:
+  api:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  orchestrator:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  worker:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+env:
+  NODE_ENV: staging
+  LOG_LEVEL: debug
