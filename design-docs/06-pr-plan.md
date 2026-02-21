@@ -5,7 +5,7 @@
 > **Date:** 2026-02-21
 > **Author:** Tamir Cohen
 > **Status:** Draft
-> **References:** [04-implementation-plan.md](./04-implementation-plan.md), [05-capability-abstraction-layer.md](./05-capability-abstraction-layer.md)
+> **References:** [04-implementation-plan.md](./04-implementation-plan.md), [05-capability-abstraction-layer.md](./05-capability-abstraction-layer.md), [07-gaps-and-enhancements.md](./07-gaps-and-enhancements.md)
 
 ---
 
@@ -2410,6 +2410,99 @@ Commit: "feat: add onboarding wizard, operator docs, and GA preparation"
 
 </details>
 
+### PR 6.5 — User feedback loop `||`
+
+```
+Branch: feat/user-feedback-loop
+Depends on: PR 6.4
+```
+
+- [ ] Implement structured feedback collection on investigation reports (ref: Doc 07 §1, feature C19)
+- [ ] Add feedback-driven confidence recalibration (ref: Doc 07 §1, feature U18)
+- [ ] Create feedback analytics pipeline and accuracy-over-time metrics (ref: Doc 07 §1, feature P29)
+- [ ] Store per-domain accuracy baselines; surface trends in `/production-master-report`
+
+<details>
+<summary><strong>Agent Prompt</strong></summary>
+
+```
+You are implementing PR 6.5. Add a user feedback loop so that investigation consumers can rate verdict accuracy and provide corrections.
+
+Read design-docs/07-gaps-and-enhancements.md §1 for the full specification. Key features: C19 (structured feedback collection), U18 (confidence recalibration), P29 (accuracy metrics pipeline).
+
+TASKS:
+
+1. Create a feedback schema (adapter-cloud/src/models/feedback.ts):
+   - investigation_id, rating (accurate | partially_accurate | inaccurate), corrected_root_cause (optional text), submitted_by, submitted_at
+   - Store in PostgreSQL feedback table (add migration)
+
+2. Create feedback API endpoints:
+   POST /api/v1/investigations/:id/feedback — submit feedback
+   GET  /api/v1/investigations/:id/feedback — retrieve feedback
+   GET  /api/v1/analytics/accuracy          — accuracy-over-time report
+
+3. Confidence recalibration:
+   - Track historical accuracy per confidence bracket (e.g., 80-90% predictions that were accurate)
+   - Expose calibration curve data via GET /api/v1/analytics/calibration
+   - Use feedback to adjust future confidence scores (Bayesian update)
+
+4. Surface accuracy trends in the report command output
+
+Branch: feat/user-feedback-loop
+Commit: "feat: add user feedback loop with accuracy tracking and confidence recalibration"
+```
+
+</details>
+
+### PR 6.6 — Self-improvement meta-agent `||`
+
+```
+Branch: feat/self-improvement-meta-agent
+Depends on: PR 6.5
+```
+
+- [ ] Build meta-agent that analyzes feedback patterns to suggest prompt/workflow improvements (ref: Doc 07 §2, feature P30)
+- [ ] Create prompt effectiveness scoring based on aggregated feedback data
+- [ ] Generate improvement recommendations as draft PRs or structured suggestions
+- [ ] Add guardrails: human-in-the-loop approval for any prompt/workflow changes
+
+<details>
+<summary><strong>Agent Prompt</strong></summary>
+
+```
+You are implementing PR 6.6. Build a self-improvement meta-agent that analyzes feedback data to recommend system improvements.
+
+Read design-docs/07-gaps-and-enhancements.md §2 for the full specification. Key feature: P30 (self-improvement meta-agent).
+
+TASKS:
+
+1. Create core/agents/meta-improver.md:
+   - Analyzes aggregated feedback from PR 6.5's feedback table
+   - Identifies patterns: which agent prompts lead to inaccurate verdicts, which investigation phases are weakest
+   - Generates structured improvement suggestions (prompt rewrites, workflow reordering, new hypothesis templates)
+
+2. Create adapter-cloud/src/workers/meta-analysis.ts:
+   - Scheduled job (weekly or on-demand via API)
+   - Queries feedback data, groups by domain/agent/phase
+   - Calls the meta-improver agent with aggregated data
+   - Stores recommendations in a recommendations table
+
+3. Create API endpoints:
+   GET  /api/v1/meta/recommendations — list pending recommendations
+   POST /api/v1/meta/recommendations/:id/approve — approve a recommendation
+   POST /api/v1/meta/recommendations/:id/reject  — reject with reason
+
+4. Guardrails:
+   - No automatic changes to prompts or workflows
+   - All recommendations require human approval
+   - Track which recommendations were applied and their impact on accuracy
+
+Branch: feat/self-improvement-meta-agent
+Commit: "feat: add self-improvement meta-agent with human-in-the-loop approval"
+```
+
+</details>
+
 `[GATE] Phase 6 complete — Production Master GA`
 
 ---
@@ -2854,6 +2947,108 @@ Commit: "feat: abstract publisher into report-publisher with capability-based ou
 
 </details>
 
+### PR CAP-7 — Known-issues registry + knowledge retrieval `||`
+
+```
+Branch: feat/known-issues-registry
+Depends on: PR CAP-1
+```
+
+- [ ] Create structured knowledge files for known issues, past incidents, and domain-specific gotchas (ref: Doc 07 §3)
+- [ ] Build knowledge retrieval capability — agents can query the known-issues registry during investigation
+- [ ] Add `knowledge-base` capability interface to registry
+- [ ] Seed with sample known-issues entries from existing domain configs
+
+<details>
+<summary><strong>Agent Prompt</strong></summary>
+
+```
+You are implementing PR CAP-7. Add a known-issues registry and knowledge retrieval capability so agents can leverage institutional knowledge during investigations.
+
+Read design-docs/07-gaps-and-enhancements.md §3 for the full specification.
+
+TASKS:
+
+1. Create core/capabilities/interfaces/knowledge-base.json:
+   Operations: search_known_issues, get_issue_details, add_known_issue
+   - search_known_issues: input {query, service?, tags?} → output [{id, title, symptoms, root_cause, fix}]
+   - get_issue_details: input {id} → output {full known-issue record}
+   - add_known_issue: input {title, symptoms, root_cause, fix, services, tags}
+
+2. Create core/knowledge/ directory:
+   - core/knowledge/known-issues/ — YAML files, one per known issue
+   - core/knowledge/schema.yaml — defines the known-issue file format
+   - Each file: title, symptoms (list), root_cause, fix, services (list), tags, added_date, last_seen
+
+3. Add knowledge-base capability to core/capabilities/registry.yaml:
+   knowledge-base:
+     description: "Structured repository of known issues and institutional knowledge"
+     provider: local-files
+     alternatives: [vector-db, confluence]
+     required_operations: [search_known_issues, get_issue_details, add_known_issue]
+
+4. Integrate with hypothesis agent:
+   - Before generating hypotheses, query known-issues registry for matching symptoms
+   - If matches found, prioritize those as hypothesis candidates
+
+5. Seed with 3-5 sample known-issue files based on common production patterns
+
+Branch: feat/known-issues-registry
+Commit: "feat: add known-issues registry and knowledge retrieval capability"
+```
+
+</details>
+
+### PR CAP-8 — Cross-repo investigation support `||`
+
+```
+Branch: feat/cross-repo-investigation
+Depends on: PR CAP-1
+```
+
+- [ ] Build service dependency graph capability — maps upstream/downstream service relationships (ref: Doc 07 §4)
+- [ ] Add multi-repo traversal to the code-search capability — investigate across repo boundaries
+- [ ] Extend domain config schema with `service_dependencies` and `related_repos` fields
+- [ ] Update data-collection agents to follow dependency chains when initial investigation is inconclusive
+
+<details>
+<summary><strong>Agent Prompt</strong></summary>
+
+```
+You are implementing PR CAP-8. Add cross-repo investigation support so agents can trace issues across service boundaries.
+
+Read design-docs/07-gaps-and-enhancements.md §4 for the full specification.
+
+TASKS:
+
+1. Extend domain config schema (core/domain/):
+   Add fields:
+   - service_dependencies: [{service: string, repo: string, relationship: "upstream"|"downstream"|"shared-lib"}]
+   - related_repos: [{name: string, url: string, purpose: string}]
+
+2. Create core/capabilities/interfaces/service-dependency-graph.json:
+   Operations: get_dependencies, get_dependents, get_dependency_chain, resolve_cross_service_trace
+   - get_dependencies: input {service} → output [{service, repo, relationship}]
+   - get_dependents: input {service} → output [{service, repo, relationship}]
+   - get_dependency_chain: input {service, depth?} → output [dependency tree]
+   - resolve_cross_service_trace: input {trace_id} → output [{service, repo, span_data}]
+
+3. Add service-dependency-graph capability to core/capabilities/registry.yaml
+
+4. Update data-collection agent prompts:
+   - When initial log analysis shows calls to upstream/downstream services, automatically expand investigation scope
+   - Query the dependency graph to identify related services
+   - Use multi-repo code-search to check recent changes in dependent services
+
+5. Add cross-repo traversal to code-search capability interface:
+   - search_across_repos: input {query, repos: string[]} → output [matches with repo context]
+
+Branch: feat/cross-repo-investigation
+Commit: "feat: add cross-repo investigation with service dependency graph"
+```
+
+</details>
+
 `[GATE] Capability abstraction complete — all agents are task-driven, not tool-driven`
 
 ---
@@ -2882,6 +3077,16 @@ Phase 3    Phase 5    CAP-4 (rename agents)
   v          v           v          v
   Done     Phase 6    CAP-5       CAP-6
            (scale)   (more MCPs) (publisher)
+             │           │
+             │         CAP-7 (known issues) || CAP-8 (cross-repo)
+             │           │
+             v           v
+           PR 6.5      Done
+          (feedback)
+             │
+             v
+           PR 6.6
+          (meta-agent)
              │
              v
             Done
@@ -2928,6 +3133,10 @@ Phase 3    Phase 5    CAP-4 (rename agents)
 | CAP-4 Rename agents | L | High |
 | CAP-5 Remaining MCPs | L | Medium |
 | CAP-6 Publisher | M | Medium |
+| CAP-7 Known-issues registry | M | Medium |
+| CAP-8 Cross-repo investigation | L | High |
+| 6.5 User feedback loop | L | High |
+| 6.6 Self-improvement meta-agent | L | High |
 
 ---
 
@@ -2942,3 +3151,13 @@ At peak, the following workstreams can run simultaneously:
 | Capability abstraction | PR CAP-2, CAP-3 | Tamir (or contributor) |
 
 > **Note:** With a single engineer (Tamir), true parallelism is limited. The dependency graph is designed so that context-switching between workstreams is possible at natural boundaries (after each PR merge). With additional contributors, the Cloud and CAP tracks can be fully parallelized with the adapter work.
+
+---
+
+## References
+
+| Document | Description |
+|----------|-------------|
+| [04-implementation-plan.md](./04-implementation-plan.md) | Phase-by-phase implementation plan |
+| [05-capability-abstraction-layer.md](./05-capability-abstraction-layer.md) | CAP architecture and capability interfaces |
+| [07-gaps-and-enhancements.md](./07-gaps-and-enhancements.md) | Gaps and enhancements identified in the strategic principles audit. Defines additional features including: user feedback loop (§1, C19/U18/P29), self-improvement meta-agent (§2, P30), known-issues registry (§3), and cross-repo investigation support (§4). PRs 6.5, 6.6, CAP-7, and CAP-8 in this document implement these features. |

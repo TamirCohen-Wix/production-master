@@ -77,6 +77,40 @@ graph LR
 
 ---
 
+## 1.1 Tool Selection Methodology
+
+The Capability Abstraction Layer follows a **mission-first** tool selection principle: define the problem before selecting the tool.
+
+### Selection Process
+
+1. **Define the capability need** — What information or action does the investigation require? (e.g., "retrieve error logs from the last 30 minutes")
+2. **Research alternatives** — What MCP servers, APIs, or local tools can provide this capability?
+3. **Evaluate against criteria** — Score each alternative:
+
+| Criterion | Weight | Description |
+|-----------|--------|-------------|
+| API coverage | 30% | Does it expose the data/actions we need? |
+| MCP availability | 25% | Is there an existing MCP server, or must we build one? |
+| Community support | 15% | Active maintenance, documentation quality, issue response time |
+| Cost | 15% | Per-call pricing, rate limits, free tier availability |
+| Latency | 15% | Response time at p50 and p95 under expected load |
+
+4. **Record the decision** — Every capability provider choice is documented:
+
+### Decision Record Template
+
+    **Capability**: [e.g., Log Retrieval]
+    **Selected Provider**: [e.g., Grafana Loki via MCP]
+    **Alternatives Considered**: [e.g., CloudWatch direct API, ELK Stack MCP]
+    **Decision Date**: [YYYY-MM-DD]
+    **Rationale**: [Why this provider best serves the mission]
+    **Trade-offs Accepted**: [What we gave up by not choosing alternatives]
+    **Review Trigger**: [When to re-evaluate — e.g., "if latency exceeds 2s at p95"]
+
+This methodology ensures that tool choices are deliberate, documented, and revisitable — not accidental lock-in.
+
+---
+
 ## 2. The Vision: Capability-Based Architecture
 
 ### The Principle
@@ -685,6 +719,34 @@ provided to understand available operations and their parameters.
 ```
 
 The vendor-specific query language (ClickHouse SQL, PromQL, LogQL) lives **only** in the skill file, which is a separate, swappable document.
+
+### Adaptive Pipeline
+
+The orchestrator dynamically selects which investigation phases to execute based on the input signal and classified intent.
+
+#### Dynamic Phase Selection
+
+Not every investigation requires all phases. The orchestrator uses intent classification (see §3 Intent Modes) to determine which phases to activate:
+
+| Intent Mode | Metrics | Logs | Traces | Slack | Code | Publisher |
+|-------------|---------|------|--------|-------|------|-----------|
+| `alert-response` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `metrics-exploration` | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| `log-analysis` | ❌ | ✅ | ✅ | ❌ | ❌ | ✅ |
+| `deployment-check` | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ |
+| `knowledge-query` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| `slack-search` | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ |
+| `full-investigation` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+#### Connection to Phase Skipping
+
+The 7 intent modes (defined in §3) serve as the primary mechanism for adaptive phase selection. When the orchestrator classifies an investigation request:
+
+1. **Intent classification** determines the base phase set
+2. **User overrides** (`--skip-*`, `--only`) further refine the active phases
+3. **Runtime signals** can trigger additional phases (e.g., a metrics anomaly triggers log retrieval even in `metrics-exploration` mode)
+
+This ensures investigations are efficient — a metrics-only query completes in seconds, not minutes, by skipping irrelevant phases like Slack search and code analysis.
 
 ### Before vs After: `report-publisher` (was `publisher`)
 

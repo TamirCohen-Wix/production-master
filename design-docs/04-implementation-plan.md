@@ -563,6 +563,9 @@ Source: [Current orchestrator](../commands/production-master.md)
 | C16 | Investigation mode selector | **New** | P2 | `--mode fast/balanced/deep` flag |
 | C17 | Core module references | **New** | P0 | Commands reference `core/` modules |
 | C18 | Multi-domain support | **New** | P1 | Switch between domain configs |
+| C19 | Investigation feedback command (`/production-master-feedback`) | **New** | P1 | Users can rate investigation quality (👍/👎), provide corrections, and suggest missed signals. Feedback is stored and used to improve future investigations. |
+| C20 | Resource budget configuration (`--max-tokens`, `--timeout`) | **New** | P2 | Per-run resource overrides via CLI flags. Users can constrain token usage, MCP call count, and wall-clock time. See §00 Resource Limits. |
+| C21 | Debug bundle export | **New** | P2 | `/production-master-report` extended to include downloadable debug bundle (trace, findings, agent outputs, resource usage). |
 
 Source: [Claude Code Plugin Docs](https://code.claude.com/docs/en/plugins), [Current README](../README.md)
 
@@ -591,6 +594,8 @@ Source: [Claude Code Plugin Docs](https://code.claude.com/docs/en/plugins), [Cur
 | U15 | Cursor Marketplace publishing | **New** | P0 | Submit to [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish) |
 | U16 | Investigation mode selector | **New** | P2 | Same as Claude Code |
 | U17 | Logo and branding | **New** | P2 | SVG logo for marketplace |
+| U18 | Investigation feedback command | **New** | P1 | Feedback panel in sidebar: rate investigation, provide corrections, flag false positives. Data flows to shared feedback store. |
+| U19 | Resource budget configuration | **New** | P2 | Settings UI for resource limits. Per-workspace overrides via `.production-master/config.yaml`. |
 
 Source: [Cursor Plugin Docs](https://cursor.com/docs/plugins/building)
 
@@ -630,6 +635,9 @@ Source: [Cursor Plugin Docs](https://cursor.com/docs/plugins/building)
 | P26 | Redis caching | **New** | P1 | Active session state, MCP response cache |
 | P27 | Database migrations | **New** | P0 | Versioned SQL migrations |
 | P28 | Canary deployments | **New** | P2 | Gradual rollout with traffic splitting |
+| P29 | Feedback API endpoint | **New** | P1 | `POST /api/v1/investigations/:id/feedback` — accepts structured feedback (rating, corrections, missed signals). Feeds into self-improvement pipeline. |
+| P30 | Self-improvement meta-agent | **New** | P2 | Post-investigation agent that analyzes outcomes, detects patterns across investigations, and suggests prompt/workflow improvements. Runs asynchronously after investigation completion. |
+| P31 | Debug bundle export API | **New** | P1 | `GET /api/v1/investigations/:id/bundle` — returns investigation debug bundle as `.zip`. Includes traces, findings, agent outputs, and self-diagnostics. |
 
 Source: [Cloud Pipeline Design](./03-cloud-pipeline.md), [Wix Research](../design-docs/00-overview-shared-architecture.md)
 
@@ -1177,6 +1185,10 @@ graph LR
 | R8 | **Platform API breaking changes** | Medium | Medium | Pin SDK versions; adapter isolation; independent releases | Tamir |
 | R9 | **Knowledge base poisoning** | Low | High | Human review before memory updates; versioned MEMORY.md | Tamir |
 | R10 | **Single point of failure (Tamir)** | High | Critical | Documentation, design docs, contributing guide; train at least 1 backup | Tamir |
+| R11 | **Anthropic vendor lock-in** | Medium | High | Abstract LLM calls behind capability layer interface; maintain model-agnostic prompt templates; quarterly evaluation of alternative providers | Tamir |
+| R12 | **MCP protocol breaking changes** | Medium | High | Pin MCP SDK versions; protocol version negotiation in handshake; comprehensive integration test suite per MCP server; monitor MCP changelog | Tamir + MCP team |
+| R13 | **Investigation feedback loop** | Low | Critical | Tag all knowledge with provenance (human vs. agent); confidence decay over time; require human confirmation for high-impact updates; periodic knowledge audit | Tamir |
+| R14 | **Model quality regression** | Medium | High | Maintain benchmark suite of known investigations with golden outputs; automated regression tests on model version changes; A/B testing framework for model updates | Tamir |
 
 ---
 
@@ -1225,6 +1237,8 @@ graph LR
 | Q8 | **Investigation dedup: by ticket or by content?** | A) By ticket ID B) By ticket + time window C) No dedup | B) By ticket + 1h window | Proposed |
 | Q9 | **Cloud GA: when to add Grafana alert trigger?** | A) Phase 5 B) Phase 6 C) Post-GA | B) Phase 6 — after webhooks are stable | Proposed |
 | Q10 | **Vector DB for incident similarity?** | A) Weaviate B) Pinecone C) pgvector D) Defer | D) Defer to Phase 6 — evaluate based on data volume | Open |
+| Q11 | **Enterprise AI pipeline deployment patterns?** | How do organizations deploy AI-powered investigation pipelines at scale? What patterns from AWS SageMaker Pipelines, Azure AI Studio, and Google Vertex AI apply to our architecture? Research needed to validate our K8s + worker pool approach against industry standards. | — | Open |
+| Q12 | **Self-improvement agent architecture?** | What is the optimal architecture for a meta-agent that learns from investigation outcomes? Should it operate as a separate service, an inline post-processor, or a periodic batch job? How do we prevent feedback loops where incorrect improvements degrade future investigations? | — | Open |
 
 ---
 

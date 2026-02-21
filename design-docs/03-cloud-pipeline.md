@@ -836,6 +836,24 @@ postgresql:
     replicaCount: 2
 ```
 
+### Industry Deployment Patterns
+
+Our Kubernetes + worker pool architecture should be evaluated against established industry patterns:
+
+| Platform | Architecture | Orchestration | Scaling | Our Comparison |
+|----------|-------------|---------------|---------|----------------|
+| AWS SageMaker Pipelines | Managed DAG execution on containerized steps | Step Functions + SageMaker Runtime | Auto-scaling endpoints, spot instances | We use K8s Jobs instead of managed DAGs — more control, more ops burden |
+| Azure AI Studio | Prompt flow with managed compute | Azure ML Pipeline orchestrator | Compute instance pools, serverless inference | Similar worker pool concept; we avoid vendor lock-in but lose managed tooling |
+| Google Vertex AI | Pipeline components on GKE/Cloud Run | Kubeflow Pipelines (KFP) | GKE autopilot, TPU allocation | Closest to our approach — K8s native, but with Google-managed infrastructure |
+| LangGraph Cloud | Graph-based agent orchestration | LangGraph runtime | Horizontal pod scaling | Purpose-built for agents; we chose general K8s for flexibility |
+
+#### Design Choice Justification
+
+1. **K8s over managed services**: Avoids cloud vendor lock-in, enables hybrid/on-prem deployment, gives full control over scheduling and resource allocation
+2. **Worker pool over serverless**: Predictable latency (no cold starts), persistent MCP connections, stateful investigation context within a worker
+3. **Custom orchestrator over workflow engines**: Investigation-specific optimizations (adaptive phase selection, real-time signal routing) that general DAG engines don't support natively
+4. **Trade-off acknowledged**: Higher operational burden than managed alternatives — mitigated by Helm charts, Terraform modules, and comprehensive monitoring (see Observability section)
+
 ---
 
 ## Security Architecture
@@ -1011,6 +1029,45 @@ helm upgrade --install production-master adapter-cloud/helm/ \
 | **Spot instances** for workers | ~60% on compute | K8s spot node pools |
 | **Auto-scaling down** during off-hours | ~30% on compute | HPA + scheduled scaling |
 | **Investigation deduplication** (same ticket) | Variable | Queue-level dedup |
+
+### Cost Management
+
+#### Per-Investigation Cost Tracking
+
+Every investigation tracks its cost breakdown in real-time:
+
+    {
+      "investigation_id": "inv-20240115-abc",
+      "cost_breakdown": {
+        "llm_tokens": { "input": 45000, "output": 12000, "cost_usd": 0.82 },
+        "mcp_calls": { "count": 18, "cost_usd": 0.00 },
+        "compute": { "worker_seconds": 45, "cost_usd": 0.003 },
+        "total_usd": 0.823
+      }
+    }
+
+#### Cost Budgets
+
+Administrators can set cost ceilings at multiple levels:
+
+| Budget Level | Scope | Default | Action on Breach |
+|-------------|-------|---------|-----------------|
+| Per-investigation | Single investigation run | $5.00 | Terminate investigation, publish partial findings |
+| Per-domain | Monthly spend per service domain | $500 | Alert + throttle to essential-only investigations |
+| Per-tenant | Monthly spend per team/org | $2,000 | Alert + require manual approval for new investigations |
+| Global | Monthly platform-wide ceiling | $10,000 | Pause all non-critical investigations |
+
+#### Cost Alerts and Auto-Throttling
+
+- **80% threshold**: Warning alert to platform administrators
+- **90% threshold**: Auto-throttle — only `alert-response` intent investigations proceed; `metrics-exploration` and `knowledge-query` are queued
+- **100% threshold**: Hard stop — all new investigations require manual approval; in-progress investigations complete but no new ones start
+
+Cost data is exposed via:
+- Grafana dashboard (real-time per-investigation and aggregate views)
+- `GET /api/v1/costs/summary` — current period cost summary
+- `GET /api/v1/costs/investigation/:id` — per-investigation breakdown
+- Webhook notifications for budget alerts
 
 ---
 
