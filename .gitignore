@@ -39,3 +39,10 @@ Thumbs.db
 *~
 .idea/
 .vscode/
+
+# JS/Node generated artifacts (repo root and custom MCP builds)
+/node_modules/
+/package-lock.json
+/custom-mcps/**/node_modules/
+/custom-mcps/**/dist/
+/custom-mcps/**/package-lock.json
