@@ -1,0 +1,58 @@
+{
+  "description": "Notification alerts, report link validation, MCP recovery, and safety hooks for production-master (Cursor adapter)",
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "osascript -e 'display notification \"Cursor needs your attention\" with title \"Cursor\"'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$CURSOR_TOOL_INPUT\" | grep -qiE '(rm -rf|git push --force|git reset --hard|DROP TABLE|DELETE FROM)' && echo 'BLOCK: Dangerous command detected during investigation' && exit 2 || exit 0"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CURSOR_PLUGIN_ROOT}/scripts/validate-report-links.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$(date -u +%Y-%m-%dT%H:%M:%SZ) | $CURSOR_TOOL_NAME | ${CURSOR_TOOL_INPUT:0:200}\" >> /tmp/.production-master-mcp-trace.log"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$(date -u +%Y-%m-%dT%H:%M:%SZ) | session_start | adapter=cursor pid=$$ pwd=$(pwd)\" >> /tmp/.production-master-session.log"
+          }
+        ]
+      }
+    ]
+  }
+}
