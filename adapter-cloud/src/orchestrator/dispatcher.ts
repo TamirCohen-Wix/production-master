@@ -1,13 +1,16 @@
 /**
  * Agent Dispatcher — wraps agent-runner with orchestration-level concerns:
- * metrics, logging, error handling, and DB record persistence.
+ * metrics, logging, error handling, tracing spans, and DB record persistence.
  */
 
+import type { Context as OtelContext } from '@opentelemetry/api';
 import { runAgent, type AgentRunOptions, type AgentOutput, type AgentRunRecord } from '../workers/agent-runner.js';
 import type { McpRegistry } from '../workers/tool-handler.js';
 import { query } from '../storage/db.js';
-import { createLogger } from '../observability/index.js';
 import {
+  createLogger,
+  startAgentSpan,
+  recordSpanError,
   pmAgentDurationSeconds,
   pmAgentInvocationTotal,
   pmAgentInvocationDurationSeconds,
@@ -32,7 +35,9 @@ export interface DispatchOptions {
   mcpRegistry: McpRegistry;
   /** Investigation mode (affects model selection) */
   mode?: string;
-  /** Domain for metric labelling */
+  /** Parent trace context for creating child spans */
+  traceCtx?: OtelContext;
+  /** Domain for metric labelling / span attributes */
   domain?: string;
 }
 
@@ -49,14 +54,27 @@ const log = createLogger('orchestrator:dispatcher');
 /**
  * Dispatch a single agent run with full observability.
  *
+ * - Creates a child tracing span for the agent invocation
  * - Logs start/end
  * - Records duration and token metrics
  * - Persists agent run record to DB
  * - Returns the agent output
  */
 export async function dispatchAgent(options: DispatchOptions): Promise<AgentOutput> {
-  const { investigationId, agentName, investigationContext, mcpRegistry, domain } = options;
+  const { investigationId, agentName, investigationContext, mcpRegistry, traceCtx, domain } = options;
   const domainLabel = domain ?? 'unknown';
+
+  // Start an agent-level tracing span (child of the investigation root span).
+  // When traceCtx is undefined the span is created without a parent, which
+  // is fine — the OTel API treats non-recording spans as no-ops.
+  const { span: agentSpan, ctx: agentCtx } = startAgentSpan(
+    traceCtx ?? (await import('@opentelemetry/api')).context.active(),
+    {
+      investigation_id: investigationId,
+      agent_name: agentName,
+      domain,
+    },
+  );
 
   log.info('Dispatching agent', {
     investigation_id: investigationId,
@@ -68,6 +86,9 @@ export async function dispatchAgent(options: DispatchOptions): Promise<AgentOutp
   const runOptions: AgentRunOptions = {
     investigationContext,
     mcpRegistry,
+    traceCtx: agentCtx,
+    investigationId,
+    domain,
     onOutput: async (output: AgentOutput) => {
       // Persist output content to DB
       try {
@@ -136,6 +157,12 @@ export async function dispatchAgent(options: DispatchOptions): Promise<AgentOutp
     pmAgentTokensTotal.inc({ agent: agentName, direction: 'input' }, output.tokenUsage.inputTokens);
     pmAgentTokensTotal.inc({ agent: agentName, direction: 'output' }, output.tokenUsage.outputTokens);
 
+    // Enrich span with outcome
+    agentSpan.setAttribute('pm.iterations', output.iterations);
+    agentSpan.setAttribute('pm.stop_reason', output.stopReason);
+    agentSpan.setAttribute('pm.tokens_total', output.tokenUsage.totalTokens);
+    agentSpan.end();
+
     log.info('Agent completed', {
       investigation_id: investigationId,
       agent: agentName,
@@ -148,6 +175,10 @@ export async function dispatchAgent(options: DispatchOptions): Promise<AgentOutp
     return output;
   } catch (err) {
     const durationMs = Date.now() - startTime;
+
+    recordSpanError(agentSpan, err);
+    agentSpan.end();
+
     log.error('Agent failed', {
       investigation_id: investigationId,
       agent: agentName,

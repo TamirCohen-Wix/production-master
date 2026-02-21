@@ -18,17 +18,23 @@
  */
 
 import { Worker, type Job } from 'bullmq';
+import { context as otelContext, type Context as OtelContext } from '@opentelemetry/api';
 import { query, transaction } from '../storage/db.js';
 import type { McpRegistry } from '../workers/tool-handler.js';
 import { dispatchAgent } from './dispatcher.js';
 import { runHypothesisLoop } from './hypothesis-loop.js';
-import { createLogger } from '../observability/index.js';
 import {
+  createLogger,
+  startInvestigationSpan,
+  recordSpanError,
+  extractTraceContext,
+  getActiveTraceId,
   pmInvestigationDurationSeconds,
   pmInvestigationVerdict,
   pmInvestigationHypothesisIterations,
   pmQueueDepth,
 } from '../observability/index.js';
+import type { TraceCarrier } from '../observability/index.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -95,8 +101,10 @@ async function updateStatus(investigationId: string, phase: Phase, status: strin
 async function runPhase(
   phase: Phase,
   investigationId: string,
-  context: string,
+  phaseContext: string,
   mcpRegistry: McpRegistry,
+  traceCtx?: OtelContext,
+  domain?: string,
 ): Promise<PhaseResult> {
   const start = Date.now();
 
@@ -111,8 +119,10 @@ async function runPhase(
         dispatchAgent({
           investigationId,
           agentName: agent,
-          investigationContext: context,
+          investigationContext: phaseContext,
           mcpRegistry,
+          traceCtx,
+          domain,
         }),
       ),
     );
@@ -135,14 +145,16 @@ async function runPhase(
     output = outputs.join('\n\n---\n\n');
   } else if (phase === 'deliver') {
     // Phase 9: persist and notify — no agent call needed
-    output = context;
+    output = phaseContext;
   } else {
     // Standard single-agent phase
     const agentOutput = await dispatchAgent({
       investigationId,
       agentName: phase,
-      investigationContext: context,
+      investigationContext: phaseContext,
       mcpRegistry,
+      traceCtx,
+      domain,
     });
     output = agentOutput.content;
   }
@@ -172,16 +184,33 @@ async function runPhase(
 // ---------------------------------------------------------------------------
 
 async function executeInvestigation(
-  job: InvestigationJob,
+  job: InvestigationJob & TraceCarrier,
   mcpRegistry: McpRegistry,
 ): Promise<void> {
   const { investigation_id: investigationId } = job;
   const startTime = Date.now();
 
+  // Extract trace context propagated from the API request via BullMQ job data.
+  // Falls back to the current active context when no trace header is present.
+  const parentCtx = extractTraceContext(job);
+
+  // Start the root investigation span
+  const { span: investigationSpan, ctx: investigationCtx } =
+    startInvestigationSpan({
+      investigation_id: investigationId,
+      domain: job.domain,
+    });
+
+  // Use parent context from BullMQ when available, otherwise use the new span context
+  const rootCtx = parentCtx === otelContext.active() ? investigationCtx : parentCtx;
+
+  const traceId = getActiveTraceId();
+
   log.info('Investigation started', {
     investigation_id: investigationId,
     ticket_id: job.ticket_id,
     mode: job.mode,
+    trace_id: traceId,
   });
 
   let accumulatedContext = `Ticket: ${job.ticket_id}\nDomain: ${job.domain ?? 'auto-detect'}\nMode: ${job.mode}\nRequested by: ${job.requested_by}`;
@@ -194,6 +223,7 @@ async function executeInvestigation(
           investigationId,
           gatherContext: accumulatedContext,
           mcpRegistry,
+          traceCtx: rootCtx,
           domain: job.domain,
         });
 
@@ -205,7 +235,7 @@ async function executeInvestigation(
         await updateStatus(investigationId, 'deliver', 'running:deliver');
         await deliverReport(investigationId, accumulatedContext, job.callback_url);
       } else {
-        const result = await runPhase(phase, investigationId, accumulatedContext, mcpRegistry);
+        const result = await runPhase(phase, investigationId, accumulatedContext, mcpRegistry, rootCtx, job.domain);
         accumulatedContext += `\n\n[${phase}]\n${result.output}`;
       }
     }
@@ -218,12 +248,18 @@ async function executeInvestigation(
     );
 
     const domainLabel = job.domain ?? 'unknown';
+
+    investigationSpan.setAttribute('pm.status', 'completed');
+    investigationSpan.setAttribute('pm.duration_seconds', durationSec);
+    investigationSpan.end();
+
     pmInvestigationDurationSeconds.observe({ domain: domainLabel, status: 'completed' }, durationSec);
     pmInvestigationVerdict.inc({ verdict: 'completed' });
 
     log.info('Investigation completed', {
       investigation_id: investigationId,
       duration_seconds: durationSec,
+      trace_id: traceId,
     });
   } catch (err) {
     const durationSec = (Date.now() - startTime) / 1000;
@@ -234,6 +270,10 @@ async function executeInvestigation(
       [err instanceof Error ? err.message : String(err), investigationId],
     );
 
+    recordSpanError(investigationSpan, err);
+    investigationSpan.setAttribute('pm.status', 'failed');
+    investigationSpan.end();
+
     pmInvestigationDurationSeconds.observe({ domain: domainLabel, status: 'failed' }, durationSec);
     pmInvestigationVerdict.inc({ verdict: 'failed' });
 
@@ -241,6 +281,7 @@ async function executeInvestigation(
       investigation_id: investigationId,
       duration_seconds: durationSec,
       error: err instanceof Error ? err.message : String(err),
+      trace_id: traceId,
     });
 
     throw err;

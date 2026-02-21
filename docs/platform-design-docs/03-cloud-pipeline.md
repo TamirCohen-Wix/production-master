@@ -989,7 +989,7 @@ flowchart TD
 ```bash
 # Build & push
 docker build -t production-master-cloud:$(git describe --tags) -f adapter-cloud/Dockerfile .
-docker push registry.wix.com/production-master-cloud:$(git describe --tags)
+docker push <your-registry>/production-master-cloud:$(git describe --tags)
 
 # Deploy to staging
 helm upgrade --install production-master-staging adapter-cloud/helm/ \

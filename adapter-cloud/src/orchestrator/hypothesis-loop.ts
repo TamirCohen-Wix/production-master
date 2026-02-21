@@ -6,14 +6,20 @@
  * 2. A verification agent tests the hypothesis against evidence
  * 3. If confidence is above threshold, accept; otherwise iterate
  * 4. Maximum 5 iterations before accepting the best hypothesis
+ *
+ * Each iteration is wrapped in an OpenTelemetry span for distributed
+ * tracing visibility.
  */
 
+import type { Context as OtelContext } from '@opentelemetry/api';
 import { dispatchAgent, type DispatchOptions } from './dispatcher.js';
 import type { AgentOutput } from '../workers/agent-runner.js';
 import type { McpRegistry } from '../workers/tool-handler.js';
 import { query } from '../storage/db.js';
-import { createLogger } from '../observability/index.js';
 import {
+  createLogger,
+  startHypothesisSpan,
+  recordSpanError,
   pmHypothesisIterations,
   pmHypothesisConfidence,
   pmInvestigationHypothesisIterations,
@@ -48,7 +54,9 @@ export interface HypothesisLoopOptions {
   confidenceThreshold?: number;
   /** Maximum iterations (default: 5) */
   maxIterations?: number;
-  /** Domain for metric labelling */
+  /** Parent trace context for creating child spans */
+  traceCtx?: OtelContext;
+  /** Domain for metric labelling / span attributes */
   domain?: string;
 }
 
@@ -127,6 +135,7 @@ export async function runHypothesisLoop(options: HypothesisLoopOptions): Promise
     mcpRegistry,
     confidenceThreshold = DEFAULT_CONFIDENCE_THRESHOLD,
     maxIterations = DEFAULT_MAX_ITERATIONS,
+    traceCtx,
     domain,
   } = options;
   const domainLabel = domain ?? 'unknown';
@@ -141,69 +150,64 @@ export async function runHypothesisLoop(options: HypothesisLoopOptions): Promise
   let bestHypothesis: Hypothesis | undefined;
 
   for (let iteration = 1; iteration <= maxIterations; iteration++) {
-    // --- Phase: Generate hypothesis ---
-    const previousContext = allHypotheses.length > 0
-      ? `\n\nPrevious hypotheses and their verification results:\n${JSON.stringify(allHypotheses, null, 2)}`
-      : '';
+    const hypothesisId = `${investigationId}:h${iteration}`;
 
-    const dispatchOpts: DispatchOptions = {
-      investigationId,
-      agentName: 'hypotheses',
-      investigationContext: `${gatherContext}${previousContext}`,
-      mcpRegistry,
-    };
+    // Start a span for this hypothesis iteration
+    const spanInfo = traceCtx
+      ? startHypothesisSpan(traceCtx, {
+          investigation_id: investigationId,
+          hypothesis_id: hypothesisId,
+          iteration,
+          domain,
+        })
+      : undefined;
 
-    const hypothesisOutput = await dispatchAgent(dispatchOpts);
-    const hypothesis = parseHypothesisOutput(hypothesisOutput, iteration);
-
-    log.info('Hypothesis generated', {
-      investigation_id: investigationId,
-      iteration,
-      initial_confidence: hypothesis.confidence,
-    });
-
-    // --- Phase: Verify hypothesis ---
-    const verifyOutput = await dispatchAgent({
-      investigationId,
-      agentName: 'verification',
-      investigationContext: `Hypothesis to verify:\n${JSON.stringify(hypothesis)}\n\nGathered evidence:\n${gatherContext}`,
-      mcpRegistry,
-    });
-
-    const verified = parseVerificationOutput(verifyOutput, hypothesis);
-    allHypotheses.push(verified);
-
-    log.info('Hypothesis verified', {
-      investigation_id: investigationId,
-      iteration,
-      confidence: verified.confidence,
-    });
-
-    // Track best hypothesis
-    if (!bestHypothesis || verified.confidence > bestHypothesis.confidence) {
-      bestHypothesis = verified;
-    }
-
-    // --- Persist iteration to DB ---
     try {
-      await query(
-        `INSERT INTO hypothesis_iterations (investigation_id, iteration, hypothesis, confidence, evidence_summary, verified)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [investigationId, iteration, verified.hypothesis, verified.confidence, verified.evidence_summary, verified.verified],
-      );
-    } catch (err) {
-      log.error('Failed to persist hypothesis iteration', {
+      // --- Phase: Generate hypothesis ---
+      const previousContext = allHypotheses.length > 0
+        ? `\n\nPrevious hypotheses and their verification results:\n${JSON.stringify(allHypotheses, null, 2)}`
+        : '';
+
+      const dispatchOpts: DispatchOptions = {
+        investigationId,
+        agentName: 'hypotheses',
+        investigationContext: `${gatherContext}${previousContext}`,
+        mcpRegistry,
+        traceCtx: spanInfo?.ctx ?? traceCtx,
+        domain,
+      };
+
+      const hypothesisOutput = await dispatchAgent(dispatchOpts);
+      const hypothesis = parseHypothesisOutput(hypothesisOutput, iteration);
+
+      log.info('Hypothesis generated', {
         investigation_id: investigationId,
         iteration,
-        error: err instanceof Error ? err.message : String(err),
+        initial_confidence: hypothesis.confidence,
       });
-    }
 
-    // --- Check convergence ---
-    if (verified.confidence >= confidenceThreshold) {
-      log.info('Hypothesis loop converged', {
+      // --- Phase: Verify hypothesis ---
+      const verifyOutput = await dispatchAgent({
+        investigationId,
+        agentName: 'verification',
+        investigationContext: `Hypothesis to verify:\n${JSON.stringify(hypothesis)}\n\nGathered evidence:\n${gatherContext}`,
+        mcpRegistry,
+        traceCtx: spanInfo?.ctx ?? traceCtx,
+        domain,
+      });
+
+      const verified = parseVerificationOutput(verifyOutput, hypothesis);
+      allHypotheses.push(verified);
+
+      // Enrich span with outcome
+      if (spanInfo) {
+        spanInfo.span.setAttribute('pm.confidence', verified.confidence);
+        spanInfo.span.setAttribute('pm.verified', verified.verified);
+      }
+
+      log.info('Hypothesis verified', {
         investigation_id: investigationId,
-        iterations: iteration,
+        iteration,
         confidence: verified.confidence,
       });
 
@@ -211,12 +215,56 @@ export async function runHypothesisLoop(options: HypothesisLoopOptions): Promise
       pmHypothesisConfidence.observe(verified.confidence);
       pmInvestigationHypothesisIterations.observe({ domain: domainLabel }, iteration);
 
-      return {
-        accepted_hypothesis: verified,
-        all_hypotheses: allHypotheses,
-        iterations: iteration,
-        converged: true,
-      };
+      // Track best hypothesis
+      if (!bestHypothesis || verified.confidence > bestHypothesis.confidence) {
+        bestHypothesis = verified;
+      }
+
+      // --- Persist iteration to DB ---
+      try {
+        await query(
+          `INSERT INTO hypothesis_iterations (investigation_id, iteration, hypothesis, confidence, evidence_summary, verified)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [investigationId, iteration, verified.hypothesis, verified.confidence, verified.evidence_summary, verified.verified],
+        );
+      } catch (err) {
+        log.error('Failed to persist hypothesis iteration', {
+          investigation_id: investigationId,
+          iteration,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+
+      // End the hypothesis span successfully
+      if (spanInfo) {
+        spanInfo.span.end();
+      }
+
+      // --- Check convergence ---
+      if (verified.confidence >= confidenceThreshold) {
+        log.info('Hypothesis loop converged', {
+          investigation_id: investigationId,
+          iterations: iteration,
+          confidence: verified.confidence,
+        });
+
+        pmHypothesisIterations.observe(iteration);
+        pmHypothesisConfidence.observe(verified.confidence);
+
+        return {
+          accepted_hypothesis: verified,
+          all_hypotheses: allHypotheses,
+          iterations: iteration,
+          converged: true,
+        };
+      }
+    } catch (err) {
+      // Record error on the hypothesis span and re-throw
+      if (spanInfo) {
+        recordSpanError(spanInfo.span, err);
+        spanInfo.span.end();
+      }
+      throw err;
     }
   }
 

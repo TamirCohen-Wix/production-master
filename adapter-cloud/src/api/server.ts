@@ -8,7 +8,7 @@
  */
 
 import express from 'express';
-import { initTracing, initMetrics, getMetricsEndpoint, createLogger } from '../observability/index.js';
+import { initTracing, shutdownTracing, initMetrics, getMetricsEndpoint, createLogger } from '../observability/index.js';
 import { McpRegistry } from '../mcp/registry.js';
 import type { McpRegistry as McpRegistryInterface, McpServer, McpToolInfo, McpToolResult } from '../workers/tool-handler.js';
 import { closePool } from '../storage/db.js';
@@ -41,6 +41,11 @@ import { healthCheckRouter, closeHealthCheckQueue } from './routes/health-check.
 
 // Orchestrator
 import { startEngine, stopEngine } from '../orchestrator/engine.js';
+
+// Scheduled jobs
+import { startScheduler, stopScheduler } from '../jobs/scheduler.js';
+import { registerHealthCheckJob, setHealthCheckRegistry } from '../jobs/health-check.js';
+import { registerStaleTicketReviewJob } from '../jobs/stale-ticket-review.js';
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -185,6 +190,19 @@ async function start(): Promise<void> {
     });
   }
 
+  // Start scheduled jobs (health check, stale ticket review)
+  try {
+    setHealthCheckRegistry(mcpRegistry);
+    registerHealthCheckJob();
+    registerStaleTicketReviewJob();
+    await startScheduler();
+    log.info('Scheduled jobs started');
+  } catch (err) {
+    log.warn('Scheduled jobs failed to start', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
   // Start HTTP server
   const server = app.listen(PORT, () => {
     log.info(`Server listening on port ${PORT}`, {
@@ -208,6 +226,16 @@ async function start(): Promise<void> {
       log.info('Orchestrator engine stopped');
     } catch (err) {
       log.error('Error stopping orchestrator', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+
+    try {
+      // Stop scheduled jobs
+      await stopScheduler();
+      log.info('Scheduled jobs stopped');
+    } catch (err) {
+      log.error('Error stopping scheduled jobs', {
         error: err instanceof Error ? err.message : String(err),
       });
     }
@@ -245,6 +273,16 @@ async function start(): Promise<void> {
       log.info('Database pool closed');
     } catch (err) {
       log.error('Error closing database pool', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+
+    try {
+      // Flush pending spans and shut down the OpenTelemetry SDK
+      await shutdownTracing();
+      log.info('Tracing shut down');
+    } catch (err) {
+      log.error('Error shutting down tracing', {
         error: err instanceof Error ? err.message : String(err),
       });
     }
