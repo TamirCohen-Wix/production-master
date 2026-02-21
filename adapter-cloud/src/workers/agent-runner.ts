@@ -44,6 +44,8 @@ export interface AgentRunOptions {
   investigationId?: string;
   /** Domain name for span attributes */
   domain?: string;
+  /** Pipeline phase issuing this agent run (e.g. 'gather', 'hypothesis') */
+  phase?: string;
 }
 
 export interface AgentOutput {
@@ -136,7 +138,7 @@ export async function runAgent(
     investigationId: options.investigationId,
     domain: options.domain,
     agentName,
-    phase: agentName,
+    phase: options.phase,
   };
 
   // Agentic loop

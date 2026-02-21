@@ -13,6 +13,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import JSZip from 'jszip';
 
+// Set required env vars before module imports
+vi.hoisted(() => {
+  process.env.MCP_COLLECTION_STARTED_AT = '2026-02-21T19:26:07.000Z';
+});
+
 // ---------------------------------------------------------------------------
 // Mocks — vi.hoisted() ensures variables are available to hoisted vi.mock()
 // ---------------------------------------------------------------------------
@@ -463,11 +468,19 @@ describe('GET /api/v1/investigations/:id/bundle', () => {
   it('should require authentication when auth middleware is enabled', async () => {
     const previousApiKeys = process.env.API_KEYS;
     process.env.API_KEYS = 'valid-key';
-    const authedApp = buildAppWithRealAuth();
-    const res = await request(authedApp, 'GET', '/api/v1/investigations/inv-100/bundle');
-    expect(res.status).toBe(401);
-    expect(res.body.error).toBeDefined();
-    process.env.API_KEYS = previousApiKeys;
+
+    try {
+      const authedApp = buildAppWithRealAuth();
+      const res = await request(authedApp, 'GET', '/api/v1/investigations/inv-100/bundle');
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBeDefined();
+    } finally {
+      if (previousApiKeys === undefined) {
+        delete process.env.API_KEYS;
+      } else {
+        process.env.API_KEYS = previousApiKeys;
+      }
+    }
   });
 
   it('should return 404 when investigation does not exist', async () => {

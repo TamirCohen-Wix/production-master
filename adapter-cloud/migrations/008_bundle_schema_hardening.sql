@@ -2,7 +2,7 @@
 -- Align runtime schema expectations with database shape and add forward-only
 -- MCP call persistence for bundle export.
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- pgcrypto extension is now enabled in migration 001
 
 -- ---------------------------------------------------------------------------
 -- investigations: align with runtime writes/reads
@@ -29,6 +29,9 @@ SET mode = COALESCE(mode, 'balanced'),
 -- ---------------------------------------------------------------------------
 -- agent_runs: keep legacy columns and add runtime metadata columns
 -- ---------------------------------------------------------------------------
+ALTER TABLE agent_runs
+  ALTER COLUMN phase DROP NOT NULL;
+
 ALTER TABLE agent_runs
   ADD COLUMN IF NOT EXISTS iterations INTEGER DEFAULT 1,
   ADD COLUMN IF NOT EXISTS token_usage JSONB DEFAULT '{}'::jsonb,

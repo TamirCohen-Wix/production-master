@@ -18,7 +18,18 @@ import type { QueryResultRow } from 'pg';
 // ---------------------------------------------------------------------------
 
 const log = createLogger('api:investigations');
-const MCP_COLLECTION_STARTED_AT = process.env.MCP_COLLECTION_STARTED_AT ?? '2026-02-21T19:26:07.000Z';
+
+const mcpCollectionStartedAtRaw = process.env.MCP_COLLECTION_STARTED_AT;
+if (!mcpCollectionStartedAtRaw) {
+  throw new Error('MCP_COLLECTION_STARTED_AT environment variable is required but was not set');
+}
+const mcpCollectionStartedAtMs = Date.parse(mcpCollectionStartedAtRaw);
+if (Number.isNaN(mcpCollectionStartedAtMs)) {
+  throw new Error(
+    `MCP_COLLECTION_STARTED_AT environment variable must be a valid date string, got: "${mcpCollectionStartedAtRaw}"`,
+  );
+}
+const MCP_COLLECTION_STARTED_AT = new Date(mcpCollectionStartedAtMs).toISOString();
 
 // ---------------------------------------------------------------------------
 // Router
