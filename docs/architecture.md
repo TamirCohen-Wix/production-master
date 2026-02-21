@@ -122,9 +122,6 @@ flowchart LR
     VE --> |Confirmed| FL[Fix List]
     FL --> DC[Documenter]
     DC --> PB[Publisher]
-
-    style DATA_AGENTS fill:#e8f4fd,stroke:#4a90d9
-    style SYNTHESIS fill:#fdf2e8,stroke:#d9904a
 ```
 
 **Key principles:**
