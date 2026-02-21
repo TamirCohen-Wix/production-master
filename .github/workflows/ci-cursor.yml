@@ -50,7 +50,7 @@ jobs:
 
       - name: Check required commands
         run: |
-          EXPECTED="production-master.md grafana-query.md slack-search.md production-changes.md resolve-artifact.md fire-console.md update-context.md production-master-report.md production-master-feedback.md git-update-agents.md"
+          EXPECTED="production-master.md grafana-query.md slack-search.md production-changes.md resolve-artifact.md fire-console.md update-context.md production-master-report.md production-master-feedback.md git-update-agents.md similar-investigations.md"
           MISSING=0
           for cmd in $EXPECTED; do
             if [ ! -f "adapter-cursor/commands/$cmd" ]; then
@@ -59,10 +59,10 @@ jobs:
             fi
           done
           TOTAL=$(ls adapter-cursor/commands/*.md 2>/dev/null | wc -l | tr -d ' ')
-          echo "Commands: $TOTAL found (expected 10)"
+          echo "Commands: $TOTAL found (expected 11)"
           [ "$MISSING" -eq 0 ] || exit 1
-          [ "$TOTAL" -eq 10 ] || { echo "FAIL: expected 10 command files, found $TOTAL"; exit 1; }
-          echo "OK: all 10 expected commands present"
+          [ "$TOTAL" -eq 11 ] || { echo "FAIL: expected 11 command files, found $TOTAL"; exit 1; }
+          echo "OK: all 11 expected commands present"
 
   validate-agents:
     name: Validate agents
