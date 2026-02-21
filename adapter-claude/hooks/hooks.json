@@ -12,6 +12,17 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$CLAUDE_TOOL_INPUT\" | grep -qiE '(rm -rf|git push --force|git reset --hard|DROP TABLE|DELETE FROM)' && echo 'BLOCK: Dangerous command detected during investigation' && exit 2 || exit 0"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write",
@@ -19,6 +30,15 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/scripts/validate-report-links.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$(date -u +%Y-%m-%dT%H:%M:%SZ) | $CLAUDE_TOOL_NAME | ${CLAUDE_TOOL_INPUT:0:200}\" >> /tmp/.production-master-mcp-trace.log"
           }
         ]
       }

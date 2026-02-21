@@ -29,12 +29,20 @@ echo ""
 header "1. Source Directory"
 # ═══════════════════════════════════════════════════════════════════════
 
+REPO_ROOT="$(cd "$PLUGIN_DIR/.." && pwd)"
+declare -A DIR_MAP=(
+  [commands]="$PLUGIN_DIR/commands"
+  [agents]="$REPO_ROOT/core/agents"
+  [skills]="$REPO_ROOT/core/skills"
+  [hooks]="$PLUGIN_DIR/hooks"
+)
 for dir in commands agents skills hooks; do
-  if [ -d "$PLUGIN_DIR/$dir" ]; then
-    count=$(ls "$PLUGIN_DIR/$dir" | wc -l | tr -d ' ')
+  DIR_PATH="${DIR_MAP[$dir]}"
+  if [ -d "$DIR_PATH" ]; then
+    count=$(ls "$DIR_PATH" | wc -l | tr -d ' ')
     ok "$dir/ ($count items)"
   else
-    fail "$dir/ — MISSING from source"
+    fail "$dir/ — MISSING from source (expected: $DIR_PATH)"
   fi
 done
 
