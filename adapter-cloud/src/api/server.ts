@@ -5,6 +5,9 @@
  * - Mounts REST routes under /api/v1/
  * - Exposes /metrics for Prometheus scraping
  * - Graceful shutdown on SIGTERM / SIGINT
+ *
+ * Exports `createExpressApp()` for use by the Wix Serverless entry point
+ * (adapter-cloud/src/index.ts) and standalone server mode.
  */
 
 import express from 'express';
@@ -113,43 +116,52 @@ initTracing();
 initMetrics();
 
 // ---------------------------------------------------------------------------
-// App
+// App factory
 // ---------------------------------------------------------------------------
 
-const app = express();
+/**
+ * Create and configure the Express application.
+ * Returns the app without calling listen() — suitable for both
+ * Wix Serverless (addHttpService) and standalone modes.
+ */
+export function createExpressApp(): express.Express {
+  const app = express();
 
-// Body parsing
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true }));
+  // Body parsing
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true }));
 
-// Health routes are unauthenticated
-app.use('/', healthRouter);
+  // Health routes are unauthenticated
+  app.use('/', healthRouter);
 
-// Prometheus metrics endpoint (unauthenticated for scraper access)
-app.get('/metrics', getMetricsEndpoint);
+  // Prometheus metrics endpoint (unauthenticated for scraper access)
+  app.get('/metrics', getMetricsEndpoint);
 
-// Webhook routes — authenticated via their own signature verification, not API keys
-app.use('/api/v1/webhooks/jira', jiraWebhookRouter);
-app.use('/api/v1/webhooks/slack', slackWebhookRouter);
-app.use('/api/v1/webhooks/pagerduty', pagerdutyWebhookRouter);
-app.use('/api/v1/webhooks/grafana-alert', grafanaAlertWebhookRouter);
-app.use('/api/v1/webhooks/deploy', cicdWebhookRouter);
+  // Webhook routes — authenticated via their own signature verification, not API keys
+  app.use('/api/v1/webhooks/jira', jiraWebhookRouter);
+  app.use('/api/v1/webhooks/slack', slackWebhookRouter);
+  app.use('/api/v1/webhooks/pagerduty', pagerdutyWebhookRouter);
+  app.use('/api/v1/webhooks/grafana-alert', grafanaAlertWebhookRouter);
+  app.use('/api/v1/webhooks/deploy', cicdWebhookRouter);
 
-// All other /api/v1 routes require authentication
-app.use('/api/v1', authMiddleware);
+  // All other /api/v1 routes require authentication
+  app.use('/api/v1', authMiddleware);
 
-// Mount API routes
-app.use('/api/v1/investigate', investigateRouter);
-app.use('/api/v1/investigate/batch', batchRouter);
-app.use('/api/v1/investigations', investigationsRouter);
-app.use('/api/v1/investigations', similarRouter);
-app.use('/api/v1/investigations', feedbackRouter);
-app.use('/api/v1/analytics', analyticsRouter);
-app.use('/api/v1/query', queriesRouter);
-app.use('/api/v1/domains', domainsRouter);
-app.use('/api/v1/onboard', onboardingRouter);
-app.use('/api/v1/health-check', healthCheckRouter);
-app.use('/api/v1/meta', metaRouter);
+  // Mount API routes
+  app.use('/api/v1/investigate', investigateRouter);
+  app.use('/api/v1/investigate/batch', batchRouter);
+  app.use('/api/v1/investigations', investigationsRouter);
+  app.use('/api/v1/investigations', similarRouter);
+  app.use('/api/v1/investigations', feedbackRouter);
+  app.use('/api/v1/analytics', analyticsRouter);
+  app.use('/api/v1/query', queriesRouter);
+  app.use('/api/v1/domains', domainsRouter);
+  app.use('/api/v1/onboard', onboardingRouter);
+  app.use('/api/v1/health-check', healthCheckRouter);
+  app.use('/api/v1/meta', metaRouter);
+
+  return app;
+}
 
 // ---------------------------------------------------------------------------
 // Startup
@@ -204,102 +216,112 @@ async function start(): Promise<void> {
     });
   }
 
-  // Start HTTP server
-  const server = app.listen(PORT, () => {
-    log.info(`Server listening on port ${PORT}`, {
-      port: PORT,
-      node_env: process.env.NODE_ENV ?? 'development',
-    });
-  });
+  const app = createExpressApp();
 
-  // --- Graceful shutdown ---
-  const shutdown = async (signal: string) => {
-    log.info(`Received ${signal}, shutting down gracefully...`);
-
-    // Stop accepting new connections
-    server.close(() => {
-      log.info('HTTP server closed');
+  // Only bind to a port when running as a standalone server.
+  // When hosted inside Wix Serverless, the runtime calls addHttpService()
+  // instead, so listen() must not be called.
+  if (process.env.STANDALONE_SERVER !== 'false') {
+    const server = app.listen(PORT, () => {
+      log.info(`Server listening on port ${PORT}`, {
+        port: PORT,
+        node_env: process.env.NODE_ENV ?? 'development',
+      });
     });
 
-    try {
-      // Stop orchestrator worker
-      await stopEngine();
-      log.info('Orchestrator engine stopped');
-    } catch (err) {
-      log.error('Error stopping orchestrator', {
-        error: err instanceof Error ? err.message : String(err),
+    // --- Graceful shutdown ---
+    const shutdown = async (signal: string) => {
+      log.info(`Received ${signal}, shutting down gracefully...`);
+
+      // Stop accepting new connections
+      server.close(() => {
+        log.info('HTTP server closed');
       });
-    }
 
-    try {
-      // Stop scheduled jobs
-      await stopScheduler();
-      log.info('Scheduled jobs stopped');
-    } catch (err) {
-      log.error('Error stopping scheduled jobs', {
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+      try {
+        // Stop orchestrator worker
+        await stopEngine();
+        log.info('Orchestrator engine stopped');
+      } catch (err) {
+        log.error('Error stopping orchestrator', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
 
-    try {
-      // Close BullMQ queues
-      await closeInvestigateQueue();
-      await closeBatchQueue();
-      await closeJiraWebhookQueue();
-      await closeSlackQueue();
-      await closePagerdutyQueue();
-      await closeGrafanaAlertQueue();
-      await closeCicdQueues();
-      await closeHealthCheckQueue();
-      log.info('Investigation queues closed');
-    } catch (err) {
-      log.error('Error closing investigation queues', {
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+      try {
+        // Stop scheduled jobs
+        await stopScheduler();
+        log.info('Scheduled jobs stopped');
+      } catch (err) {
+        log.error('Error stopping scheduled jobs', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
 
-    try {
-      // Disconnect MCP clients
-      await mcpRegistry.disconnectAll();
-      log.info('MCP clients disconnected');
-    } catch (err) {
-      log.error('Error disconnecting MCP clients', {
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+      try {
+        // Close BullMQ queues
+        await closeInvestigateQueue();
+        await closeBatchQueue();
+        await closeJiraWebhookQueue();
+        await closeSlackQueue();
+        await closePagerdutyQueue();
+        await closeGrafanaAlertQueue();
+        await closeCicdQueues();
+        await closeHealthCheckQueue();
+        log.info('Investigation queues closed');
+      } catch (err) {
+        log.error('Error closing investigation queues', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
 
-    try {
-      // Close database pool
-      await closePool();
-      log.info('Database pool closed');
-    } catch (err) {
-      log.error('Error closing database pool', {
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+      try {
+        // Disconnect MCP clients
+        await mcpRegistry.disconnectAll();
+        log.info('MCP clients disconnected');
+      } catch (err) {
+        log.error('Error disconnecting MCP clients', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
 
-    try {
-      // Flush pending spans and shut down the OpenTelemetry SDK
-      await shutdownTracing();
-      log.info('Tracing shut down');
-    } catch (err) {
-      log.error('Error shutting down tracing', {
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+      try {
+        // Close database pool
+        await closePool();
+        log.info('Database pool closed');
+      } catch (err) {
+        log.error('Error closing database pool', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
 
-    process.exit(0);
-  };
+      try {
+        // Flush pending spans and shut down the OpenTelemetry SDK
+        await shutdownTracing();
+        log.info('Tracing shut down');
+      } catch (err) {
+        log.error('Error shutting down tracing', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
 
-  process.on('SIGTERM', () => void shutdown('SIGTERM'));
-  process.on('SIGINT', () => void shutdown('SIGINT'));
+      process.exit(0);
+    };
+
+    process.on('SIGTERM', () => void shutdown('SIGTERM'));
+    process.on('SIGINT', () => void shutdown('SIGINT'));
+  } // end if (STANDALONE_SERVER !== 'false')
 }
 
-start().catch((err) => {
-  log.error('Server startup failed', {
-    error: err instanceof Error ? err.message : String(err),
+// Only auto-start when running as a standalone server process.
+// When imported by the Wix Serverless entry point (src/index.ts),
+// the runtime manages lifecycle — start() must not run as a side effect.
+if (process.env.STANDALONE_SERVER !== 'false') {
+  start().catch((err) => {
+    log.error('Server startup failed', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    process.exit(1);
   });
-  process.exit(1);
-});
+}
 
-export { app };
