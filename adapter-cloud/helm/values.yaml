@@ -60,6 +60,9 @@ hpa:
   minReplicas: 1
   maxReplicas: 10
   targetCPUUtilizationPercentage: 70
+  worker:
+    minReplicas: 1
+    maxReplicas: 10
 
 postgresql:
   host: postgres

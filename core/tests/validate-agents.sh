@@ -12,6 +12,7 @@ EXPECTED_FILES=(
   fix-list.md
   grafana-analyzer.md
   hypotheses.md
+  meta-improver.md
   production-analyzer.md
   publisher.md
   skeptic.md

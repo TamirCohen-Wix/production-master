@@ -138,22 +138,24 @@ jobs:
 
       - name: Simulate install structure
         run: |
-          # Simulate what the plugin cache should look like
+          # Simulate what the plugin cache should look like (monorepo layout)
           CACHE="/tmp/plugin-test"
-          mkdir -p "$CACHE"
-          cp -r adapter-claude/commands core/agents core/skills adapter-claude/hooks mcp-servers.json "$CACHE/"
+          mkdir -p "$CACHE/adapter-claude" "$CACHE/core"
+          cp -r adapter-claude/commands adapter-claude/hooks "$CACHE/adapter-claude/"
+          cp -r core/agents core/skills "$CACHE/core/"
+          cp mcp-servers.json "$CACHE/"
 
           ERRORS=0
           for cmd in production-master.md git-update-agents.md update-context.md fire-console.md grafana-query.md production-changes.md resolve-artifact.md slack-search.md production-master-report.md; do
-            [ -f "$CACHE/commands/$cmd" ] || { echo "FAIL: commands/$cmd"; ERRORS=$((ERRORS + 1)); }
+            [ -f "$CACHE/adapter-claude/commands/$cmd" ] || { echo "FAIL: adapter-claude/commands/$cmd"; ERRORS=$((ERRORS + 1)); }
           done
 
-          for agent in artifact-resolver.md bug-context.md codebase-semantics.md documenter.md fix-list.md grafana-analyzer.md hypotheses.md production-analyzer.md publisher.md skeptic.md slack-analyzer.md verifier.md; do
-            [ -f "$CACHE/agents/$agent" ] || { echo "FAIL: agents/$agent"; ERRORS=$((ERRORS + 1)); }
+          for agent in artifact-resolver.md bug-context.md codebase-semantics.md documenter.md fix-list.md grafana-analyzer.md hypotheses.md meta-improver.md production-analyzer.md publisher.md skeptic.md slack-analyzer.md verifier.md; do
+            [ -f "$CACHE/core/agents/$agent" ] || { echo "FAIL: core/agents/$agent"; ERRORS=$((ERRORS + 1)); }
           done
 
           for skill in context7 fire-console ft-release github grafana-datasource grafana-mcp jira octocode slack; do
-            [ -f "$CACHE/skills/$skill/SKILL.md" ] || { echo "FAIL: skills/$skill/SKILL.md"; ERRORS=$((ERRORS + 1)); }
+            [ -f "$CACHE/core/skills/$skill/SKILL.md" ] || { echo "FAIL: core/skills/$skill/SKILL.md"; ERRORS=$((ERRORS + 1)); }
           done
 
           [ "$ERRORS" -eq 0 ] || exit 1
