@@ -7,6 +7,7 @@
 
 import { createLogger as winstonCreateLogger, format, transports } from 'winston';
 import type { Logger } from 'winston';
+import { PanoramaTransport } from './panorama.js';
 
 const { combine, timestamp, json, errors } = format;
 
@@ -48,6 +49,11 @@ export function createLogger(module: string): Logger {
       })(),
       json(),
     ),
-    transports: [new transports.Console()],
+    transports: [
+      new transports.Console(),
+      ...(process.env.LOG_TO_PANORAMA === 'true'
+        ? [new PanoramaTransport({ serviceName: module })]
+        : []),
+    ],
   });
 }

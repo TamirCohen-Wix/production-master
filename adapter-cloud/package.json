@@ -41,12 +41,13 @@
     "zod": "^3.24.0"
   },
   "optionalDependencies": {
+    "@wix/panorama-client-node": "latest",
     "@wix/serverless-api": "latest",
-    "@wix/serverless-runtime": "latest",
-    "@wix/wix-aspects": "latest",
     "@wix/serverless-cli": "latest",
+    "@wix/serverless-runtime": "latest",
+    "@wix/serverless-testkit": "latest",
     "@wix/serverless-tsc-config": "latest",
-    "@wix/serverless-testkit": "latest"
+    "@wix/wix-aspects": "latest"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

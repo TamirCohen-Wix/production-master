@@ -61,3 +61,4 @@ export {
   pmWorkerUtilization,
 } from './metrics.js';
 export { createLogger } from './logging.js';
+export { PanoramaTransport } from './panorama.js';

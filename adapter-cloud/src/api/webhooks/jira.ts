@@ -257,9 +257,9 @@ jiraWebhookRouter.post('/', async (req, res) => {
     );
 
     // --- Metrics ---
-    pmInvestigationTotal.inc({ domain: 'unknown', status: 'queued', trigger_source: 'jira_webhook' });
+    pmInvestigationTotal.inc({ domain, status: 'queued', trigger_source: 'jira_webhook' });
 
-    // --- Best-effort auto-assignment (non-blocking for investigation enqueue) ---
+    // --- Best-effort auto-assignment (awaited for deterministic response/testing) ---
     let assignmentResult: JiraAutoAssignResult | undefined;
     const issueFields = (req.body?.issue?.fields ?? {}) as JiraIssueFields;
     const jiraAssignment = (domainConfig?.config?.jira_assignment ?? {}) as JiraAssignmentConfig;
