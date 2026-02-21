@@ -2,9 +2,9 @@ name: CI Core
 
 on:
   push:
-    paths: ['core/**']
+    paths: ['core/**', 'custom-mcps/**']
   pull_request:
-    paths: ['core/**']
+    paths: ['core/**', 'custom-mcps/**']
 
 jobs:
   validate-agents:
@@ -109,3 +109,24 @@ jobs:
           test -f "$FILE" || { echo "FAIL: $FILE missing"; exit 1; }
           test -s "$FILE" || { echo "FAIL: $FILE is empty"; exit 1; }
           echo "OK: $FILE exists and is non-empty"
+
+  validate-custom-mcps:
+    name: Validate custom MCP servers build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        server: [log-system, ticket-system, code-search, team-comms, version-control, feature-flags]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        working-directory: custom-mcps/${{ matrix.server }}
+        run: npm install
+
+      - name: Build TypeScript
+        working-directory: custom-mcps/${{ matrix.server }}
+        run: npm run build
