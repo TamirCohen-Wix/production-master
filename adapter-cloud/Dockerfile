@@ -1,27 +1,25 @@
 # Stage 1: Build
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
-ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 COPY .npmrc package*.json ./
-RUN npm install
+RUN npm ci
 
 COPY src/ ./src/
 COPY tsconfig.json ./
 RUN npx tsc
 
 # Stage 2: Production dependencies only
-FROM node:22-alpine AS deps
+FROM node:24-alpine AS deps
 
 WORKDIR /app
-ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 COPY .npmrc package*.json ./
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 
 # Stage 3: Run
-FROM node:22-alpine AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 

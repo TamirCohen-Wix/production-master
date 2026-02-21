@@ -10,9 +10,6 @@ on:
       - 'adapter-cloud/**'
       - 'core/**'
 
-env:
-  NODE_OPTIONS: '--max-old-space-size=4096'
-
 jobs:
   lint-and-typecheck:
     name: Lint & Typecheck
@@ -22,12 +19,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: adapter-cloud/package-lock.json
+          node-version: 24
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
         working-directory: adapter-cloud
 
       - name: Typecheck
@@ -42,12 +37,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: adapter-cloud/package-lock.json
+          node-version: 24
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
         working-directory: adapter-cloud
 
       - name: Run tests
