@@ -42,6 +42,7 @@ vi.mock('../../../src/observability/index.js', () => ({
     debug: vi.fn(),
   }),
   pmInvestigationTotal: { inc: mockInc },
+  injectTraceContext: <T extends Record<string, unknown>>(carrier: T): T => carrier,
 }));
 
 // ---------------------------------------------------------------------------
@@ -152,7 +153,7 @@ describe('POST /api/v1/investigate', () => {
     });
 
     // Verify metric incremented
-    expect(mockInc).toHaveBeenCalledWith({ trigger: 'api' });
+    expect(mockInc).toHaveBeenCalledWith({ domain: 'unknown', status: 'queued', trigger_source: 'api' });
   });
 
   it('should default mode to balanced when not specified', async () => {
