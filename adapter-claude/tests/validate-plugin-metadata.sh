@@ -42,6 +42,16 @@ echo "OK: plugin.json — name=$PLUGIN_NAME version=$PLUGIN_VERSION"
 
 # 3. Extract values from marketplace.json
 MARKETPLACE_NAME=$(python3 -c "import json; print(json.load(open('$MARKETPLACE_JSON'))['name'])")
+
+PLUGIN_COUNT=$(python3 -c "import json; print(len(json.load(open('$MARKETPLACE_JSON')).get('plugins', [])))")
+if [ "$PLUGIN_COUNT" -eq 0 ]; then
+  echo "FAIL: marketplace.json has no plugins entries"
+  errors=$((errors + 1))
+  echo ""
+  echo "FAILED: $errors error(s) found"
+  exit 1
+fi
+
 MARKETPLACE_PLUGIN_NAME=$(python3 -c "import json; print(json.load(open('$MARKETPLACE_JSON'))['plugins'][0]['name'])")
 MARKETPLACE_PLUGIN_VERSION=$(python3 -c "import json; print(json.load(open('$MARKETPLACE_JSON'))['plugins'][0]['version'])")
 

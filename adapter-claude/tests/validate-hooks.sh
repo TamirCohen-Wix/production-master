@@ -61,7 +61,7 @@ for hook_type, entries in data.get('hooks', {}).items():
         for hook in entry.get('hooks', []):
             cmd = hook.get('command', '')
             # Extract script paths that reference CLAUDE_PLUGIN_ROOT
-            matches = re.findall(r'\\\$\{CLAUDE_PLUGIN_ROOT\}/([^ \"]+)', cmd)
+            matches = re.findall(r'\$\{CLAUDE_PLUGIN_ROOT\}/([^ \"]+)', cmd)
             for m in matches:
                 print(m)
 ")

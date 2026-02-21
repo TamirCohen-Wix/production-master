@@ -52,7 +52,11 @@ for k in sorted(data.get('mcpServers', {})):
 ")
 
 if [ "$ROOT_KEYS" = "$CORE_KEYS" ]; then
-  SERVER_COUNT=$(echo "$ROOT_KEYS" | wc -l | tr -d ' ')
+  if [ -z "$ROOT_KEYS" ]; then
+    SERVER_COUNT=0
+  else
+    SERVER_COUNT=$(echo "$ROOT_KEYS" | wc -l | tr -d ' ')
+  fi
   echo "OK: Both files have the same $SERVER_COUNT MCP server keys"
 else
   echo "FAIL: MCP server keys differ between root and core"

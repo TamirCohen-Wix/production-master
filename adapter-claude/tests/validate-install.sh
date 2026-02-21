@@ -23,7 +23,7 @@ fi
 echo "OK: install.sh is non-empty"
 
 # 2. Syntax check (dry-run)
-if bash -n "$INSTALL_SCRIPT" 2>&1; then
+if bash -n "$INSTALL_SCRIPT" > /dev/null 2>&1; then
   echo "OK: install.sh passes syntax check (bash -n)"
 else
   echo "FAIL: install.sh has syntax errors"
@@ -34,7 +34,7 @@ fi
 for script in "$ADAPTER_DIR"/scripts/*.sh; do
   [ -f "$script" ] || continue
   name=$(basename "$script")
-  if bash -n "$script" 2>&1; then
+  if bash -n "$script" > /dev/null 2>&1; then
     echo "OK: scripts/$name passes syntax check"
   else
     echo "FAIL: scripts/$name has syntax errors"
