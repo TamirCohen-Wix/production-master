@@ -1,6 +1,8 @@
 # Production Master — Cursor IDE Adapter
 
-Cursor IDE surface for the Production Master autonomous investigation pipeline.
+> **Sibling adapters:** [Claude Code](../adapter-claude/README.md) | [Cloud](../adapter-cloud/README.md)
+
+Cursor IDE surface for the Production Master autonomous investigation pipeline. This adapter aims for feature parity with the Claude Code adapter — the same agents, skills, and orchestrator logic apply.
 
 ## Setup
 

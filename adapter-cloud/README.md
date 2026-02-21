@@ -1,4 +1,6 @@
-# adapter-cloud
+# Production Master — Cloud Adapter
+
+> **Sibling adapters:** [Claude Code](../adapter-claude/README.md) | [Cursor](../adapter-cursor/README.md)
 
 Cloud pipeline service for Production Master. Provides REST API, webhook-triggered investigations, worker-based execution, and persistent storage.
 
@@ -91,6 +93,22 @@ This adapter exposes the Production Master investigation engine as a cloud servi
 - `GET /api/v1/investigations/:id/similar` — semantically similar incidents (pgvector)
 - `POST /api/v1/investigations/:id/feedback` — submit quality feedback
 - `GET /api/v1/investigations/:id/bundle` — download debug bundle (`.zip`)
+
+## Wix Deployment
+
+When deployed to Wix infrastructure, this adapter uses:
+
+- **Wix Serverless** — Express app wrapped in `FunctionsBuilder.addHttpService()`
+- **SDM** — Secrets managed via ERB templates
+- **Panorama** — Winston transport for structured logging
+- **Base image** — `docker-repo.wixpress.com/com.wixpress.serverless.wix-serverless-latest`
+- **Artifact** — `com.wixpress.b7.production-master`
+
+Workers run as a separate plain Docker container (BullMQ, not request-scoped).
+
+## Relationship to Shared Core
+
+All core logic — agents, skills, orchestrator, output styles, domain config — lives in [`core/`](../core). This adapter wraps the shared engine with an HTTP API, webhook handlers, and background workers for headless investigation execution.
 
 ## Environment Variables
 

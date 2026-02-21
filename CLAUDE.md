@@ -6,8 +6,10 @@ This is a monorepo with shared core logic and adapter-specific layers:
 
 - **`core/`** — Adapter-agnostic: agents, skills, output-styles, orchestrator, domain config schema
 - **`adapter-claude/`** — Claude Code adapter: commands, hooks, install scripts
+- **`adapter-cursor/`** — Cursor IDE adapter: rules, commands, agents, hooks
+- **`adapter-cloud/`** — Cloud adapter: REST API, webhooks, workers (Wix Serverless)
 - **`docs/`** — User-facing documentation
-- **`design-docs/`** — Architecture & design documents
+- **`docs/platform-design-docs/`** — Architecture & design documents
 
 ## Key Paths
 
@@ -22,19 +24,22 @@ This is a monorepo with shared core logic and adapter-specific layers:
 | Commands (Claude) | `adapter-claude/commands/` |
 | Hooks (Claude) | `adapter-claude/hooks/` |
 | Install scripts | `adapter-claude/scripts/` |
+| Cursor rules | `adapter-cursor/rules/` |
+| Cursor commands | `adapter-cursor/commands/` |
+| Cloud API | `adapter-cloud/src/api/` |
+| Cloud workers | `adapter-cloud/src/workers/` |
 | MCP servers | `core/mcp-servers.json` (canonical), `mcp-servers.json` (root symlink/copy) |
 
 ## Development
 
 - Core changes go in `core/` and are shared across all adapters.
-- Claude-specific changes go in `adapter-claude/`.
-- CI runs via `.github/workflows/ci.yml` (root) and `.github/workflows/ci-claude.yml` (adapter).
-- Tests: `core/tests/` for core, `adapter-claude/tests/` for adapter.
-
-## Future Adapters
-
-- `adapter-cursor/` — Cursor IDE support (planned)
-- `adapter-cloud/` — Cloud/API deployment (planned)
+- Adapter-specific changes go in their respective `adapter-*/` directory.
+- CI workflows:
+  - `.github/workflows/ci.yml` — Core tests
+  - `.github/workflows/ci-claude.yml` — Claude Code adapter
+  - `.github/workflows/ci-cursor.yml` — Cursor adapter
+  - `.github/workflows/ci-cloud.yml` — Cloud adapter
+- Tests: `core/tests/` for core, `adapter-*/tests/` for each adapter.
 
 ## Git/Worktree Hygiene (Required)
 

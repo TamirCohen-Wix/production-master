@@ -1,6 +1,6 @@
 # Production Master
 
-> Autonomous production investigation pipeline
+> Autonomous production investigation pipeline — part of the [Production Master platform](https://github.com/TamirCohen-Wix/production-master)
 
 Production Master is an AI-powered investigation framework that automates the end-to-end process of diagnosing production incidents. It orchestrates a fleet of specialized agents that collect data from multiple sources, form and test hypotheses, and produce structured investigation reports with root-cause analysis and actionable fix recommendations.
 

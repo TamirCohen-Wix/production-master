@@ -1,13 +1,32 @@
 # Architecture
 
-> **Experimental** — This plugin is in beta. Architecture and agent behavior may change.
+> **Experimental** — This platform is in beta. Architecture and agent behavior may change.
 
 Production Master is a multi-surface investigation platform with a shared core engine. It autonomously investigates production bugs, routes intent to specialized agents, and executes hypothesis loops.
 
+### Platform Architecture
+
+```mermaid
+graph TD
+    CC["Claude Code Plugin<br/>(Interactive CLI)"] --> CORE["Shared Core Engine"]
+    CU["Cursor IDE Plugin<br/>(IDE-native)"] --> CORE
+    CL["Cloud Service<br/>(REST API / Webhooks)"] --> CORE
+
+    CORE --> AGENTS["12 Agents"]
+    CORE --> SKILLS["9 Skills"]
+    CORE --> ORCH["Orchestrator"]
+    CORE --> DOMAIN["Domain Config"]
+    CORE --> OUTPUT["Output Styles"]
+
+    CORE --> MCP["9 MCP Server Integrations"]
+```
+
 Surfaces:
-- Claude Code (`adapter-claude/`)
-- Cursor (`adapter-cursor/`)
-- Cloud pipeline (`adapter-cloud/`)
+- **Claude Code** (`adapter-claude/`) — Interactive CLI plugin with slash commands and lifecycle hooks
+- **Cursor IDE** (`adapter-cursor/`) — IDE-native plugin with rules, commands, and agents
+- **Cloud pipeline** (`adapter-cloud/`) — REST API with webhooks, BullMQ workers, and persistent storage
+
+Each surface connects to the shared core engine in `core/`, which contains all adapter-agnostic logic: agents, skills, orchestrator, domain config, and output styles. Surface-specific wiring (commands, hooks, API routes) lives in the respective `adapter-*/` directory.
 
 ## Pipeline Design
 
@@ -224,30 +243,33 @@ Each investigation creates a timestamped output directory. Agent subdirectories 
 
 **Location:** Inside a git repo: `.claude/debug/`. Outside: `./debug/`.
 
-## Plugin Structure
+## Monorepo Structure
 
 ```
 production-master/
-├── .claude-plugin/
-│   ├── plugin.json              ← Plugin metadata
-│   └── marketplace.json         ← Marketplace listing
-├── agents/                      ← 12 pipeline agents
-├── commands/                    ← 9 commands
-├── skills/                      ← 9 MCP skill references
-├── hooks/
-│   └── hooks.json               ← Notification + link validation hooks
-├── scripts/
-│   ├── install.sh               ← Plugin installer
-│   ├── install-cursor.sh        ← Cursor IDE installer (cursor-support branch)
-│   ├── validate-install.sh      ← Installation diagnostics
-│   ├── validate-report-links.sh ← Report link validator
-│   ├── bump-version.sh          ← Version bump, tag, and release
-│   ├── sync-cursor.sh           ← Sync cursor-support branch from main
-│   └── statusline.sh            ← Claude Code status bar with pipeline phase
-├── output-styles/               ← Investigation report + publisher formatting
-├── docs/                        ← Documentation
-├── core/domain/examples/        ← Sanitized domain config samples
-└── README.md
+├── core/                        ← Shared, adapter-agnostic logic
+│   ├── agents/                  ← 12 pipeline agents
+│   ├── skills/                  ← 9 MCP skill references
+│   ├── output-styles/           ← Report & publisher formats
+│   ├── orchestrator/            ← Pipeline orchestration logic
+│   ├── domain/                  ← Domain config schema & loading
+│   └── mcp-servers.json         ← Canonical MCP server definitions
+├── adapter-claude/              ← Claude Code surface
+│   ├── .claude-plugin/          ← Plugin manifest & marketplace listing
+│   ├── commands/                ← Slash commands
+│   ├── hooks/                   ← Lifecycle hooks
+│   └── scripts/                 ← Install, validate, sync scripts
+├── adapter-cursor/              ← Cursor IDE surface
+│   ├── .cursor-plugin/          ← Cursor plugin manifest
+│   ├── rules/                   ← Cursor-specific rules
+│   ├── commands/                ← Cursor commands
+│   └── agents/                  ← Cursor agent configurations
+├── adapter-cloud/               ← Cloud surface
+│   ├── src/                     ← API routes, workers, MCP client
+│   ├── helm/                    ← Kubernetes charts
+│   └── migrations/              ← Database migrations
+├── docs/                        ← User-facing documentation
+└── docs/platform-design-docs/   ← Architecture & design documents
 ```
 
 ## Output Format
@@ -256,6 +278,10 @@ Investigation reports follow a structured format designed for clarity in the ter
 
 When publishing to external tools (Jira, Slack, GitHub), the output is automatically adapted to each platform's markup — Jira wiki syntax, Slack mrkdwn, or GitHub-flavored markdown. See the templates in `output-styles/` for details.
 
-## Why `mcp-servers.json` instead of `.mcp.json`?
+## MCP Configuration per Surface
 
-Claude Code plugins can declare MCP servers via a `.mcp.json` file at the plugin root, which auto-starts servers when the plugin loads. However, our 9 MCP servers require **personal access keys** — auto-starting them with placeholder keys would fail. Instead, `mcp-servers.json` serves as a **template** that `install.sh` processes: it substitutes your real access key and merges only missing servers into `~/.claude.json`, without overwriting any existing server configs.
+Each surface handles MCP server configuration differently:
+
+- **Claude Code** — `mcp-servers.json` serves as a **template** that `install.sh` processes: it substitutes your real access key and merges only missing servers into `~/.claude.json`, without overwriting existing server configs. We don't use `.mcp.json` auto-start because MCP servers require personal access keys.
+- **Cursor IDE** — `.mcp.json` in the adapter root is picked up automatically by Cursor. Credentials are read from the `PRODUCTION_MASTER_ACCESS_KEY` environment variable.
+- **Cloud** — MCP connections are configured via environment variables (`.env`). The cloud adapter initializes MCP clients programmatically at startup.
