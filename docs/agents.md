@@ -4,6 +4,8 @@ Production Master uses 12 specialized agents, each with a single focused role. T
 
 Agents are launched as subagents via the `Task` tool. Model assignment is tiered: reasoning-heavy agents run on **sonnet**, while structured/template-driven agents run on **haiku**. See [Model Tiering](architecture.md#model-tiering) for details.
 
+Each agent receives skill files that document the MCP tools it needs. The capability router can resolve these to either vendor-specific skill files (current default) or abstract capability skill files. See [Capability Abstraction](architecture.md#capability-abstraction) for details.
+
 ---
 
 ## bug-context
