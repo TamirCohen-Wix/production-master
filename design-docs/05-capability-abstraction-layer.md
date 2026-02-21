@@ -42,11 +42,11 @@ The current system has a fundamental design flaw: **agents are named after tools
 ```mermaid
 graph LR
     subgraph AGENTS["Agents (Identity = Tool)"]
-        GA["grafana-analyzer<br/>🔴 Named after vendor"]
-        SA["slack-analyzer<br/>🔴 Named after vendor"]
-        AR["artifact-resolver<br/>🟡 Grafana-specific SQL"]
-        PA["production-analyzer<br/>🟡 GitHub + FT-release APIs"]
-        PB["publisher<br/>🔴 Jira wiki + Slack mrkdwn"]
+        GA["grafana-analyzer<br/>Named after vendor"]
+        SA["slack-analyzer<br/>Named after vendor"]
+        AR["artifact-resolver<br/>Grafana-specific SQL"]
+        PA["production-analyzer<br/>GitHub + FT-release APIs"]
+        PB["publisher<br/>Jira wiki + Slack mrkdwn"]
     end
 
     subgraph TOOLS["Hardcoded Tools"]
@@ -806,7 +806,7 @@ This means skill files are the **only artifact that changes when a provider is s
 
 ### Skill File Structure (New Pattern)
 
-```markdown
+````markdown
 ---
 name: log-system
 description: Production log and metric queries — find errors, trace requests, check metrics
@@ -877,7 +877,7 @@ rate(http_requests_total{service="{service}",status=~"5.."}[5m])
 - Always inspect the `data` column — it contains JSON with entity state
 - Use `$__timeFilter(timestamp)` for time range filtering
 - The `artifact_id` column maps to service names via the service registry
-```
+````
 
 ### What Changes When Provider Swaps
 
