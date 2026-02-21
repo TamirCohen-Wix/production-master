@@ -4,7 +4,7 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 COPY .npmrc package*.json ./
-RUN npm install -g npm@latest && npm ci
+RUN npm ci
 
 COPY src/ ./src/
 COPY tsconfig.json ./
@@ -16,7 +16,7 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 
 COPY .npmrc package*.json ./
-RUN npm install -g npm@latest && npm ci --omit=dev
+RUN npm ci --omit=dev
 
 # Stage 3: Run
 FROM node:22-alpine AS runner
