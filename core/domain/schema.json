@@ -1,0 +1,126 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/TamirCohen-Wix/production-master/core/domain/schema.json",
+  "title": "Domain Configuration",
+  "description": "Schema for production-master domain configuration files (domain.json). Defines the identity and infrastructure metadata for a repository.",
+  "type": "object",
+  "required": [
+    "company",
+    "division",
+    "side",
+    "repo",
+    "github_org",
+    "github_repo",
+    "jira_project",
+    "artifact_prefix",
+    "primary_services"
+  ],
+  "properties": {
+    "company": {
+      "type": "string",
+      "description": "Company name (e.g., 'Wix')"
+    },
+    "division": {
+      "type": "string",
+      "description": "Business division (e.g., 'Bookings', 'Stores')"
+    },
+    "side": {
+      "type": "string",
+      "description": "Code side — typically 'Server' or 'Client'"
+    },
+    "repo": {
+      "type": "string",
+      "description": "Short repository name (e.g., 'scheduler')"
+    },
+    "github_org": {
+      "type": "string",
+      "description": "GitHub organization (e.g., 'wix-private')"
+    },
+    "github_repo": {
+      "type": "string",
+      "description": "Full GitHub repository path (e.g., 'wix-private/scheduler')"
+    },
+    "jira_project": {
+      "type": "string",
+      "description": "Jira project key (e.g., 'SCHED')"
+    },
+    "jira_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Base URL for Jira instance (e.g., 'https://wix.atlassian.net')"
+    },
+    "artifact_prefix": {
+      "type": "string",
+      "description": "Maven/Bazel artifact group prefix (e.g., 'com.wixpress.bookings')"
+    },
+    "primary_services": {
+      "type": "array",
+      "description": "List of primary services in this repository",
+      "items": {
+        "type": "object",
+        "required": ["name", "artifact_id"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Human-readable service name (e.g., 'bookings-service')"
+          },
+          "artifact_id": {
+            "type": "string",
+            "description": "Full artifact identifier (e.g., 'com.wixpress.bookings.bookings-service')"
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "slack_channels": {
+      "type": "object",
+      "description": "Slack channels associated with this domain",
+      "properties": {
+        "alerts": {
+          "type": "string",
+          "description": "Alerts channel (e.g., '#bookings-alerts')"
+        },
+        "dev": {
+          "type": "string",
+          "description": "Development channel (e.g., '#bookings-dev')"
+        },
+        "incidents": {
+          "type": "string",
+          "description": "Incidents channel (e.g., '#bookings-incidents')"
+        }
+      },
+      "additionalProperties": false
+    },
+    "toggle_prefix": {
+      "type": "string",
+      "description": "Feature toggle namespace prefix (e.g., 'specs.bookings')"
+    },
+    "grafana_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Base Grafana URL (e.g., 'https://grafana.wixpress.com')"
+    },
+    "grafana_app_analytics_dashboard": {
+      "type": "string",
+      "description": "Grafana AppAnalytics dashboard ID (e.g., 'olcdJbinz')"
+    },
+    "request_id_format": {
+      "type": "string",
+      "description": "Format pattern for request IDs (e.g., '<unix_timestamp>.<random>')"
+    },
+    "language": {
+      "type": "string",
+      "description": "Primary programming language (e.g., 'scala', 'typescript', 'java')"
+    },
+    "build_system": {
+      "type": "string",
+      "description": "Build system used (e.g., 'bazel', 'maven', 'gradle', 'npm')"
+    },
+    "monorepo": {
+      "type": "boolean",
+      "description": "Whether this repository is a monorepo"
+    }
+  },
+  "additionalProperties": false
+}
