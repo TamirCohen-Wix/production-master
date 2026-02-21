@@ -1,5 +1,7 @@
 # Production Master: Claude Code Plugin Design
 
+> **Navigation:** [Index](./README.md) | Previous: [00 — Shared architecture](./00-overview-shared-architecture.md) | Next: [02 — Cursor plugin design](./02-cursor-plugin.md)
+
 > **Document Type:** Application Design & Implementation
 > **Version:** 1.0
 > **Date:** 2026-02-21

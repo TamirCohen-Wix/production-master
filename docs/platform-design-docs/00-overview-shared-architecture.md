@@ -1,5 +1,7 @@
 # Production Master: Overview & Shared Architecture
 
+> **Navigation:** [Index](./README.md) | Previous: none | Next: [01 — Claude Code plugin design](./01-claude-code-plugin.md)
+
 > **Document Type:** Overview — Common Platform Design
 > **Version:** 1.0
 > **Date:** 2026-02-21

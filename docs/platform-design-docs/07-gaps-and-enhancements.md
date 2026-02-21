@@ -1,5 +1,7 @@
 # 07 — Gaps and Enhancements
 
+> **Navigation:** [Index](./README.md) | Previous: [06 — PR plan](./06-pr-plan.md) | Next: none
+
 > Addressing the strategic principle gaps identified in the 42-principle audit that require dedicated design treatment beyond inline updates to existing documents.
 
 **Source**: Strategic Principles Audit (42 principles × 7 design docs)

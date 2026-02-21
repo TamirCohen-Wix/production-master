@@ -4,6 +4,10 @@
 
 Cloud pipeline service for Production Master. Provides REST API, webhook-triggered investigations, worker-based execution, and persistent storage.
 
+## Who this is for
+
+Use this adapter if you need a deployable API/worker service for headless investigations, automation, and webhook-driven operations.
+
 ## Prerequisites
 
 - Node.js 22+
@@ -23,6 +27,14 @@ docker compose up -d
 ```
 
 The API server will be available at `http://localhost:3000`.
+
+## Install and setup
+
+1. Copy `.env.example` to `.env`.
+2. Fill required API keys and infrastructure endpoints.
+3. Start dependencies (Docker Compose recommended).
+4. Run migrations with `npm run migrate`.
+5. Start service with `npm run dev` or deploy built artifacts.
 
 ### Local Development
 
@@ -46,6 +58,22 @@ npm run dev
 | `npm run lint` | Lint source files |
 | `npm run typecheck` | Type-check without emitting |
 | `npm run migrate` | Run database migrations |
+
+## Usage examples
+
+Start an investigation:
+
+```bash
+curl -X POST "http://localhost:3000/api/v1/investigate" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"SCHED-45895"}'
+```
+
+Check status:
+
+```bash
+curl "http://localhost:3000/api/v1/investigations/<id>"
+```
 
 ## Project Structure
 
@@ -113,3 +141,14 @@ All core logic â€” agents, skills, orchestrator, output styles, domain config â€
 ## Environment Variables
 
 See `.env.example` for all required and optional configuration.
+
+## Troubleshooting
+
+- If API starts but jobs are not processed, verify Redis/BullMQ worker connectivity.
+- If requests fail with storage errors, validate PostgreSQL migrations and credentials.
+- If MCP-backed steps fail, verify access keys/tokens in `.env`.
+- If deployments diverge from local behavior, check Wix Serverless runtime/env parity.
+
+## Contributing
+
+See [docs/contributing.md](../docs/contributing.md) for contribution workflow and [docs/README.md](../docs/README.md) for documentation map.

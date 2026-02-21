@@ -1,5 +1,7 @@
 # Production Master: PR Plan
 
+> **Navigation:** [Index](./README.md) | Previous: [05 — Capability abstraction layer](./05-capability-abstraction-layer.md) | Next: [07 — Gaps and enhancements](./07-gaps-and-enhancements.md)
+
 > **Document Type:** Implementation Execution Plan — PR Breakdown
 > **Version:** 1.0
 > **Date:** 2026-02-21
@@ -290,7 +292,7 @@ CONTEXT:
 - It contains ALL orchestrator logic: intent classification, state machine, hypothesis loop, agent dispatch, recovery
 - You must extract sections into 6 separate core/orchestrator/ modules
 - The original commands/production-master.md stays UNTOUCHED — we extract copies
-- Read design-docs/04-implementation-plan.md Section 6 "Core Engine Specification" for the target structure
+- Read platform-design-docs/04-implementation-plan.md Section 6 "Core Engine Specification" for the target structure
 
 SOURCE FILE TO READ FIRST:
   commands/production-master.md — read the ENTIRE file before starting
@@ -801,7 +803,7 @@ TASKS:
 
 3. Update root README.md:
    - Update the directory structure section to show the new monorepo layout:
-    core/, adapter-claude/, adapter-cursor/ (future), adapter-cloud/ (future), domain/, docs/, design-docs/
+    core/, adapter-claude/, adapter-cursor/ (future), adapter-cloud/ (future), domain/, docs/, platform-design-docs/
    - Update installation instructions to reference adapter-claude/scripts/install.sh
    - Update command references to adapter-claude/commands/
    - Keep the project description, features list, and MCP server table
@@ -818,7 +820,7 @@ TASKS:
    - cursor-models.json (experimental)
   - domain/ directory
    - docs/ directory
-   - design-docs/ directory
+   - platform-design-docs/ directory
    - README.md, CLAUDE.md, LICENSE, .gitignore
 
 Branch: feat/cleanup-root
@@ -1719,7 +1721,7 @@ TASKS:
    - Env vars: OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_SERVICE_NAME=production-master
 
 2. Create src/observability/metrics.ts using prom-client:
-   Define these 12 metrics (from design-docs/04-implementation-plan.md Section 15):
+   Define these 12 metrics (from platform-design-docs/04-implementation-plan.md Section 15):
    - pm_investigation_total (Counter, labels: domain, mode, trigger)
    - pm_investigation_duration_seconds (Histogram, labels: domain, verdict)
    - pm_investigation_verdict (Counter, labels: domain, verdict)
@@ -1774,7 +1776,7 @@ Branch: feat/cloud-api-server
 <summary><strong>Agent Prompt</strong></summary>
 
 ```
-You are implementing PR 4.6 for the production-master cloud pipeline. This is the LARGEST PR — the REST API server and orchestrator engine. Read design-docs/03-cloud-pipeline.md and design-docs/04-implementation-plan.md Sections 6 and 9 for full specifications.
+You are implementing PR 4.6 for the production-master cloud pipeline. This is the LARGEST PR — the REST API server and orchestrator engine. Read platform-design-docs/03-cloud-pipeline.md and platform-design-docs/04-implementation-plan.md Sections 6 and 9 for full specifications.
 
 ALL PATHS ARE RELATIVE TO adapter-cloud/
 DEPENDS ON: PR 4.2 (storage), PR 4.3 (MCP client), PR 4.4 (agent worker), PR 4.5 (observability)
@@ -2430,7 +2432,7 @@ Depends on: PR 6.4
 ```
 You are implementing PR 6.5. Add a user feedback loop so that investigation consumers can rate verdict accuracy and provide corrections.
 
-Read design-docs/07-gaps-and-enhancements.md §1 for the full specification. Key features: C19 (structured feedback collection), U18 (confidence recalibration), P29 (accuracy metrics pipeline).
+Read platform-design-docs/07-gaps-and-enhancements.md §1 for the full specification. Key features: C19 (structured feedback collection), U18 (confidence recalibration), P29 (accuracy metrics pipeline).
 
 TASKS:
 
@@ -2474,7 +2476,7 @@ Depends on: PR 6.5
 ```
 You are implementing PR 6.6. Build a self-improvement meta-agent that analyzes feedback data to recommend system improvements.
 
-Read design-docs/07-gaps-and-enhancements.md §2 for the full specification. Key feature: P30 (self-improvement meta-agent).
+Read platform-design-docs/07-gaps-and-enhancements.md §2 for the full specification. Key feature: P30 (self-improvement meta-agent).
 
 TASKS:
 
@@ -2537,7 +2539,7 @@ Depends on: PR 1.3 (skills in core/)
 <summary><strong>Agent Prompt</strong></summary>
 
 ```
-You are implementing PR CAP-1. Create the capability registry and interface schemas. Read design-docs/05-capability-abstraction-layer.md Sections 4 and 7 for the full specification.
+You are implementing PR CAP-1. Create the capability registry and interface schemas. Read platform-design-docs/05-capability-abstraction-layer.md Sections 4 and 7 for the full specification.
 
 TASKS:
 
@@ -2628,7 +2630,7 @@ Depends on: PR CAP-1
 <summary><strong>Agent Prompt</strong></summary>
 
 ```
-You are implementing PR CAP-2. Build the first custom MCP server that abstracts Grafana into a generic log-system interface. Read design-docs/05-capability-abstraction-layer.md Section 6 for the full code examples and Section 11 for the architecture.
+You are implementing PR CAP-2. Build the first custom MCP server that abstracts Grafana into a generic log-system interface. Read platform-design-docs/05-capability-abstraction-layer.md Section 6 for the full code examples and Section 11 for the architecture.
 
 CONTEXT:
 - This MCP server wraps the upstream grafana-datasource MCP (at mcp-s.wewix.net)
@@ -2775,7 +2777,7 @@ Depends on: PR CAP-2
 <summary><strong>Agent Prompt</strong></summary>
 
 ```
-You are implementing PR CAP-4. Rename data collection agents from vendor-named to task-named and remove vendor-specific logic from their prompts. Read design-docs/05-capability-abstraction-layer.md Section 8 for the before/after examples.
+You are implementing PR CAP-4. Rename data collection agents from vendor-named to task-named and remove vendor-specific logic from their prompts. Read platform-design-docs/05-capability-abstraction-layer.md Section 8 for the before/after examples.
 
 THIS IS A HIGH-RISK PR — agent prompts are the core of the system. Be precise.
 
@@ -2898,7 +2900,7 @@ Depends on: PR CAP-4
 <summary><strong>Agent Prompt</strong></summary>
 
 ```
-You are implementing PR CAP-6. Abstract the publisher agent from vendor-specific output formats. Read design-docs/05-capability-abstraction-layer.md Section 8 "Before vs After: report-publisher" for the exact transformation.
+You are implementing PR CAP-6. Abstract the publisher agent from vendor-specific output formats. Read platform-design-docs/05-capability-abstraction-layer.md Section 8 "Before vs After: report-publisher" for the exact transformation.
 
 TASKS:
 
@@ -2967,7 +2969,7 @@ Depends on: PR CAP-1
 ```
 You are implementing PR CAP-7. Add a known-issues registry and knowledge retrieval capability so agents can leverage institutional knowledge during investigations.
 
-Read design-docs/07-gaps-and-enhancements.md §3 for the full specification.
+Read platform-design-docs/07-gaps-and-enhancements.md §3 for the full specification.
 
 TASKS:
 
@@ -3019,7 +3021,7 @@ Depends on: PR CAP-1
 ```
 You are implementing PR CAP-8. Add cross-repo investigation support so agents can trace issues across service boundaries.
 
-Read design-docs/07-gaps-and-enhancements.md §4 for the full specification.
+Read platform-design-docs/07-gaps-and-enhancements.md §4 for the full specification.
 
 TASKS:
 
