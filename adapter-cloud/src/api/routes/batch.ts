@@ -6,24 +6,19 @@
  */
 
 import { Router } from 'express';
-import { Queue } from 'bullmq';
 import { randomUUID } from 'node:crypto';
 import { query } from '../../storage/db.js';
 import { investigationRateLimit } from '../middleware/rate-limit.js';
 import { validateBody, investigateBatchSchema, type InvestigateBatchBody } from '../middleware/validation.js';
 import { createLogger } from '../../observability/index.js';
 import { pmInvestigationTotal } from '../../observability/index.js';
+import { getQueue } from '../../queues/index.js';
 
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
 
 const log = createLogger('api:batch');
-
-const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
-const batchQueue = new Queue('investigations', {
-  connection: { url: REDIS_URL },
-});
 
 // ---------------------------------------------------------------------------
 // Router
@@ -56,7 +51,7 @@ batchRouter.post(
         investigationIds.push(investigationId);
 
         // --- Enqueue to BullMQ ---
-        await batchQueue.add(
+        await getQueue('investigations').add(
           'investigate',
           {
             investigation_id: investigationId,
@@ -98,10 +93,3 @@ batchRouter.post(
     }
   },
 );
-
-/**
- * Gracefully close the BullMQ queue connection.
- */
-export async function closeBatchQueue(): Promise<void> {
-  await batchQueue.close();
-}

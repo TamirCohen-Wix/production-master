@@ -6,23 +6,18 @@
  */
 
 import { Router } from 'express';
-import { Queue } from 'bullmq';
 import { query } from '../../storage/db.js';
 import { investigationRateLimit } from '../middleware/rate-limit.js';
 import { validateBody, investigateSchema, type InvestigateBody } from '../middleware/validation.js';
 import { createLogger, injectTraceContext } from '../../observability/index.js';
 import { pmInvestigationTotal } from '../../observability/index.js';
+import { getQueue } from '../../queues/index.js';
 
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
 
 const log = createLogger('api:investigate');
-
-const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
-const investigationQueue = new Queue('investigations', {
-  connection: { url: REDIS_URL },
-});
 
 // ---------------------------------------------------------------------------
 // Router
@@ -79,7 +74,7 @@ investigateRouter.post(
         requested_by: identity,
       });
 
-      await investigationQueue.add(
+      await getQueue('investigations').add(
         'investigate',
         jobData,
         {
@@ -116,10 +111,3 @@ investigateRouter.post(
     }
   },
 );
-
-/**
- * Gracefully close the BullMQ queue connection.
- */
-export async function closeInvestigateQueue(): Promise<void> {
-  await investigationQueue.close();
-}

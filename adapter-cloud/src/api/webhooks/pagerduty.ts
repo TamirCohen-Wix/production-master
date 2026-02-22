@@ -12,20 +12,16 @@
 
 import { Router } from 'express';
 import crypto from 'node:crypto';
-import { Queue } from 'bullmq';
 import { query } from '../../storage/db.js';
 import { createLogger, pmInvestigationTotal } from '../../observability/index.js';
+import { getQueue } from '../../queues/index.js';
+import { getPagerdutyWebhookSecret } from '../../config/wix-config.js';
 
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
 
 const log = createLogger('api:webhooks:pagerduty');
-
-const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
-const investigationQueue = new Queue('investigations', {
-  connection: { url: REDIS_URL },
-});
 
 // ---------------------------------------------------------------------------
 // Types — PagerDuty V3 Webhook Payload
@@ -75,7 +71,7 @@ export interface PagerDutyV3Payload {
 // Signature verification
 // ---------------------------------------------------------------------------
 
-const PD_WEBHOOK_SECRET = process.env.PAGERDUTY_WEBHOOK_SECRET;
+// Removed module-level read; resolved lazily via getPagerdutyWebhookSecret()
 
 /**
  * Verify the PagerDuty V3 webhook HMAC-SHA256 signature.
@@ -194,7 +190,7 @@ pagerdutyWebhookRouter.get('/', (_req, res) => {
  */
 pagerdutyWebhookRouter.post('/', async (req, res) => {
   // --- Signature verification ---
-  const secret = PD_WEBHOOK_SECRET ?? process.env.PAGERDUTY_WEBHOOK_SECRET;
+  const secret = getPagerdutyWebhookSecret();
   if (secret) {
     const rawBody = (req as unknown as { rawBody?: Buffer }).rawBody ?? Buffer.from(JSON.stringify(req.body));
     const sigHeader = req.headers['x-pagerduty-signature'] as string | undefined;
@@ -290,7 +286,7 @@ pagerdutyWebhookRouter.post('/', async (req, res) => {
     const investigationId = insertResult.rows[0].id;
 
     // --- Enqueue to BullMQ ---
-    await investigationQueue.add(
+    await getQueue('investigations').add(
       'investigate',
       {
         investigation_id: investigationId,
@@ -345,9 +341,3 @@ pagerdutyWebhookRouter.post('/', async (req, res) => {
   }
 });
 
-/**
- * Gracefully close the BullMQ queue connection.
- */
-export async function closePagerdutyQueue(): Promise<void> {
-  await investigationQueue.close();
-}

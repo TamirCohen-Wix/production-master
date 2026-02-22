@@ -12,20 +12,15 @@
  */
 
 import { Router } from 'express';
-import { Queue } from 'bullmq';
 import { query } from '../../storage/db.js';
 import { createLogger, pmInvestigationTotal } from '../../observability/index.js';
+import { getQueue } from '../../queues/index.js';
 
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
 
 const log = createLogger('api:webhooks:grafana-alert');
-
-const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
-const investigationQueue = new Queue('investigations', {
-  connection: { url: REDIS_URL },
-});
 
 // ---------------------------------------------------------------------------
 // Types — Grafana Alerting Webhook Payload
@@ -210,7 +205,7 @@ grafanaAlertWebhookRouter.post('/', async (req, res) => {
       const investigationId = insertResult.rows[0].id;
 
       // --- Enqueue to BullMQ ---
-      await investigationQueue.add(
+      await getQueue('investigations').add(
         'investigate',
         {
           investigation_id: investigationId,
@@ -280,9 +275,3 @@ grafanaAlertWebhookRouter.post('/', async (req, res) => {
   });
 });
 
-/**
- * Gracefully close the BullMQ queue connection.
- */
-export async function closeGrafanaAlertQueue(): Promise<void> {
-  await investigationQueue.close();
-}

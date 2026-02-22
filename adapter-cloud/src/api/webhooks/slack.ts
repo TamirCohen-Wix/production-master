@@ -12,20 +12,16 @@
 
 import { Router, type Request, type Response } from 'express';
 import crypto from 'node:crypto';
-import { Queue } from 'bullmq';
 import { query } from '../../storage/db.js';
 import { createLogger, pmInvestigationTotal } from '../../observability/index.js';
+import { getQueue } from '../../queues/index.js';
+import { getSlackSigningSecret } from '../../config/wix-config.js';
 
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
 
 const log = createLogger('api:webhooks:slack');
-
-const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
-const slackQueue = new Queue('investigations', {
-  connection: { url: REDIS_URL },
-});
 
 // ---------------------------------------------------------------------------
 // Signature verification
@@ -91,7 +87,7 @@ slackWebhookRouter.post(
   '/',
   async (req: Request, res: Response): Promise<void> => {
     // --- Verify signing secret is configured ---
-    const signingSecret = process.env.SLACK_SIGNING_SECRET;
+    const signingSecret = getSlackSigningSecret();
     if (!signingSecret) {
       log.error('SLACK_SIGNING_SECRET is not configured');
       res.status(500).json({ error: 'Slack integration not configured' });
@@ -186,7 +182,7 @@ slackWebhookRouter.post(
       const investigationId = insertResult.rows[0].id;
 
       // --- Enqueue to BullMQ ---
-      await slackQueue.add(
+      await getQueue('investigations').add(
         'investigate',
         {
           investigation_id: investigationId,
@@ -237,9 +233,3 @@ slackWebhookRouter.post(
   },
 );
 
-/**
- * Gracefully close the BullMQ queue connection.
- */
-export async function closeSlackQueue(): Promise<void> {
-  await slackQueue.close();
-}

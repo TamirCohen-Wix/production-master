@@ -5,19 +5,32 @@ import {
 } from '@aws-sdk/client-s3';
 import { getAwsConfig } from '../config/wix-config.js';
 
-const awsConfig = getAwsConfig();
+let _s3: S3Client | undefined;
+let _bucket: string | undefined;
 
-const s3 = new S3Client({
-  region: process.env.AWS_REGION ?? 'us-east-1',
-  ...(awsConfig.accessKeyId && {
-    credentials: {
-      accessKeyId: awsConfig.accessKeyId,
-      secretAccessKey: awsConfig.secretAccessKey,
-    },
-  }),
-});
+function getS3(): S3Client {
+  if (!_s3) {
+    const awsConfig = getAwsConfig();
+    _s3 = new S3Client({
+      region: process.env.AWS_REGION ?? 'us-east-1',
+      ...(awsConfig.accessKeyId && {
+        credentials: {
+          accessKeyId: awsConfig.accessKeyId,
+          secretAccessKey: awsConfig.secretAccessKey,
+        },
+      }),
+    });
+    _bucket = awsConfig.bucket;
+  }
+  return _s3;
+}
 
-const BUCKET = awsConfig.bucket;
+function getBucket(): string {
+  if (!_bucket) {
+    getS3(); // initializes _bucket as side effect
+  }
+  return _bucket!;
+}
 
 /**
  * Upload an investigation report to S3.
@@ -30,9 +43,9 @@ export async function uploadReport(
 ): Promise<string> {
   const key = `reports/${investigationId}/report.html`;
 
-  await s3.send(
+  await getS3().send(
     new PutObjectCommand({
-      Bucket: BUCKET,
+      Bucket: getBucket(),
       Key: key,
       Body: content,
       ContentType: contentType,
@@ -50,9 +63,9 @@ export async function getReport(investigationId: string): Promise<string | null>
   const key = `reports/${investigationId}/report.html`;
 
   try {
-    const response = await s3.send(
+    const response = await getS3().send(
       new GetObjectCommand({
-        Bucket: BUCKET,
+        Bucket: getBucket(),
         Key: key,
       }),
     );

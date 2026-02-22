@@ -20,8 +20,8 @@ import { closePool } from '../storage/db.js';
 import { authMiddleware } from './middleware/auth.js';
 
 // Routes
-import { investigateRouter, closeInvestigateQueue } from './routes/investigate.js';
-import { batchRouter, closeBatchQueue } from './routes/batch.js';
+import { investigateRouter } from './routes/investigate.js';
+import { batchRouter } from './routes/batch.js';
 import { investigationsRouter } from './routes/investigations.js';
 import { queriesRouter, setQueryRegistry } from './routes/queries.js';
 import { domainsRouter } from './routes/domains.js';
@@ -34,14 +34,17 @@ import { metaRouter, setMetaRegistry } from './routes/meta.js';
 import { knowledgeRouter } from './routes/knowledge.js';
 
 // Webhooks
-import { jiraWebhookRouter, closeJiraWebhookQueue, setJiraWebhookRegistry } from './webhooks/jira.js';
-import { slackWebhookRouter, closeSlackQueue } from './webhooks/slack.js';
-import { pagerdutyWebhookRouter, closePagerdutyQueue } from './webhooks/pagerduty.js';
-import { grafanaAlertWebhookRouter, closeGrafanaAlertQueue } from './webhooks/grafana-alert.js';
-import { cicdWebhookRouter, closeCicdQueues } from './webhooks/cicd.js';
+import { jiraWebhookRouter, setJiraWebhookRegistry } from './webhooks/jira.js';
+import { slackWebhookRouter } from './webhooks/slack.js';
+import { pagerdutyWebhookRouter } from './webhooks/pagerduty.js';
+import { grafanaAlertWebhookRouter } from './webhooks/grafana-alert.js';
+import { cicdWebhookRouter } from './webhooks/cicd.js';
 
 // Health check route (authenticated)
-import { healthCheckRouter, closeHealthCheckQueue } from './routes/health-check.js';
+import { healthCheckRouter } from './routes/health-check.js';
+
+// Shared queue factory
+import { closeAllQueues } from '../queues/index.js';
 
 // Orchestrator
 import { startEngine, stopEngine } from '../orchestrator/engine.js';
@@ -264,14 +267,7 @@ async function start(): Promise<void> {
 
       try {
         // Close BullMQ queues
-        await closeInvestigateQueue();
-        await closeBatchQueue();
-        await closeJiraWebhookQueue();
-        await closeSlackQueue();
-        await closePagerdutyQueue();
-        await closeGrafanaAlertQueue();
-        await closeCicdQueues();
-        await closeHealthCheckQueue();
+        await closeAllQueues();
         log.info('Investigation queues closed');
       } catch (err) {
         log.error('Error closing investigation queues', {

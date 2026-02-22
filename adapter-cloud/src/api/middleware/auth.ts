@@ -8,7 +8,7 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { getJwtSecret as getJwtSecretConfig } from '../../config/wix-config.js';
+import { getJwtSecret as getJwtSecretConfig, getApiKeys as getApiKeysConfig } from '../../config/wix-config.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -37,7 +37,7 @@ declare global {
 // ---------------------------------------------------------------------------
 
 function loadApiKeys(): Set<string> {
-  const raw = process.env.API_KEYS ?? '';
+  const raw = getApiKeysConfig();
   return new Set(raw.split(',').map((k) => k.trim()).filter(Boolean));
 }
 

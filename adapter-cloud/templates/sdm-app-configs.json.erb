@@ -9,5 +9,10 @@
   "mcpServiceAccountToken": "<%= databag_passwd('production-master', 'mcp_service_account_token') %>",
   "awsAccessKeyId": "<%= databag_passwd('production-master', 'aws_access_key_id') %>",
   "awsSecretAccessKey": "<%= databag_passwd('production-master', 'aws_secret_access_key') %>",
-  "s3Bucket": "<%= databag_config('production-master', 's3_bucket') %>"
+  "s3Bucket": "<%= databag_config('production-master', 's3_bucket') %>",
+  "apiKeys": "<%= databag_passwd('production-master', 'api_keys') %>",
+  "jiraWebhookSecret": "<%= databag_passwd('production-master', 'jira_webhook_secret') %>",
+  "slackSigningSecret": "<%= databag_passwd('production-master', 'slack_signing_secret') %>",
+  "pagerdutyWebhookSecret": "<%= databag_passwd('production-master', 'pagerduty_webhook_secret') %>",
+  "openaiApiKey": "<%= databag_passwd('production-master', 'openai_api_key') %>"
 }

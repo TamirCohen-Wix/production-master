@@ -8,6 +8,7 @@
 
 import { query } from '../storage/db.js';
 import { createLogger } from '../observability/index.js';
+import { getOpenaiApiKey } from '../config/wix-config.js';
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -26,9 +27,9 @@ const EMBEDDING_MODEL = 'text-embedding-3-small';
  * Call the OpenAI embeddings API to generate a vector for the given text.
  */
 export async function getEmbeddingForText(text: string): Promise<number[]> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = getOpenaiApiKey();
   if (!apiKey) {
-    throw new Error('OPENAI_API_KEY environment variable is not set');
+    throw new Error('OPENAI_API_KEY is not configured (check SDM or environment)');
   }
 
   const response = await fetch(OPENAI_EMBEDDINGS_URL, {

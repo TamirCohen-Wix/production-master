@@ -14,6 +14,7 @@
 
 import { Queue, Worker, type Job } from 'bullmq';
 import { createLogger } from '../observability/index.js';
+import { getRedisUrl } from '../config/wix-config.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -84,7 +85,7 @@ export async function startScheduler(options: SchedulerOptions = {}): Promise<vo
     return;
   }
 
-  const redisUrl = options.redisUrl ?? process.env.REDIS_URL ?? 'redis://localhost:6379';
+  const redisUrl = options.redisUrl ?? getRedisUrl();
   const connection = { url: redisUrl };
 
   // Create queue
