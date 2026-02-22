@@ -9,23 +9,15 @@
  */
 
 import { Router } from 'express';
-import { Queue } from 'bullmq';
 import { query } from '../../storage/db.js';
 import { createLogger, pmInvestigationTotal } from '../../observability/index.js';
+import { getQueue } from '../../queues/index.js';
 
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
 
 const log = createLogger('api:webhooks:cicd');
-
-const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
-const investigationQueue = new Queue('investigations', {
-  connection: { url: REDIS_URL },
-});
-const healthCheckQueue = new Queue('health-checks', {
-  connection: { url: REDIS_URL },
-});
 
 /** Delay before post-deploy health check (ms). Default: 5 minutes. */
 const POST_DEPLOY_CHECK_DELAY_MS = parseInt(
@@ -163,7 +155,7 @@ cicdWebhookRouter.post('/', async (req, res) => {
     );
 
     // --- Schedule delayed health check ---
-    await healthCheckQueue.add(
+    await getQueue('health-checks').add(
       'post-deploy-check',
       {
         service: serviceName,
@@ -211,10 +203,3 @@ cicdWebhookRouter.post('/', async (req, res) => {
   }
 });
 
-/**
- * Gracefully close the BullMQ queue connections.
- */
-export async function closeCicdQueues(): Promise<void> {
-  await investigationQueue.close();
-  await healthCheckQueue.close();
-}

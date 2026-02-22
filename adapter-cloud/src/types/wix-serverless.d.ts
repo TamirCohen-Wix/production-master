@@ -9,6 +9,7 @@ declare module '@wix/serverless-api' {
   export class FunctionsBuilder {
     withAppDefId(appDefId: string): this;
     withAppSecret(config: { configKey: string }): this;
+    withStartup(fn: (ctx: import('@wix/serverless-runtime').FunctionContext) => Promise<void>): this;
     addHttpService(app: unknown): this;
   }
 }

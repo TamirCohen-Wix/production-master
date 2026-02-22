@@ -1,14 +1,21 @@
 import Redis from 'ioredis';
 import { getRedisUrl } from '../config/wix-config.js';
 
-const redis = new Redis.default(getRedisUrl(), {
-  maxRetriesPerRequest: 3,
-  lazyConnect: true,
-});
+let _redis: Redis.default | undefined;
 
-redis.on('error', (err: Error) => {
-  console.error('[cache] Redis error:', err.message);
-});
+function getRedis(): Redis.default {
+  if (!_redis) {
+    _redis = new Redis.default(getRedisUrl(), {
+      maxRetriesPerRequest: 3,
+      lazyConnect: true,
+    });
+
+    _redis.on('error', (err: Error) => {
+      console.error('[cache] Redis error:', err.message);
+    });
+  }
+  return _redis;
+}
 
 const KEY_PREFIX = 'pm:investigation:';
 const DEFAULT_TTL_SECONDS = 3600; // 1 hour
@@ -30,7 +37,7 @@ export async function setInvestigationState(
   state: InvestigationState,
   ttl: number = DEFAULT_TTL_SECONDS,
 ): Promise<void> {
-  await redis.set(
+  await getRedis().set(
     `${KEY_PREFIX}${investigationId}`,
     JSON.stringify(state),
     'EX',
@@ -45,7 +52,7 @@ export async function setInvestigationState(
 export async function getInvestigationState(
   investigationId: string,
 ): Promise<InvestigationState | null> {
-  const data = await redis.get(`${KEY_PREFIX}${investigationId}`);
+  const data = await getRedis().get(`${KEY_PREFIX}${investigationId}`);
   if (!data) return null;
   return JSON.parse(data) as InvestigationState;
 }
@@ -56,14 +63,22 @@ export async function getInvestigationState(
 export async function deleteInvestigationState(
   investigationId: string,
 ): Promise<void> {
-  await redis.del(`${KEY_PREFIX}${investigationId}`);
+  await getRedis().del(`${KEY_PREFIX}${investigationId}`);
 }
 
 /**
  * Gracefully disconnect Redis (for clean process exit).
  */
 export async function closeCache(): Promise<void> {
-  await redis.quit();
+  if (_redis) {
+    await _redis.quit();
+    _redis = undefined;
+  }
 }
 
-export { redis };
+/** @deprecated Use the cache functions instead of accessing redis directly. */
+export const redis = new Proxy({} as Redis.default, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getRedis(), prop, receiver);
+  },
+});

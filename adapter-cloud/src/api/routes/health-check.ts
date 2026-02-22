@@ -12,20 +12,15 @@
  */
 
 import { Router } from 'express';
-import { Queue } from 'bullmq';
 import { query } from '../../storage/db.js';
 import { createLogger, pmInvestigationTotal } from '../../observability/index.js';
+import { getQueue } from '../../queues/index.js';
 
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
 
 const log = createLogger('api:health-check');
-
-const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
-const investigationQueue = new Queue('investigations', {
-  connection: { url: REDIS_URL },
-});
 
 /**
  * Error rate threshold multiplier. If a service's current error rate
@@ -165,7 +160,7 @@ healthCheckRouter.post('/', async (req, res) => {
 
             const investigationId = insertResult.rows[0].id;
 
-            await investigationQueue.add(
+            await getQueue('investigations').add(
               'investigate',
               {
                 investigation_id: investigationId,
@@ -301,9 +296,3 @@ async function getCurrentErrorRate(
   }
 }
 
-/**
- * Gracefully close the BullMQ queue connection.
- */
-export async function closeHealthCheckQueue(): Promise<void> {
-  await investigationQueue.close();
-}

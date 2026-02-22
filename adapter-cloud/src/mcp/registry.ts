@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 import { McpHttpClient, type McpClientOptions } from "./client.js";
 import { McpStdioClient, type StdioClientOptions } from "./stdio-client.js";
+import { getMcpServiceAccountToken } from "../config/wix-config.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -169,8 +170,8 @@ export class McpRegistry {
 
     if (auth.startsWith("vault://")) {
       // In production, this would call a Vault client.
-      // For now, fall back to the CLOUD_MCP_ACCESS_KEY env var.
-      return process.env.CLOUD_MCP_ACCESS_KEY;
+      // For now, fall back to the SDM-managed service account token.
+      return getMcpServiceAccountToken() || undefined;
     }
 
     return auth;

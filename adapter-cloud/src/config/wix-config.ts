@@ -86,3 +86,45 @@ export function getAwsConfig(): { accessKeyId: string; secretAccessKey: string; 
     bucket: getConfig('s3Bucket', 'S3_REPORTS_BUCKET', 'production-master-reports'),
   };
 }
+
+/**
+ * Convenience: get the comma-separated API keys string.
+ */
+export function getApiKeys(): string {
+  return getConfig('apiKeys', 'API_KEYS', '');
+}
+
+/**
+ * Convenience: get the Jira webhook HMAC secret.
+ */
+export function getJiraWebhookSecret(): string {
+  return getConfig('jiraWebhookSecret', 'JIRA_WEBHOOK_SECRET', '');
+}
+
+/**
+ * Convenience: get the Slack signing secret.
+ */
+export function getSlackSigningSecret(): string {
+  return getConfig('slackSigningSecret', 'SLACK_SIGNING_SECRET', '');
+}
+
+/**
+ * Convenience: get the PagerDuty webhook secret.
+ */
+export function getPagerdutyWebhookSecret(): string {
+  return getConfig('pagerdutyWebhookSecret', 'PAGERDUTY_WEBHOOK_SECRET', '');
+}
+
+/**
+ * Convenience: get the OpenAI API key.
+ */
+export function getOpenaiApiKey(): string {
+  return getConfig('openaiApiKey', 'OPENAI_API_KEY', '');
+}
+
+/**
+ * Convenience: get the MCP service account token.
+ */
+export function getMcpServiceAccountToken(): string {
+  return getConfig('mcpServiceAccountToken', 'CLOUD_MCP_ACCESS_KEY', '');
+}

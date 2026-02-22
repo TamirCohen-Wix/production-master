@@ -13,7 +13,6 @@
 
 import { Router } from 'express';
 import crypto from 'node:crypto';
-import { Queue } from 'bullmq';
 import { query } from '../../storage/db.js';
 import { createLogger, pmInvestigationTotal, pmJiraAssignmentTotal } from '../../observability/index.js';
 import type { McpRegistry } from '../../mcp/registry.js';
@@ -22,17 +21,14 @@ import {
   type JiraAssignmentConfig,
   type JiraAutoAssignResult,
 } from '../../services/jira-auto-assign.js';
+import { getQueue } from '../../queues/index.js';
+import { getJiraWebhookSecret } from '../../config/wix-config.js';
 
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
 
 const log = createLogger('api:webhook:jira');
-
-const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
-const investigationQueue = new Queue('investigations', {
-  connection: { url: REDIS_URL },
-});
 let jiraWebhookRegistry: McpRegistry | null = null;
 
 /** Deduplication window: skip if same ticket investigated in last hour. */
@@ -60,7 +56,7 @@ function loadProjectFilter(): Set<string> {
  * Returns true when the signature is valid or when no secret is configured.
  */
 function verifySignature(rawBody: Buffer, signatureHeader: string | undefined): boolean {
-  const secret = process.env.JIRA_WEBHOOK_SECRET;
+  const secret = getJiraWebhookSecret();
   if (!secret) {
     // No secret configured — skip verification
     return true;
@@ -240,7 +236,7 @@ jiraWebhookRouter.post('/', async (req, res) => {
     const investigationId = insertResult.rows[0].id;
 
     // --- Enqueue to BullMQ ---
-    await investigationQueue.add(
+    await getQueue('investigations').add(
       'investigate',
       {
         investigation_id: investigationId,
@@ -308,9 +304,3 @@ jiraWebhookRouter.post('/', async (req, res) => {
   }
 });
 
-/**
- * Gracefully close the BullMQ queue connection (for tests / shutdown).
- */
-export async function closeJiraWebhookQueue(): Promise<void> {
-  await investigationQueue.close();
-}
